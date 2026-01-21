@@ -1,10 +1,19 @@
 #pragma once
 
-struct VkInstance_T;
-
 struct VulkanInstance {
 	VulkanInstance();
-	~VulkanInstance();
+	struct VkInstance_T* instance = nullptr;
+	struct VulkanValidator* validator = nullptr;
+	struct VkDebugUtilsMessengerEXT_T* debugMessenger = nullptr;
 
-	VkInstance_T* instance;
+	bool setup();
+	void teardown();
+private:
+	void setupDebugMessenger();
+	bool setupValidator();
+	void setupInstance();
+
+	struct VkApplicationInfo makeVkAppInfo() const;
+	void makeVkDebugMessengerCreateInfo(struct VkDebugUtilsMessengerCreateInfoEXT& createInfo) const;
+	void makeVkInstanceCreateInfo(const struct VkApplicationInfo& appInfo, struct VkInstanceCreateInfo& createInfo) const;
 };

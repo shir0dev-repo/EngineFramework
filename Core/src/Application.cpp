@@ -1,6 +1,7 @@
 #include "../Application.h"
 #include "../AppWindow.h"
 #include "../VulkanInstance.h"
+#include "../VulkanValidator.h"
 
 #include <GLFW/glfw3.h>
 
@@ -32,6 +33,7 @@ int Application::initWindow() {
 
 void Application::initVulkan() {
 	this->vkInstance = new VulkanInstance();
+	//this->vkInstance->setup();
 }
 
 void Application::mainLoop() {
@@ -41,6 +43,7 @@ void Application::mainLoop() {
 }
 
 void Application::cleanup() {
+	vkInstance->teardown();
 	delete vkInstance;
 	delete window;
 	glfwTerminate();

@@ -133,12 +133,14 @@
     <ClCompile Include="Core\src\Application.cpp" />
     <ClCompile Include="Core\src\AppWindow.cpp" />
     <ClCompile Include="Core\src\VulkanInstance.cpp" />
+    <ClCompile Include="Core\src\VulkanValidator.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Core\AppWindow.h" />
     <ClInclude Include="Core\VulkanInstance.h" />
+    <ClInclude Include="Core\VulkanValidator.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
