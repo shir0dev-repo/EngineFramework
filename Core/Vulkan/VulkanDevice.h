@@ -16,6 +16,7 @@ struct SwapChainSupportDetails;
 struct VulkanDevice {
 	VkPhysicalDevice_T* physicalDevice = nullptr;
 	VkDevice_T* logicalDevice = nullptr;
+
 	void setup(VkInstance_T* instance, const VulkanValidator& validator, VkSurfaceKHR_T* surface, GLFWwindow* window);
 	void teardown();
 

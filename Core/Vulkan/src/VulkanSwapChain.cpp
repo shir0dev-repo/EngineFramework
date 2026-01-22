@@ -89,7 +89,7 @@ void VulkanSwapChain::createSwapChainImageView(VkDevice_T* logicalDevice, uint32
 	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	createInfo.image = swapChainImages[currentIndex];
 	createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	createInfo.format = swapChainImageFormat;
+	createInfo.format = selectedFormat->format;
 	
 	createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 	createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;

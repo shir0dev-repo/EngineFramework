@@ -58,6 +58,7 @@ bool VulkanInstance::setup(GLFWwindow* window) {
 	setupDebugMessenger();
 	setupSurface(window);
 	setupDevice(window);
+	setupSwapchain(window);
 	return true;
 }
 

@@ -1,7 +1,8 @@
 #pragma once
 
-struct VulkanInstance;
 struct AppWindow;
+struct VulkanInstance;
+struct GraphicsPipeline;
 
 struct Application {
 	int run();
@@ -9,9 +10,11 @@ struct Application {
 private:
 	bool initWindow();
 	void initVulkan();
+	void initGraphicsPipeline();
 	void mainLoop();
 	void cleanup();
 
-	AppWindow* window;
-	VulkanInstance* vkInstance;
+	AppWindow* window = nullptr;
+	VulkanInstance* vkInstance = nullptr;
+	GraphicsPipeline* graphicsPipeline = nullptr;
 };

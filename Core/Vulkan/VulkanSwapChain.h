@@ -21,6 +21,8 @@ struct VkImageView_T;
 struct VulkanSwapChain {
 	static void querySwapChainCapabilities(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, SwapChainSupportDetails& supportDetails);
 	
+	const VkExtent2D* const GetExtents() const { return swapExtent; }
+
 	void setup(VkPhysicalDevice_T* physicalDevice, VkDevice_T* logicalDevice, VkSurfaceKHR_T* surface,
 		GLFWwindow* window);
 	void teardown(VkDevice_T* logicalDevice);
@@ -29,6 +31,7 @@ private:
 	void createSwapChain(VkPhysicalDevice_T* physicalDevice, VkDevice_T* logicalDevice, VkSurfaceKHR_T* surface, GLFWwindow* window);
 	void createImageViews(VkDevice_T* logicalDevice);
 	void createSwapChainImageView(VkDevice_T* logicalDevice, uint32_t currentIndex);
+
 	static void querySupportedSurfaceFormats(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, VkSurfaceFormatKHR*& outFormats, uint32_t* count);
 	static void querySupportedPresentModes(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, VkPresentModeKHR*& outPresentModes, uint32_t* count);
 	static void querySurfaceCapabilities(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, VkSurfaceCapabilitiesKHR*& outCapabilities);

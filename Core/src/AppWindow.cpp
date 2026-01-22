@@ -1,13 +1,13 @@
 #include "../AppWindow.h"
 #include <GLFW/glfw3.h>
 
-AppWindow::AppWindow(int width, int height, const char* title) {
+void AppWindow::setup(int width, int height, const char* title) {
 	this->Width = width;
 	this->Height = height;
 	this->hWnd = glfwCreateWindow(width, height, title, nullptr, nullptr);
 }
 
-AppWindow::~AppWindow() {
+void AppWindow::teardown() {
 	if (this->hWnd != nullptr) {
 		glfwDestroyWindow(this->hWnd);
 		this->hWnd = nullptr;

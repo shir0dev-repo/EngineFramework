@@ -130,6 +130,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Core\Graphics\src\GraphicsPipeline.cpp" />
     <ClCompile Include="Core\src\Application.cpp" />
     <ClCompile Include="Core\src\AppWindow.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanInstance.cpp" />
@@ -143,6 +144,7 @@
   <ItemGroup>
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Core\AppWindow.h" />
+    <ClInclude Include="Core\Graphics\GraphicsPipeline.h" />
     <ClInclude Include="Core\Vulkan\Util\QueueFamilyIndices.h" />
     <ClInclude Include="Core\Vulkan\Util\SwapChainSupportDetails.h" />
     <ClInclude Include="Core\Vulkan\VulkanInstance.h" />

@@ -4,8 +4,8 @@ struct AppWindow {
 	int Width;
 	int Height;
 
-	AppWindow(int width, int height, const char* title = "Vulkan Framework");
-	~AppWindow();
+	void setup(int width, int height, const char* title = "Vulkan Framework");
+	void teardown();
 
 	struct GLFWwindow* const GetWindow() const;
 
