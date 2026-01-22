@@ -1,6 +1,8 @@
 #include "../VulkanInstance.h"
 #include "../VulkanValidator.h"
 #include "../VulkanDevice.h"
+#include "../VulkanSwapChain.h"
+#include "../Util/SwapChainSupportDetails.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -60,8 +62,14 @@ bool VulkanInstance::setup(GLFWwindow* window) {
 }
 
 void VulkanInstance::teardown() {
+	if (swapChain != nullptr) {
+		swapChain->teardown(device->logicalDevice);
+		delete swapChain;
+		swapChain = nullptr;
+	}
 	if (device != nullptr) {
 		device->teardown();
+		delete device;
 		device = nullptr;
 	}
 	if (validator->isValidationLayerEnabled) {
@@ -146,6 +154,11 @@ void VulkanInstance::setupSurface(GLFWwindow* window) {
 void VulkanInstance::setupDevice(GLFWwindow* window) {
 	this->device = new VulkanDevice();
 	this->device->setup(this->instance, *this->validator, this->surface, window);
+}
+
+void VulkanInstance::setupSwapchain(GLFWwindow* window) {
+	this->swapChain = new VulkanSwapChain();
+	this->swapChain->setup(device->physicalDevice, device->logicalDevice, this->surface, window);
 }
 
 void VulkanInstance::makeVkApplicationInfo(VkApplicationInfo& appInfo) const {

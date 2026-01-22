@@ -22,15 +22,8 @@ static uint32_t rateDeviceSuitability(VkPhysicalDevice_T* device, VkSurfaceKHR_T
 void VulkanDevice::setup(VkInstance_T* instance, const VulkanValidator& validator, VkSurfaceKHR_T* surface, GLFWwindow* window) {
 	pickPhysicalDevice(instance, surface);
 	createLogicalDevice(validator, surface);
-	createSwapChain(surface, window);
 }
 void VulkanDevice::teardown() {
-	if (swapChain != nullptr) {
-		swapChain->teardown(logicalDevice);
-		delete swapChain;
-		swapChain = nullptr;
-	}
-
 	vkDestroyDevice(logicalDevice, nullptr);
 }
 
@@ -60,6 +53,7 @@ void VulkanDevice::pickPhysicalDevice(VkInstance_T* instance, VkSurfaceKHR_T* su
 		throw std::runtime_error("Failed to find a suitable GPU!");
 	}
 }
+
 void VulkanDevice::createLogicalDevice(const VulkanValidator& validator, VkSurfaceKHR_T* surface) {
 	QueueFamilyIndices indices = QueueFamilyIndices::findQueueFamilies(physicalDevice, surface);
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -101,13 +95,6 @@ void VulkanDevice::createLogicalDevice(const VulkanValidator& validator, VkSurfa
 
 	vkGetDeviceQueue(logicalDevice, indices.graphicsFamily.index, 0, &this->graphicsQueue);
 	vkGetDeviceQueue(logicalDevice, indices.presentFamily.index, 0, &this->presentQueue);
-}
-
-void VulkanDevice::createSwapChain(VkSurfaceKHR_T* surface, GLFWwindow* window) {
-	SwapChainSupportDetails swapChainSupport = {};
-	VulkanSwapChain::querySwapChainCapabilities(physicalDevice, surface, swapChainSupport);
-	this->swapChain = new VulkanSwapChain();
-	swapChain->setup(physicalDevice, logicalDevice, surface, window, swapChainSupport);
 }
 
 bool checkDeviceExtensionSupport(VkPhysicalDevice_T* device) {

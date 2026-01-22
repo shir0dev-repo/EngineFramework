@@ -9,21 +9,20 @@ struct VkSurfaceKHR_T;
 
 struct GLFWwindow;
 
-struct VulkanSwapChain;
 struct VulkanValidator;
+struct VulkanSwapChain;
+struct SwapChainSupportDetails;
 
 struct VulkanDevice {
+	VkPhysicalDevice_T* physicalDevice = nullptr;
+	VkDevice_T* logicalDevice = nullptr;
 	void setup(VkInstance_T* instance, const VulkanValidator& validator, VkSurfaceKHR_T* surface, GLFWwindow* window);
 	void teardown();
 
 private:
 	void pickPhysicalDevice(struct VkInstance_T* instance, VkSurfaceKHR_T* surface);
 	void createLogicalDevice(const VulkanValidator& validator, VkSurfaceKHR_T* surface);
-	void createSwapChain(VkSurfaceKHR_T* surface, GLFWwindow* window);
 	
-	VkPhysicalDevice_T* physicalDevice = nullptr;
-	VkDevice_T* logicalDevice = nullptr;
-	VulkanSwapChain* swapChain = nullptr;
 	VkQueue_T* graphicsQueue = nullptr;
 	VkQueue_T* presentQueue = nullptr;
 };
