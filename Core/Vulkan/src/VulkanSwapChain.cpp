@@ -126,9 +126,30 @@ void VulkanSwapChain::setup(VkPhysicalDevice_T* physicalDevice, VkDevice_T* logi
 	if (vkCreateSwapchainKHR(logicalDevice, &createInfo, nullptr, &this->swapChain) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create swap chain!");
 	}
+
+	vkGetSwapchainImagesKHR(logicalDevice, swapChain, &this->swapChainImageCount, nullptr);
+	this->swapChainImages = new VkImage_T*[swapChainImageCount];
+	vkGetSwapchainImagesKHR(logicalDevice, swapChain, &swapChainImageCount, swapChainImages);
 }
 
 void VulkanSwapChain::teardown(VkDevice_T* device) {
+	if (swapChainImageFormat != nullptr) {
+		delete swapChainImageFormat;
+		swapChainImageFormat = nullptr;
+	}
+	if (swapChainImages != nullptr) {
+		delete[] swapChainImages;
+		swapChainImages = nullptr;
+	}
+	if (selectedFormat != nullptr) {
+		delete selectedFormat;
+		selectedFormat = nullptr;
+	}
+	if (swapExtent != nullptr) {
+		delete swapExtent;
+		swapExtent = nullptr;
+	}
+
 	vkDestroySwapchainKHR(device, swapChain, nullptr);
 }
 
