@@ -20,6 +20,43 @@ static VkShaderModule createShaderModule(VkDevice_T* logicalDevice, const char* 
 }
 
 void GraphicsPipeline::setup(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain) {
+	setupRenderPass(logicalDevice, swapChain);
+	setupPipelineLayout(logicalDevice, swapChain);
+}
+
+void GraphicsPipeline::setupRenderPass(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain) {
+	VkAttachmentDescription colorAttachment = {};
+	colorAttachment.format = swapChain->getFormat()->format;
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	VkAttachmentReference colorAttachmentRef = {};
+	colorAttachmentRef.attachment = 0;
+	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDescription subpass = {};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount = 1;
+	subpass.pColorAttachments = &colorAttachmentRef;
+	
+	VkRenderPassCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	createInfo.attachmentCount = 1;
+	createInfo.pAttachments = &colorAttachment;
+	createInfo.subpassCount = 1;
+	createInfo.pSubpasses = &subpass;
+
+	if (vkCreateRenderPass(logicalDevice, &createInfo, nullptr, &this->renderPass) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create render pass!");
+	}
+}
+
+void GraphicsPipeline::setupPipelineLayout(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain) {
 	char* vertexContent = nullptr;
 	char* fragmentContent = nullptr;
 
@@ -67,7 +104,7 @@ void GraphicsPipeline::setup(VkDevice_T* logicalDevice, const VulkanSwapChain* c
 	inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 	inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-	const VkExtent2D* const extent = swapChain->GetExtents();
+	const VkExtent2D* const extent = swapChain->getExtents();
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
@@ -115,7 +152,7 @@ void GraphicsPipeline::setup(VkDevice_T* logicalDevice, const VulkanSwapChain* c
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	this->pipelineLayout = new VkPipelineLayout_T*();
+	this->pipelineLayout = new VkPipelineLayout_T * ();
 	if (vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, this->pipelineLayout) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create pipeline layout!");
 	}
@@ -129,6 +166,9 @@ void GraphicsPipeline::teardown(VkDevice_T* logicalDevice) {
 		vkDestroyPipelineLayout(logicalDevice, *pipelineLayout, nullptr);
 		delete pipelineLayout;
 		pipelineLayout = nullptr;
+	}
+	if (renderPass != nullptr) {
+		vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
 	}
 }
 

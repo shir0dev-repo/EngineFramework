@@ -21,10 +21,11 @@ struct VkImageView_T;
 struct VulkanSwapChain {
 	static void querySwapChainCapabilities(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, SwapChainSupportDetails& supportDetails);
 	
-	const VkExtent2D* const GetExtents() const { return swapExtent; }
+	const VkSurfaceFormatKHR* const getFormat() const { return selectedFormat; }
+	const VkPresentModeKHR getPresentMode() const { return selectedPresentMode; }
+	const VkExtent2D* const getExtents() const { return swapExtent; }
 
-	void setup(VkPhysicalDevice_T* physicalDevice, VkDevice_T* logicalDevice, VkSurfaceKHR_T* surface,
-		GLFWwindow* window);
+	void setup(VkPhysicalDevice_T* physicalDevice, VkDevice_T* logicalDevice, VkSurfaceKHR_T* surface, GLFWwindow* window);
 	void teardown(VkDevice_T* logicalDevice);
 
 private:

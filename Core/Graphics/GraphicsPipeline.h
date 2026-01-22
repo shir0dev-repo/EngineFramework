@@ -3,8 +3,10 @@
 typedef unsigned int uint32_t;
 
 struct VkDevice_T;
-struct VulkanSwapChain;
+struct VkRenderPass_T;
 struct VkPipelineLayout_T;
+
+struct VulkanSwapChain;
 
 struct GraphicsPipeline {
 	void setup(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain);
@@ -13,5 +15,8 @@ struct GraphicsPipeline {
 	static bool readFile(const char* filePath, char*& outFileContents, uint32_t& fileSize);
 
 private:
+	void setupRenderPass(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain);
+	void setupPipelineLayout(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain);
+	VkRenderPass_T* renderPass = nullptr;
 	VkPipelineLayout_T** pipelineLayout = nullptr;
 };
