@@ -1,7 +1,7 @@
 #include "../Application.h"
 #include "../AppWindow.h"
-#include "../VulkanInstance.h"
-#include "../VulkanValidator.h"
+#include "../Vulkan/VulkanInstance.h"
+#include "../Vulkan/VulkanValidator.h"
 
 #include <GLFW/glfw3.h>
 
@@ -17,7 +17,7 @@ int Application::run() {
 	return 0;
 }
 
-int Application::initWindow() {
+bool Application::initWindow() {
 	if (glfwInit() == GLFW_FALSE) {
 		glfwTerminate();
 		return 0;
@@ -33,7 +33,7 @@ int Application::initWindow() {
 
 void Application::initVulkan() {
 	this->vkInstance = new VulkanInstance();
-	//this->vkInstance->setup();
+	this->vkInstance->setup(this->window->GetWindow());
 }
 
 void Application::mainLoop() {

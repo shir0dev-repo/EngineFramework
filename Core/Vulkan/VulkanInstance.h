@@ -1,19 +1,22 @@
 #pragma once
 
 struct VulkanInstance {
-	VulkanInstance();
-	struct VkInstance_T* instance = nullptr;
 	struct VulkanValidator* validator = nullptr;
+	struct VulkanDevice* device = nullptr;
+	struct VkInstance_T* instance = nullptr;
+	struct VkSurfaceKHR_T* surface = nullptr;
 	struct VkDebugUtilsMessengerEXT_T* debugMessenger = nullptr;
 
-	bool setup();
+	bool setup(struct GLFWwindow* window);
 	void teardown();
 private:
-	void setupDebugMessenger();
 	bool setupValidator();
 	void setupInstance();
+	void setupDebugMessenger();
+	void setupSurface(struct GLFWwindow* window);
+	void setupDevice(struct GLFWwindow* window);
 
-	struct VkApplicationInfo makeVkAppInfo() const;
+	void makeVkApplicationInfo(struct VkApplicationInfo& appInfo) const;
 	void makeVkDebugMessengerCreateInfo(struct VkDebugUtilsMessengerCreateInfoEXT& createInfo) const;
 	void makeVkInstanceCreateInfo(const struct VkApplicationInfo& appInfo, struct VkInstanceCreateInfo& createInfo) const;
 };

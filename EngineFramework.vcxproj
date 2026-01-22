@@ -132,15 +132,21 @@
   <ItemGroup>
     <ClCompile Include="Core\src\Application.cpp" />
     <ClCompile Include="Core\src\AppWindow.cpp" />
-    <ClCompile Include="Core\src\VulkanInstance.cpp" />
-    <ClCompile Include="Core\src\VulkanValidator.cpp" />
+    <ClCompile Include="Core\Vulkan\src\VulkanInstance.cpp" />
+    <ClCompile Include="Core\Vulkan\src\VulkanSwapChain.cpp" />
+    <ClCompile Include="Core\Vulkan\src\VulkanValidator.cpp" />
+    <ClCompile Include="Core\Vulkan\src\VulkanDevice.cpp" />
+    <ClCompile Include="Core\Vulkan\Util\src\QueueFamilyIndices.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Core\AppWindow.h" />
-    <ClInclude Include="Core\VulkanInstance.h" />
-    <ClInclude Include="Core\VulkanValidator.h" />
+    <ClInclude Include="Core\Vulkan\Util\QueueFamilyIndices.h" />
+    <ClInclude Include="Core\Vulkan\VulkanInstance.h" />
+    <ClInclude Include="Core\Vulkan\VulkanSwapChain.h" />
+    <ClInclude Include="Core\Vulkan\VulkanValidator.h" />
+    <ClInclude Include="Core\Vulkan\VulkanDevice.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

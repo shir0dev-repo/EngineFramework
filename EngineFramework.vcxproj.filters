@@ -24,10 +24,19 @@
     <ClCompile Include="Core\src\Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Core\src\VulkanInstance.cpp">
+    <ClCompile Include="Core\Vulkan\src\VulkanInstance.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Core\src\VulkanValidator.cpp">
+    <ClCompile Include="Core\Vulkan\src\VulkanValidator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Vulkan\src\VulkanDevice.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Vulkan\src\VulkanSwapChain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Vulkan\Util\src\QueueFamilyIndices.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -38,10 +47,19 @@
     <ClInclude Include="Core\Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Core\VulkanInstance.h">
+    <ClInclude Include="Core\Vulkan\VulkanInstance.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Core\VulkanValidator.h">
+    <ClInclude Include="Core\Vulkan\VulkanValidator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Vulkan\VulkanDevice.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Vulkan\VulkanSwapChain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Vulkan\Util\QueueFamilyIndices.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

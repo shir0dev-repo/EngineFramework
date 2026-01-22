@@ -1,7 +1,10 @@
 #include "../VulkanInstance.h"
 #include "../VulkanValidator.h"
+#include "../VulkanDevice.h"
 
+#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+
 #include <vulkan/vulkan.h>
 #include <iostream>
 
@@ -44,26 +47,23 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 }
 #pragma endregion
 
-VulkanInstance::VulkanInstance() {
-	if (!setupValidator()) {
-		throw;
-	}
-
-	setupInstance();
-	setupDebugMessenger();
-}
-
-bool VulkanInstance::setup() {
+bool VulkanInstance::setup(GLFWwindow* window) {
 	if (!setupValidator()) {
 		return false;
 	}
 
 	setupInstance();
 	setupDebugMessenger();
+	setupSurface(window);
+	setupDevice(window);
 	return true;
 }
 
 void VulkanInstance::teardown() {
+	if (device != nullptr) {
+		device->teardown();
+		device = nullptr;
+	}
 	if (validator->isValidationLayerEnabled) {
 		DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 		debugMessenger = nullptr;
@@ -71,6 +71,10 @@ void VulkanInstance::teardown() {
 	if (validator != nullptr) {
 		delete validator;
 		validator = nullptr;
+	}
+	if (surface != nullptr) {
+		vkDestroySurfaceKHR(instance, surface, nullptr);
+		surface = nullptr;
 	}
 	if (instance != nullptr) {
 		vkDestroyInstance(instance, nullptr);
@@ -91,7 +95,9 @@ bool VulkanInstance::setupValidator() {
 }
 
 void VulkanInstance::setupInstance() {
-	VkApplicationInfo appInfo = makeVkAppInfo();
+	VkApplicationInfo appInfo;
+	makeVkApplicationInfo(appInfo);
+
 	VkInstanceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	createInfo.pApplicationInfo = &appInfo;
@@ -131,16 +137,25 @@ void VulkanInstance::setupDebugMessenger() {
 	}
 }
 
-VkApplicationInfo VulkanInstance::makeVkAppInfo() const {
-	VkApplicationInfo appInfo{};
+void VulkanInstance::setupSurface(GLFWwindow* window) {
+	if (glfwCreateWindowSurface(instance, window, nullptr, &this->surface) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create window surface!");
+	}
+}
+
+void VulkanInstance::setupDevice(GLFWwindow* window) {
+	this->device = new VulkanDevice();
+	this->device->setup(this->instance, *this->validator, this->surface, window);
+}
+
+void VulkanInstance::makeVkApplicationInfo(VkApplicationInfo& appInfo) const {
+	appInfo = {};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pApplicationName = "Vulkan Framework";
 	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	appInfo.pEngineName = "No Engine";
 	appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 	appInfo.apiVersion = VK_API_VERSION_1_0;
-
-	return appInfo;
 }
 
 void VulkanInstance::makeVkDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) const {

@@ -7,7 +7,7 @@ struct Application {
 	int run();
 
 private:
-	int initWindow();
+	bool initWindow();
 	void initVulkan();
 	void mainLoop();
 	void cleanup();

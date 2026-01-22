@@ -3,7 +3,7 @@
 #include <iostream>
 #include "Core/Application.h"
 int main() {
-	Application app;
+	Application app{};
 
 	return app.run();
 }
