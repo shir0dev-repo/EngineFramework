@@ -137,12 +137,14 @@
     <ClCompile Include="Core\Vulkan\src\VulkanValidator.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanDevice.cpp" />
     <ClCompile Include="Core\Vulkan\Util\src\QueueFamilyIndices.cpp" />
+    <ClCompile Include="Core\Vulkan\Util\src\SwapChainSupportDetails.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Core\AppWindow.h" />
     <ClInclude Include="Core\Vulkan\Util\QueueFamilyIndices.h" />
+    <ClInclude Include="Core\Vulkan\Util\SwapChainSupportDetails.h" />
     <ClInclude Include="Core\Vulkan\VulkanInstance.h" />
     <ClInclude Include="Core\Vulkan\VulkanSwapChain.h" />
     <ClInclude Include="Core\Vulkan\VulkanValidator.h" />

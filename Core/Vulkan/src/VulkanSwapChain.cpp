@@ -1,5 +1,6 @@
 #include "../VulkanSwapChain.h"
 #include "../Util/QueueFamilyIndices.h"
+#include "../Util/SwapChainSupportDetails.h"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -65,25 +66,11 @@ void VulkanSwapChain::querySupportedPresentModes(VkPhysicalDevice_T* device, VkS
 	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, count, outPresentModes);
 }
 
-SwapChainSupportDetails::~SwapChainSupportDetails() {
-	if (capabilities != nullptr) {
-		delete capabilities;
-		capabilities = nullptr;
-	}
-	if (supportedFormats != nullptr) {
-		delete[] supportedFormats;
-		supportedFormats = nullptr;
-	}
-	if (supportedPresentModes != nullptr) {
-		delete[] supportedPresentModes;
-		supportedPresentModes = nullptr;
-	}
-
-	supportedFormatsCount = 0;
-	supportedPresentModesCount = 0;
+void VulkanSwapChain::setup(VkPhysicalDevice_T* physicalDevice, VkDevice_T* logicalDevice, VkSurfaceKHR_T* surface, GLFWwindow* window, const SwapChainSupportDetails& supportDetails) {
+	createSwapChain(physicalDevice, logicalDevice, surface, window, supportDetails);
 }
 
-void VulkanSwapChain::setup(VkPhysicalDevice_T* physicalDevice, VkDevice_T* logicalDevice, VkSurfaceKHR_T* surface, GLFWwindow* window, const SwapChainSupportDetails& supportDetails) {
+void VulkanSwapChain::createSwapChain(VkPhysicalDevice_T* physicalDevice, VkDevice_T* logicalDevice, VkSurfaceKHR_T* surface, GLFWwindow* window, const SwapChainSupportDetails& supportDetails) {
 	chooseSwapSurfaceFormat(supportDetails.supportedFormats, supportDetails.supportedFormatsCount);
 	chooseSwapPresentMode(supportDetails.supportedPresentModes, supportDetails.supportedPresentModesCount);
 	chooseSwapExtent(*supportDetails.capabilities, window);
@@ -102,7 +89,7 @@ void VulkanSwapChain::setup(VkPhysicalDevice_T* physicalDevice, VkDevice_T* logi
 	createInfo.imageExtent = *swapExtent;
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	
+
 	QueueFamilyIndices indices = QueueFamilyIndices::findQueueFamilies(physicalDevice, surface);
 	uint32_t queueFamilyIndices[] = { indices.graphicsFamily.index, indices.presentFamily.index };
 
@@ -128,7 +115,7 @@ void VulkanSwapChain::setup(VkPhysicalDevice_T* physicalDevice, VkDevice_T* logi
 	}
 
 	vkGetSwapchainImagesKHR(logicalDevice, swapChain, &this->swapChainImageCount, nullptr);
-	this->swapChainImages = new VkImage_T*[swapChainImageCount];
+	this->swapChainImages = new VkImage_T * [swapChainImageCount];
 	vkGetSwapchainImagesKHR(logicalDevice, swapChain, &swapChainImageCount, swapChainImages);
 }
 

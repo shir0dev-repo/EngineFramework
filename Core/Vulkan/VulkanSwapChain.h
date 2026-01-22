@@ -1,9 +1,12 @@
 #pragma once
 
 typedef unsigned int uint32_t;
-typedef enum VkPresentModeKHR;
+
+struct SwapChainSupportDetails;
 
 struct GLFWwindow;
+
+typedef enum VkPresentModeKHR;
 struct VkPhysicalDevice_T;
 struct VkDevice_T;
 struct VkSurfaceKHR_T;
@@ -14,18 +17,6 @@ struct VkSurfaceFormatKHR;
 struct VkFormat_T;
 struct VkExtent2D;
 
-
-struct SwapChainSupportDetails {
-	VkSurfaceCapabilitiesKHR* capabilities = nullptr;
-	VkSurfaceFormatKHR* supportedFormats = nullptr;
-	VkPresentModeKHR* supportedPresentModes = nullptr;
-
-	uint32_t supportedFormatsCount = 0;
-	uint32_t supportedPresentModesCount = 0;
-
-	~SwapChainSupportDetails();
-};
-
 struct VulkanSwapChain {
 	static void querySwapChainCapabilities(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, SwapChainSupportDetails& supportDetails);
 	
@@ -34,6 +25,8 @@ struct VulkanSwapChain {
 	void teardown(VkDevice_T* logicalDevice);
 
 private:
+	void createSwapChain(VkPhysicalDevice_T* physicalDevice, VkDevice_T* logicalDevice, VkSurfaceKHR_T* surface,
+		GLFWwindow* window, const SwapChainSupportDetails& supportDetails);
 	static void querySupportedSurfaceFormats(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, VkSurfaceFormatKHR*& outFormats, uint32_t* count);
 	static void querySupportedPresentModes(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, VkPresentModeKHR*& outPresentModes, uint32_t* count);
 	static void querySurfaceCapabilities(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, VkSurfaceCapabilitiesKHR*& outCapabilities);
