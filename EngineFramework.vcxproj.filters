@@ -51,6 +51,9 @@
     <ClCompile Include="Core\Graphics\src\GraphicsSyncObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Core\Graphics\src\Frame.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\AppWindow.h">
@@ -87,6 +90,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Core\Graphics\GraphicsSyncObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Frame.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,8 +1,10 @@
 #include "../GraphicsPipeline.h"
+#include "../../Vulkan/Util/QueueFamilyIndices.h"
 #include "../../Vulkan/VulkanSwapChain.h"
 #include "../../Vulkan/VulkanDevice.h"
 #include "../../Vulkan/VulkanCommandPool.h"
 #include "../GraphicsSyncObject.h"
+#include "../Frame.h"
 
 #include <vulkan/vulkan.h>
 #include <fstream>
@@ -25,9 +27,8 @@ static VkShaderModule createShaderModule(VkDevice_T* logicalDevice, const char* 
 void GraphicsPipeline::setup(const VulkanDevice* const device, const VulkanSwapChain* const swapChain, VkSurfaceKHR_T* surface) {
 	setupRenderPass(device->logicalDevice, swapChain);
 	setupPipelineLayout(device->logicalDevice, swapChain);
+	setupCommandBuffers(device, surface);
 	setupFramebuffers(device->logicalDevice, swapChain);
-	setupCommandPool(device, surface);
-	setupSyncObject(device->logicalDevice);
 }
 
 void GraphicsPipeline::setupRenderPass(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain) {
@@ -200,10 +201,10 @@ void GraphicsPipeline::setupPipelineLayout(VkDevice_T* logicalDevice, const Vulk
 void GraphicsPipeline::setupFramebuffers(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain) {
 	uint32_t bufferCount = swapChain->getSwapChainImageCount();
 	this->framebufferCount = bufferCount;
-	framebuffers = new VkFramebuffer_T*[bufferCount];
+
 	const VkExtent2D* const extent = swapChain->getExtents();
 
-	for (uint32_t i = 0; i < bufferCount; i++) {
+	for (uint32_t i = 0; i < MAX_FRAMEBUFFERS; i++) {
 		VkImageView attachments[] = {
 			swapChain->getImageView(i)
 		};
@@ -217,27 +218,56 @@ void GraphicsPipeline::setupFramebuffers(VkDevice_T* logicalDevice, const Vulkan
 		framebufferInfo.height = extent->height;
 		framebufferInfo.layers = 1;
 
-		if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &framebuffers[i]) != VK_SUCCESS) {
+		if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &framebufferNEW[i]->frameBuffer) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create framebuffer!");
 		}
 	}
 }
 
-void GraphicsPipeline::setupCommandPool(const VulkanDevice* const device, VkSurfaceKHR_T* surface) {
-	this->commandPool = new VulkanCommandPool();
-	commandPool->setup(device, surface);
+void GraphicsPipeline::setupCommandBuffers(const VulkanDevice* const device, VkSurfaceKHR_T* surface) {
+	const QueueFamilyIndices* const indices = device->getQueueFamilyIndices();
+
+	VkCommandPoolCreateInfo poolInfo = {};
+	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	poolInfo.queueFamilyIndex = indices->graphicsFamily.index;
+
+	if (vkCreateCommandPool(device->logicalDevice, &poolInfo, nullptr, &this->commandPool) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create command pool!");
+	}
+
+	VkCommandBufferAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = this->commandPool;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandBufferCount = MAX_FRAMEBUFFERS;
+	std::vector<VkCommandBuffer> buffers(MAX_FRAMEBUFFERS);
+
+	if (vkAllocateCommandBuffers(device->logicalDevice, &allocInfo, buffers.data()) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate command buffers!");
+	}
+
+	framebufferNEW = new Frame*[MAX_FRAMEBUFFERS];
+	for (uint32_t i = 0; i < MAX_FRAMEBUFFERS; i++) {
+		framebufferNEW[i] = new Frame();
+		framebufferNEW[i]->setup(device->logicalDevice, buffers[i]);
+	}
 }
 
-void GraphicsPipeline::setupSyncObject(VkDevice_T* logicalDevice) {
-	this->syncObject = new GraphicsSyncObject();
-	this->syncObject->setup(logicalDevice);
-}
+void GraphicsPipeline::beginRenderPass(VkCommandBuffer_T* commandBuffer, const VulkanSwapChain* const swapChain) {
+	VkCommandBufferBeginInfo beginInfo = {};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = 0;
+	beginInfo.pInheritanceInfo = nullptr;
 
-void GraphicsPipeline::beginRenderPass(const VulkanSwapChain* const swapChain) {
+	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to begin recording command buffer!");
+	}
+	
 	VkRenderPassBeginInfo renderPassInfo = {};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = this->renderPass;
-	renderPassInfo.framebuffer = framebuffers[currentFramebufferIndex];
+	renderPassInfo.framebuffer = framebufferNEW[currentFramebufferIndex]->frameBuffer;
 	renderPassInfo.renderArea.offset = { 0, 0 };
 	renderPassInfo.renderArea.extent = *swapChain->getExtents();
 
@@ -245,56 +275,57 @@ void GraphicsPipeline::beginRenderPass(const VulkanSwapChain* const swapChain) {
 	renderPassInfo.clearValueCount = 1;
 	renderPassInfo.pClearValues = &clearColor;
 
-	VkCommandBuffer_T* const commandBuffer = commandPool->getCommandBuffer();
-
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
 	initViewportScissor(commandBuffer, swapChain->getExtents());
 }
 
-void GraphicsPipeline::addRenderCommmand() {
-	vkCmdDraw(commandPool->getCommandBuffer(), 3, 1, 0, 0);
+void GraphicsPipeline::addRenderCommmand(VkCommandBuffer_T* commandBuffer) {
+	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 }
 
-void GraphicsPipeline::finalizeRenderPass(const VulkanSwapChain* const swapChain) {
-	VkCommandBuffer_T* cmdBuffer = commandPool->getCommandBuffer();
-	vkCmdEndRenderPass(cmdBuffer);
+void GraphicsPipeline::finalizeRenderPass(VkCommandBuffer_T* commandBuffer) {
+	vkCmdEndRenderPass(commandBuffer);
 
-	if (vkEndCommandBuffer(cmdBuffer) != VK_SUCCESS) {
+	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to record command buffer!");
 	}
 }
 
 void GraphicsPipeline::render(const VulkanDevice* const device, const VulkanSwapChain* const swapChain) {
-	syncObject->wait(device->logicalDevice);
-	syncObject->reset(device->logicalDevice);
+	Frame* currentFrame = framebufferNEW[currentFramebufferIndex];
 
-	vkAcquireNextImageKHR(device->logicalDevice, swapChain->getSwapChain(), UINT64_MAX, syncObject->imageAvailableSemaphore, VK_NULL_HANDLE, &currentFramebufferIndex);
+	currentFrame->syncObject->wait(device->logicalDevice);
 	
-	commandPool->resetCommandBuffer();
-	commandPool->beginRecordingCommandBuffer();
+	currentFrame->syncObject->reset(device->logicalDevice);
 
-	beginRenderPass(swapChain);
-	addRenderCommmand();
-	finalizeRenderPass(swapChain);
+	uint32_t imageIndex;
+	vkAcquireNextImageKHR(device->logicalDevice, swapChain->getSwapChain(), UINT64_MAX, currentFrame->syncObject->imageAvailableSemaphore,
+		VK_NULL_HANDLE, &imageIndex);
+	
+	vkResetCommandBuffer(currentFrame->commandBuffer, 0);
+	
+	
+	beginRenderPass(currentFrame->commandBuffer, swapChain);
+	addRenderCommmand(currentFrame->commandBuffer);
+	finalizeRenderPass(currentFrame->commandBuffer);
 
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	
-	VkSemaphore waitSemaphores[] = { syncObject->imageAvailableSemaphore };
+	VkSemaphore waitSemaphores[] = { currentFrame->syncObject->imageAvailableSemaphore };
 	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
 
-	VkCommandBuffer_T* commandBuffer = commandPool->getCommandBuffer();
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &commandBuffer;
-	VkSemaphore signalSemaphores[] = { syncObject->renderFinishedSemaphore };
+	submitInfo.pCommandBuffers = &currentFrame->commandBuffer;
+	VkSemaphore signalSemaphores[] = { currentFrame->syncObject->renderFinishedSemaphore };
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
-	if (vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, syncObject->inFlightFence) != VK_SUCCESS) {
+	if (vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, currentFrame->syncObject->inFlightFence) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to submit draw command buffer!");
 	}
 
@@ -310,6 +341,8 @@ void GraphicsPipeline::render(const VulkanDevice* const device, const VulkanSwap
 	presentInfo.pResults = nullptr;
 
 	vkQueuePresentKHR(device->presentQueue, &presentInfo);
+
+	currentFramebufferIndex = (currentFramebufferIndex + 1) % MAX_FRAMEBUFFERS;
 }
 
 void GraphicsPipeline::initViewportScissor(VkCommandBuffer_T* commandBuffer, const VkExtent2D* extent) {
@@ -329,22 +362,15 @@ void GraphicsPipeline::initViewportScissor(VkCommandBuffer_T* commandBuffer, con
 }
 
 void GraphicsPipeline::teardown(VkDevice_T* logicalDevice) {
-	if (commandPool != nullptr) {
-		commandPool->teardown(logicalDevice);
-		delete commandPool;
-		commandPool = nullptr;
-	}
-	if (syncObject != nullptr) {
-		syncObject->teardown(logicalDevice);
-		delete syncObject;
-		syncObject = nullptr;
-	}
-	if (framebuffers != nullptr) {
-		for (uint32_t i = 0; i < framebufferCount; i++) {
-			vkDestroyFramebuffer(logicalDevice, framebuffers[i], nullptr);
+	if (framebufferNEW != nullptr) {
+		for (uint32_t i = 0; i < MAX_FRAMEBUFFERS; i++) {
+			framebufferNEW[i]->teardown(logicalDevice);
 		}
-		delete[] framebuffers;
-		framebuffers = nullptr;
+		delete[] framebufferNEW;
+	}
+	if (commandPool != nullptr) {
+		vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
+		commandPool = nullptr;
 	}
 	if (pipeline != nullptr) {
 		vkDestroyPipeline(logicalDevice, pipeline, nullptr);

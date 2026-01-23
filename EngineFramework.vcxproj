@@ -130,6 +130,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Core\Graphics\src\Frame.cpp" />
     <ClCompile Include="Core\Graphics\src\GraphicsPipeline.cpp" />
     <ClCompile Include="Core\Graphics\src\GraphicsSyncObject.cpp" />
     <ClCompile Include="Core\src\Application.cpp" />
@@ -146,6 +147,7 @@
   <ItemGroup>
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Core\AppWindow.h" />
+    <ClInclude Include="Core\Graphics\Frame.h" />
     <ClInclude Include="Core\Graphics\GraphicsPipeline.h" />
     <ClInclude Include="Core\Graphics\GraphicsSyncObject.h" />
     <ClInclude Include="Core\Graphics\RenderPipelineInfo.h" />
