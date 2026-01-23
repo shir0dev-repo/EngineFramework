@@ -1,6 +1,7 @@
 #include "../VulkanSwapChain.h"
 #include "../Util/QueueFamilyIndices.h"
 #include "../Util/SwapChainSupportDetails.h"
+#include "../VulkanDevice.h"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -19,15 +20,24 @@ static constexpr uint32_t clamp(uint32_t val, uint32_t min, uint32_t max) {
 	return result;
 }
 
-void VulkanSwapChain::setup(VkPhysicalDevice_T* physicalDevice, VkDevice_T* logicalDevice, VkSurfaceKHR_T* surface, GLFWwindow* window) {
-	this->supportDetails = new SwapChainSupportDetails();
-	querySwapChainCapabilities(physicalDevice, surface, *this->supportDetails);
-
-	createSwapChain(physicalDevice, logicalDevice, surface, window);
-	createImageViews(logicalDevice);
+VkImageView_T* const VulkanSwapChain::getImageView(uint32_t i) const {
+	if (i < 0 || i > swapChainImageCount) {
+		return nullptr;
+	}
+	else {
+		return swapChainImageViews[i];
+	}
 }
 
-void VulkanSwapChain::createSwapChain(VkPhysicalDevice_T* physicalDevice, VkDevice_T* logicalDevice, VkSurfaceKHR_T* surface, GLFWwindow* window) {
+void VulkanSwapChain::setup(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window) {
+	this->supportDetails = new SwapChainSupportDetails();
+	querySwapChainCapabilities(device->physicalDevice, surface, *this->supportDetails);
+
+	createSwapChain(device, surface, window);
+	createImageViews(device->logicalDevice);
+}
+
+void VulkanSwapChain::createSwapChain(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window) {
 	chooseSwapSurfaceFormat(supportDetails->supportedFormats, supportDetails->supportedFormatsCount);
 	chooseSwapPresentMode(supportDetails->supportedPresentModes, supportDetails->supportedPresentModesCount);
 	chooseSwapExtent(*supportDetails->capabilities, window);
@@ -36,6 +46,8 @@ void VulkanSwapChain::createSwapChain(VkPhysicalDevice_T* physicalDevice, VkDevi
 	if (supportDetails->capabilities->maxImageCount > 0 && imageCount > supportDetails->capabilities->maxImageCount) {
 		imageCount = supportDetails->capabilities->maxImageCount;
 	}
+
+
 
 	VkSwapchainCreateInfoKHR createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -47,7 +59,8 @@ void VulkanSwapChain::createSwapChain(VkPhysicalDevice_T* physicalDevice, VkDevi
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	QueueFamilyIndices indices = QueueFamilyIndices::findQueueFamilies(physicalDevice, surface);
+	QueueFamilyIndices indices = {};
+	QueueFamilyIndices::findQueueFamilies(device->physicalDevice, surface, indices);
 	uint32_t queueFamilyIndices[] = { indices.graphicsFamily.index, indices.presentFamily.index };
 
 	if (indices.graphicsFamily.index != indices.presentFamily.index) {
@@ -67,7 +80,7 @@ void VulkanSwapChain::createSwapChain(VkPhysicalDevice_T* physicalDevice, VkDevi
 	createInfo.clipped = VK_TRUE;
 	createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-	if (vkCreateSwapchainKHR(logicalDevice, &createInfo, nullptr, &this->swapChain) != VK_SUCCESS) {
+	if (vkCreateSwapchainKHR(device->logicalDevice, &createInfo, nullptr, &this->swapChain) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create swap chain!");
 	}
 }

@@ -3,6 +3,7 @@
 typedef unsigned int uint32_t;
 
 struct SwapChainSupportDetails;
+struct VulkanDevice;
 
 struct GLFWwindow;
 
@@ -13,6 +14,7 @@ struct VkDevice_T;
 struct VkSurfaceKHR_T;
 struct VkSwapchainKHR_T;
 struct VkImage_T;
+struct VkFramebuffer_T;
 struct VkSurfaceCapabilitiesKHR;
 struct VkSurfaceFormatKHR;
 struct VkExtent2D;
@@ -24,12 +26,16 @@ struct VulkanSwapChain {
 	const VkSurfaceFormatKHR* const getFormat() const { return selectedFormat; }
 	const VkPresentModeKHR getPresentMode() const { return selectedPresentMode; }
 	const VkExtent2D* const getExtents() const { return swapExtent; }
+	VkSwapchainKHR_T* const getSwapChain() const { return swapChain; }
 
-	void setup(VkPhysicalDevice_T* physicalDevice, VkDevice_T* logicalDevice, VkSurfaceKHR_T* surface, GLFWwindow* window);
+	const uint32_t getSwapChainImageCount() const { return swapChainImageCount; }
+	VkImageView_T* const getImageView(uint32_t i) const;
+
+	void setup(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window);
 	void teardown(VkDevice_T* logicalDevice);
 
 private:
-	void createSwapChain(VkPhysicalDevice_T* physicalDevice, VkDevice_T* logicalDevice, VkSurfaceKHR_T* surface, GLFWwindow* window);
+	void createSwapChain(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window);
 	void createImageViews(VkDevice_T* logicalDevice);
 	void createSwapChainImageView(VkDevice_T* logicalDevice, uint32_t currentIndex);
 
@@ -50,6 +56,8 @@ private:
 	VkFormat swapChainImageFormat;
 	VkImage_T** swapChainImages = nullptr;
 	VkImageView_T** swapChainImageViews = nullptr;
+
+	VkFramebuffer_T** swapChainFramebuffers = nullptr;
 
 	VkSurfaceFormatKHR* selectedFormat = nullptr;
 	VkPresentModeKHR selectedPresentMode;

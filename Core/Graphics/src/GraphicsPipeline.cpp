@@ -1,5 +1,8 @@
 #include "../GraphicsPipeline.h"
 #include "../../Vulkan/VulkanSwapChain.h"
+#include "../../Vulkan/VulkanDevice.h"
+#include "../../Vulkan/VulkanCommandPool.h"
+#include "../GraphicsSyncObject.h"
 
 #include <vulkan/vulkan.h>
 #include <fstream>
@@ -19,9 +22,12 @@ static VkShaderModule createShaderModule(VkDevice_T* logicalDevice, const char* 
 	return shaderModule;
 }
 
-void GraphicsPipeline::setup(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain) {
-	setupRenderPass(logicalDevice, swapChain);
-	setupPipelineLayout(logicalDevice, swapChain);
+void GraphicsPipeline::setup(const VulkanDevice* const device, const VulkanSwapChain* const swapChain, VkSurfaceKHR_T* surface) {
+	setupRenderPass(device->logicalDevice, swapChain);
+	setupPipelineLayout(device->logicalDevice, swapChain);
+	setupFramebuffers(device->logicalDevice, swapChain);
+	setupCommandPool(device, surface);
+	setupSyncObject(device->logicalDevice);
 }
 
 void GraphicsPipeline::setupRenderPass(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain) {
@@ -44,12 +50,22 @@ void GraphicsPipeline::setupRenderPass(VkDevice_T* logicalDevice, const VulkanSw
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentRef;
 	
+	VkSubpassDependency dependency = {};
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependency.dstSubpass = 0;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcAccessMask = 0;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
 	VkRenderPassCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	createInfo.attachmentCount = 1;
 	createInfo.pAttachments = &colorAttachment;
 	createInfo.subpassCount = 1;
 	createInfo.pSubpasses = &subpass;
+	createInfo.dependencyCount = 1;
+	createInfo.pDependencies = &dependency;
 
 	if (vkCreateRenderPass(logicalDevice, &createInfo, nullptr, &this->renderPass) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create render pass!");
@@ -152,23 +168,195 @@ void GraphicsPipeline::setupPipelineLayout(VkDevice_T* logicalDevice, const Vulk
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	this->pipelineLayout = new VkPipelineLayout_T * ();
-	if (vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, this->pipelineLayout) != VK_SUCCESS) {
+	
+	if (vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &this->pipelineLayout) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create pipeline layout!");
+	}
+
+	VkGraphicsPipelineCreateInfo pipelineInfo = {};
+	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	pipelineInfo.stageCount = 2;
+	pipelineInfo.pStages = shaderStages;
+	pipelineInfo.pVertexInputState = &vertexInputInfo;
+	pipelineInfo.pInputAssemblyState = &inputAssembly;
+	pipelineInfo.pViewportState = &viewportState;
+	pipelineInfo.pRasterizationState = &rasterizer;
+	pipelineInfo.pMultisampleState = &multisampling;
+	pipelineInfo.pDepthStencilState = nullptr;
+	pipelineInfo.pColorBlendState = &colorBlending;
+	pipelineInfo.pDynamicState = &dynamicState;
+	pipelineInfo.layout = this->pipelineLayout;
+	pipelineInfo.renderPass = this->renderPass;
+	pipelineInfo.subpass = 0;
+
+	if (vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &this->pipeline) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create graphics pipeline!");
 	}
 
 	vkDestroyShaderModule(logicalDevice, fragmentShaderModule, nullptr);
 	vkDestroyShaderModule(logicalDevice, vertexShaderModule, nullptr);
 }
 
+void GraphicsPipeline::setupFramebuffers(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain) {
+	uint32_t bufferCount = swapChain->getSwapChainImageCount();
+	this->framebufferCount = bufferCount;
+	framebuffers = new VkFramebuffer_T*[bufferCount];
+	const VkExtent2D* const extent = swapChain->getExtents();
+
+	for (uint32_t i = 0; i < bufferCount; i++) {
+		VkImageView attachments[] = {
+			swapChain->getImageView(i)
+		};
+
+		VkFramebufferCreateInfo framebufferInfo = {};
+		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		framebufferInfo.renderPass = renderPass;
+		framebufferInfo.attachmentCount = 1;
+		framebufferInfo.pAttachments = attachments;
+		framebufferInfo.width = extent->width;
+		framebufferInfo.height = extent->height;
+		framebufferInfo.layers = 1;
+
+		if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &framebuffers[i]) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create framebuffer!");
+		}
+	}
+}
+
+void GraphicsPipeline::setupCommandPool(const VulkanDevice* const device, VkSurfaceKHR_T* surface) {
+	this->commandPool = new VulkanCommandPool();
+	commandPool->setup(device, surface);
+}
+
+void GraphicsPipeline::setupSyncObject(VkDevice_T* logicalDevice) {
+	this->syncObject = new GraphicsSyncObject();
+	this->syncObject->setup(logicalDevice);
+}
+
+void GraphicsPipeline::beginRenderPass(const VulkanSwapChain* const swapChain) {
+	VkRenderPassBeginInfo renderPassInfo = {};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassInfo.renderPass = this->renderPass;
+	renderPassInfo.framebuffer = framebuffers[currentFramebufferIndex];
+	renderPassInfo.renderArea.offset = { 0, 0 };
+	renderPassInfo.renderArea.extent = *swapChain->getExtents();
+
+	VkClearValue clearColor = { {{ 0.0f, 0.0f, 0.0f, 1.0f }} };
+	renderPassInfo.clearValueCount = 1;
+	renderPassInfo.pClearValues = &clearColor;
+
+	VkCommandBuffer_T* const commandBuffer = commandPool->getCommandBuffer();
+
+	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
+	initViewportScissor(commandBuffer, swapChain->getExtents());
+}
+
+void GraphicsPipeline::addRenderCommmand() {
+	vkCmdDraw(commandPool->getCommandBuffer(), 3, 1, 0, 0);
+}
+
+void GraphicsPipeline::finalizeRenderPass(const VulkanSwapChain* const swapChain) {
+	VkCommandBuffer_T* cmdBuffer = commandPool->getCommandBuffer();
+	vkCmdEndRenderPass(cmdBuffer);
+
+	if (vkEndCommandBuffer(cmdBuffer) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to record command buffer!");
+	}
+}
+
+void GraphicsPipeline::render(const VulkanDevice* const device, const VulkanSwapChain* const swapChain) {
+	syncObject->wait(device->logicalDevice);
+	syncObject->reset(device->logicalDevice);
+
+	vkAcquireNextImageKHR(device->logicalDevice, swapChain->getSwapChain(), UINT64_MAX, syncObject->imageAvailableSemaphore, VK_NULL_HANDLE, &currentFramebufferIndex);
+	
+	commandPool->resetCommandBuffer();
+	commandPool->beginRecordingCommandBuffer();
+
+	beginRenderPass(swapChain);
+	addRenderCommmand();
+	finalizeRenderPass(swapChain);
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	
+	VkSemaphore waitSemaphores[] = { syncObject->imageAvailableSemaphore };
+	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = waitSemaphores;
+	submitInfo.pWaitDstStageMask = waitStages;
+
+	VkCommandBuffer_T* commandBuffer = commandPool->getCommandBuffer();
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+	VkSemaphore signalSemaphores[] = { syncObject->renderFinishedSemaphore };
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = signalSemaphores;
+
+	if (vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, syncObject->inFlightFence) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to submit draw command buffer!");
+	}
+
+	VkPresentInfoKHR presentInfo = {};
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = signalSemaphores;
+
+	VkSwapchainKHR swapChains[] = { swapChain->getSwapChain() };
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = swapChains;
+	presentInfo.pImageIndices = &currentFramebufferIndex;
+	presentInfo.pResults = nullptr;
+
+	vkQueuePresentKHR(device->presentQueue, &presentInfo);
+}
+
+void GraphicsPipeline::initViewportScissor(VkCommandBuffer_T* commandBuffer, const VkExtent2D* extent) {
+	VkViewport viewport = {};
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	viewport.width = static_cast<float>(extent->width);
+	viewport.height = static_cast<float>(extent->height);
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+	VkRect2D scissor = {};
+	scissor.offset = { 0, 0 };
+	scissor.extent = *extent;
+	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+}
+
 void GraphicsPipeline::teardown(VkDevice_T* logicalDevice) {
+	if (commandPool != nullptr) {
+		commandPool->teardown(logicalDevice);
+		delete commandPool;
+		commandPool = nullptr;
+	}
+	if (syncObject != nullptr) {
+		syncObject->teardown(logicalDevice);
+		delete syncObject;
+		syncObject = nullptr;
+	}
+	if (framebuffers != nullptr) {
+		for (uint32_t i = 0; i < framebufferCount; i++) {
+			vkDestroyFramebuffer(logicalDevice, framebuffers[i], nullptr);
+		}
+		delete[] framebuffers;
+		framebuffers = nullptr;
+	}
+	if (pipeline != nullptr) {
+		vkDestroyPipeline(logicalDevice, pipeline, nullptr);
+		pipeline = nullptr;
+	}
 	if (pipelineLayout != nullptr) {
-		vkDestroyPipelineLayout(logicalDevice, *pipelineLayout, nullptr);
-		delete pipelineLayout;
+		vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
 		pipelineLayout = nullptr;
 	}
 	if (renderPass != nullptr) {
 		vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
+		renderPass = nullptr;
 	}
 }
 

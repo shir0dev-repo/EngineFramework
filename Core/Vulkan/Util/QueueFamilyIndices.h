@@ -15,6 +15,6 @@ struct QueueFamilyIndices {
 	QueueFamilyIndex graphicsFamily = { 0, false };
 	QueueFamilyIndex presentFamily = { 0, false };
 
-	static QueueFamilyIndices findQueueFamilies(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface);
+	static void findQueueFamilies(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, QueueFamilyIndices& outQueueFamilyIndices);
 	bool isComplete() const;
 };

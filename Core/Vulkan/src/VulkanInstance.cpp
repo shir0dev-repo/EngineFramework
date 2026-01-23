@@ -159,7 +159,7 @@ void VulkanInstance::setupDevice(GLFWwindow* window) {
 
 void VulkanInstance::setupSwapchain(GLFWwindow* window) {
 	this->swapChain = new VulkanSwapChain();
-	this->swapChain->setup(device->physicalDevice, device->logicalDevice, this->surface, window);
+	this->swapChain->setup(device, this->surface, window);
 }
 
 void VulkanInstance::makeVkApplicationInfo(VkApplicationInfo& appInfo) const {

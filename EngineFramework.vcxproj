@@ -131,8 +131,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Core\Graphics\src\GraphicsPipeline.cpp" />
+    <ClCompile Include="Core\Graphics\src\GraphicsSyncObject.cpp" />
     <ClCompile Include="Core\src\Application.cpp" />
     <ClCompile Include="Core\src\AppWindow.cpp" />
+    <ClCompile Include="Core\Vulkan\src\VulkanCommandPool.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanInstance.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanSwapChain.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanValidator.cpp" />
@@ -145,8 +147,11 @@
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Core\AppWindow.h" />
     <ClInclude Include="Core\Graphics\GraphicsPipeline.h" />
+    <ClInclude Include="Core\Graphics\GraphicsSyncObject.h" />
+    <ClInclude Include="Core\Graphics\RenderPipelineInfo.h" />
     <ClInclude Include="Core\Vulkan\Util\QueueFamilyIndices.h" />
     <ClInclude Include="Core\Vulkan\Util\SwapChainSupportDetails.h" />
+    <ClInclude Include="Core\Vulkan\VulkanCommandPool.h" />
     <ClInclude Include="Core\Vulkan\VulkanInstance.h" />
     <ClInclude Include="Core\Vulkan\VulkanSwapChain.h" />
     <ClInclude Include="Core\Vulkan\VulkanValidator.h" />

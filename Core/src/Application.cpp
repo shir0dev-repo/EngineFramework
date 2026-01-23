@@ -6,6 +6,7 @@
 #include "../Vulkan/VulkanSwapChain.h"
 #include "../Graphics/GraphicsPipeline.h"
 
+#include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 
 int Application::run() {
@@ -43,13 +44,16 @@ void Application::initVulkan() {
 
 void Application::initGraphicsPipeline() {
 	this->graphicsPipeline = new GraphicsPipeline();
-	this->graphicsPipeline->setup(vkInstance->device->logicalDevice, vkInstance->swapChain);
+	this->graphicsPipeline->setup(vkInstance->device, vkInstance->swapChain, vkInstance->surface);
 }
 
 void Application::mainLoop() {
 	while (!glfwWindowShouldClose(window->GetWindow())) {
 		glfwPollEvents();
+		graphicsPipeline->render(vkInstance->device, vkInstance->swapChain);
 	}
+
+	vkDeviceWaitIdle(vkInstance->device->logicalDevice);
 }
 
 void Application::cleanup() {
