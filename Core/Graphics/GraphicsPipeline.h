@@ -25,16 +25,22 @@ struct GraphicsPipeline {
 	void setup(const VulkanDevice* const device, const VulkanSwapChain* const swapChain, VkSurfaceKHR_T* surface);
 	void teardown(VkDevice_T* logicalDevice);
 
-	void beginRenderPass(VkCommandBuffer_T* commandBuffer, const VulkanSwapChain* const swapChain);
-	void addRenderCommmand(VkCommandBuffer_T* commandBuffer);
-	void finalizeRenderPass(VkCommandBuffer_T* commandBuffer);
-
 	void render(const VulkanDevice* const device, const VulkanSwapChain* const swapChain);
 private:
 	void setupRenderPass(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain);
 	void setupPipelineLayout(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain);
 	void setupCommandBuffers(const VulkanDevice* const device, VkSurfaceKHR_T* surface);
 	void setupFramebuffers(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain);
+
+	void initFrame(const VulkanDevice* const device, const VulkanSwapChain* const swapChain, Frame* currentFrame);
+	void beginCommandBuffer(VkCommandBuffer_T* commandBuffer);
+	void beginRenderPass(VkCommandBuffer_T* commandBuffer, const VulkanSwapChain* const swapChain);
+	void addRenderCommmand(VkCommandBuffer_T* commandBuffer);
+	void finishRenderPass(VkCommandBuffer_T* commandBuffer);
+	void finishCommandBuffer(VkCommandBuffer_T* commandBuffer);
+
+	void submitRender(Frame* currentFrame, const VulkanDevice* const device, const VulkanSwapChain* const swapChain);
+	void presentRender(Frame* currentFrame, const VulkanDevice* const device, const VulkanSwapChain* const swapChain);
 
 	void initViewportScissor(VkCommandBuffer_T* commandBuffer, const VkExtent2D* extent);
 
@@ -46,5 +52,5 @@ private:
 	uint32_t framebufferCount = 0;
 
 	VkCommandPool_T* commandPool = nullptr;
-	Frame** framebufferNEW = nullptr;
+	Frame** framebuffer = nullptr;
 };

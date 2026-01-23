@@ -218,7 +218,7 @@ void GraphicsPipeline::setupFramebuffers(VkDevice_T* logicalDevice, const Vulkan
 		framebufferInfo.height = extent->height;
 		framebufferInfo.layers = 1;
 
-		if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &framebufferNEW[i]->frameBuffer) != VK_SUCCESS) {
+		if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &framebuffer[i]->frameBuffer) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create framebuffer!");
 		}
 	}
@@ -247,14 +247,42 @@ void GraphicsPipeline::setupCommandBuffers(const VulkanDevice* const device, VkS
 		throw std::runtime_error("Failed to allocate command buffers!");
 	}
 
-	framebufferNEW = new Frame*[MAX_FRAMEBUFFERS];
+	framebuffer = new Frame*[MAX_FRAMEBUFFERS];
 	for (uint32_t i = 0; i < MAX_FRAMEBUFFERS; i++) {
-		framebufferNEW[i] = new Frame();
-		framebufferNEW[i]->setup(device->logicalDevice, buffers[i]);
+		framebuffer[i] = new Frame();
+		framebuffer[i]->setup(device->logicalDevice, buffers[i]);
 	}
 }
 
-void GraphicsPipeline::beginRenderPass(VkCommandBuffer_T* commandBuffer, const VulkanSwapChain* const swapChain) {
+void GraphicsPipeline::render(const VulkanDevice* const device, const VulkanSwapChain* const swapChain) {
+	Frame* currentFrame = framebuffer[currentFramebufferIndex];
+	initFrame(device, swapChain, currentFrame);
+
+	beginCommandBuffer(currentFrame->commandBuffer);
+	beginRenderPass(currentFrame->commandBuffer, swapChain);
+	addRenderCommmand(currentFrame->commandBuffer);
+	finishRenderPass(currentFrame->commandBuffer);
+	finishCommandBuffer(currentFrame->commandBuffer);
+	
+	submitRender(currentFrame, device, swapChain);
+	presentRender(currentFrame, device, swapChain);
+	
+	currentFramebufferIndex = (currentFramebufferIndex + 1) % MAX_FRAMEBUFFERS;
+}
+
+void GraphicsPipeline::initFrame(const VulkanDevice* device, const VulkanSwapChain* const swapChain, Frame* currentFrame) {
+	currentFrame->syncObject->wait(device->logicalDevice);
+
+	currentFrame->syncObject->reset(device->logicalDevice);
+
+	uint32_t imageIndex;
+	vkAcquireNextImageKHR(device->logicalDevice, swapChain->getSwapChain(), UINT64_MAX, currentFrame->syncObject->imageAvailableSemaphore,
+		VK_NULL_HANDLE, &imageIndex);
+
+	vkResetCommandBuffer(currentFrame->commandBuffer, 0);
+}
+
+void GraphicsPipeline::beginCommandBuffer(VkCommandBuffer_T* commandBuffer) {
 	VkCommandBufferBeginInfo beginInfo = {};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	beginInfo.flags = 0;
@@ -263,11 +291,13 @@ void GraphicsPipeline::beginRenderPass(VkCommandBuffer_T* commandBuffer, const V
 	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to begin recording command buffer!");
 	}
-	
+}
+
+void GraphicsPipeline::beginRenderPass(VkCommandBuffer_T* commandBuffer, const VulkanSwapChain* const swapChain) {
 	VkRenderPassBeginInfo renderPassInfo = {};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = this->renderPass;
-	renderPassInfo.framebuffer = framebufferNEW[currentFramebufferIndex]->frameBuffer;
+	renderPassInfo.framebuffer = framebuffer[currentFramebufferIndex]->frameBuffer;
 	renderPassInfo.renderArea.offset = { 0, 0 };
 	renderPassInfo.renderArea.extent = *swapChain->getExtents();
 
@@ -284,35 +314,20 @@ void GraphicsPipeline::addRenderCommmand(VkCommandBuffer_T* commandBuffer) {
 	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 }
 
-void GraphicsPipeline::finalizeRenderPass(VkCommandBuffer_T* commandBuffer) {
+void GraphicsPipeline::finishRenderPass(VkCommandBuffer_T* commandBuffer) {
 	vkCmdEndRenderPass(commandBuffer);
+}
 
+void GraphicsPipeline::finishCommandBuffer(VkCommandBuffer_T* commandBuffer) {
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to record command buffer!");
 	}
 }
 
-void GraphicsPipeline::render(const VulkanDevice* const device, const VulkanSwapChain* const swapChain) {
-	Frame* currentFrame = framebufferNEW[currentFramebufferIndex];
-
-	currentFrame->syncObject->wait(device->logicalDevice);
-	
-	currentFrame->syncObject->reset(device->logicalDevice);
-
-	uint32_t imageIndex;
-	vkAcquireNextImageKHR(device->logicalDevice, swapChain->getSwapChain(), UINT64_MAX, currentFrame->syncObject->imageAvailableSemaphore,
-		VK_NULL_HANDLE, &imageIndex);
-	
-	vkResetCommandBuffer(currentFrame->commandBuffer, 0);
-	
-	
-	beginRenderPass(currentFrame->commandBuffer, swapChain);
-	addRenderCommmand(currentFrame->commandBuffer);
-	finalizeRenderPass(currentFrame->commandBuffer);
-
+void GraphicsPipeline::submitRender(Frame* currentFrame, const VulkanDevice* const device, const VulkanSwapChain* const swapChain) {
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	
+
 	VkSemaphore waitSemaphores[] = { currentFrame->syncObject->imageAvailableSemaphore };
 	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	submitInfo.waitSemaphoreCount = 1;
@@ -328,9 +343,14 @@ void GraphicsPipeline::render(const VulkanDevice* const device, const VulkanSwap
 	if (vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, currentFrame->syncObject->inFlightFence) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to submit draw command buffer!");
 	}
+}
+
+void GraphicsPipeline::presentRender(Frame* currentFrame, const VulkanDevice* const device, const VulkanSwapChain* const swapChain) {
 
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	
+	VkSemaphore signalSemaphores[] = { currentFrame->syncObject->renderFinishedSemaphore };
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = signalSemaphores;
 
@@ -341,8 +361,6 @@ void GraphicsPipeline::render(const VulkanDevice* const device, const VulkanSwap
 	presentInfo.pResults = nullptr;
 
 	vkQueuePresentKHR(device->presentQueue, &presentInfo);
-
-	currentFramebufferIndex = (currentFramebufferIndex + 1) % MAX_FRAMEBUFFERS;
 }
 
 void GraphicsPipeline::initViewportScissor(VkCommandBuffer_T* commandBuffer, const VkExtent2D* extent) {
@@ -362,11 +380,11 @@ void GraphicsPipeline::initViewportScissor(VkCommandBuffer_T* commandBuffer, con
 }
 
 void GraphicsPipeline::teardown(VkDevice_T* logicalDevice) {
-	if (framebufferNEW != nullptr) {
+	if (framebuffer != nullptr) {
 		for (uint32_t i = 0; i < MAX_FRAMEBUFFERS; i++) {
-			framebufferNEW[i]->teardown(logicalDevice);
+			framebuffer[i]->teardown(logicalDevice);
 		}
-		delete[] framebufferNEW;
+		delete[] framebuffer;
 	}
 	if (commandPool != nullptr) {
 		vkDestroyCommandPool(logicalDevice, commandPool, nullptr);

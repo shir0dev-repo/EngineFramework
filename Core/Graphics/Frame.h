@@ -12,7 +12,5 @@ struct Frame {
 	VkFramebuffer_T* frameBuffer = nullptr;
 
 	void setup(VkDevice_T* logicalDevice, VkCommandBuffer_T*& commandBuffer);
-	void teardown(VkDevice_T*);
-
-	void beginCommandBuffer();
+	void teardown(VkDevice_T* logicalDevice);
 };
