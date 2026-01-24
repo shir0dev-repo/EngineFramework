@@ -50,7 +50,7 @@ void Application::initGraphicsPipeline() {
 void Application::mainLoop() {
 	while (!glfwWindowShouldClose(window->GetWindow())) {
 		glfwPollEvents();
-		graphicsPipeline->render(vkInstance->device, vkInstance->swapChain);
+		graphicsPipeline->render(vkInstance->device);
 	}
 
 	vkDeviceWaitIdle(vkInstance->device->logicalDevice);

@@ -22,25 +22,26 @@ struct GraphicsPipeline {
 	const uint32_t MAX_FRAMEBUFFERS = 3;
 	static bool readFile(const char* filePath, char*& outFileContents, uint32_t& fileSize);
 	
-	void setup(const VulkanDevice* const device, const VulkanSwapChain* const swapChain, VkSurfaceKHR_T* surface);
+	void setup(const VulkanDevice* const device, VulkanSwapChain* const swapChain, VkSurfaceKHR_T* surface);
 	void teardown(VkDevice_T* logicalDevice);
 
-	void render(const VulkanDevice* const device, const VulkanSwapChain* const swapChain);
+	void render(const VulkanDevice* const device);
 private:
-	void setupRenderPass(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain);
-	void setupPipelineLayout(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain);
-	void setupCommandBuffers(const VulkanDevice* const device, VkSurfaceKHR_T* surface);
-	void setupFramebuffers(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain);
+	void setupRenderPass(VkDevice_T* logicalDevice);
+	void setupPipelineLayout(VkDevice_T* logicalDevice);
+	void setupCommandPool(const VulkanDevice* const device, VkSurfaceKHR_T* surface);
+	void allocCommandBuffers(VkDevice_T* logicalDevice, const uint32_t& count, VkCommandBuffer_T**& outBuffers);
+	void setupFramebuffers(VkDevice_T* logicalDevice);
 
-	void initFrame(const VulkanDevice* const device, const VulkanSwapChain* const swapChain, Frame* currentFrame);
+	void initFrame(const VulkanDevice* const device, Frame* currentFrame);
 	void beginCommandBuffer(VkCommandBuffer_T* commandBuffer);
-	void beginRenderPass(VkCommandBuffer_T* commandBuffer, const VulkanSwapChain* const swapChain);
+	void beginRenderPass(VkCommandBuffer_T* commandBuffer);
 	void addRenderCommmand(VkCommandBuffer_T* commandBuffer);
 	void finishRenderPass(VkCommandBuffer_T* commandBuffer);
 	void finishCommandBuffer(VkCommandBuffer_T* commandBuffer);
 
-	void submitRender(Frame* currentFrame, const VulkanDevice* const device, const VulkanSwapChain* const swapChain);
-	void presentRender(Frame* currentFrame, const VulkanDevice* const device, const VulkanSwapChain* const swapChain);
+	void submitRender(Frame* currentFrame, const VulkanDevice* const device);
+	void presentRender(Frame* currentFrame, const VulkanDevice* const device);
 
 	void initViewportScissor(VkCommandBuffer_T* commandBuffer, const VkExtent2D* extent);
 
@@ -48,9 +49,7 @@ private:
 	VkPipelineLayout_T* pipelineLayout = nullptr;
 	VkPipeline_T* pipeline = nullptr;
 
-	uint32_t currentFramebufferIndex = 0;
-	uint32_t framebufferCount = 0;
+	VulkanSwapChain* swapChain;
 
 	VkCommandPool_T* commandPool = nullptr;
-	Frame** framebuffer = nullptr;
 };

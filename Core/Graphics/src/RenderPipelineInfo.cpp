@@ -120,7 +120,7 @@ GraphicsPipelineCreateParams RenderPipelineInfo::makeGraphicsPipelineCreateParam
 	return params;
 }
 
-void RenderPipelineInfo::createGraphicsPipelines(VkDevice_T* logicalDevice, const GraphicsPipelineCreateParams& createParams, VkPipeline_T** pipeline) {
+void RenderPipelineInfo::createGraphicsPipelines(VkDevice_T* logicalDevice, const GraphicsPipelineCreateParams& createParams, VkPipeline_T*& pipeline) {
 	VkGraphicsPipelineCreateInfo pipelineInfo = {};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	pipelineInfo.stageCount = 2;
@@ -137,7 +137,7 @@ void RenderPipelineInfo::createGraphicsPipelines(VkDevice_T* logicalDevice, cons
 	pipelineInfo.renderPass = createParams.renderPass;
 	pipelineInfo.subpass = 0;
 
-	if (vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, pipeline) != VK_SUCCESS) {
+	if (vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create graphics pipeline!");
 	}
 }

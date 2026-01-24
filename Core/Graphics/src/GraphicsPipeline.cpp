@@ -26,14 +26,16 @@ static VkShaderModule createShaderModule(VkDevice_T* logicalDevice, const char* 
 	return shaderModule;
 }
 
-void GraphicsPipeline::setup(const VulkanDevice* const device, const VulkanSwapChain* const swapChain, VkSurfaceKHR_T* surface) {
-	setupRenderPass(device->logicalDevice, swapChain);
-	setupPipelineLayout(device->logicalDevice, swapChain);
-	setupCommandBuffers(device, surface);
-	setupFramebuffers(device->logicalDevice, swapChain);
+void GraphicsPipeline::setup(const VulkanDevice* const device, VulkanSwapChain* const swapChain, VkSurfaceKHR_T* surface) {
+	this->swapChain = swapChain;
+
+	setupRenderPass(device->logicalDevice);
+	setupPipelineLayout(device->logicalDevice);
+	setupCommandPool(device, surface);
+	setupFramebuffers(device->logicalDevice);
 }
 
-void GraphicsPipeline::setupRenderPass(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain) {
+void GraphicsPipeline::setupRenderPass(VkDevice_T* logicalDevice) {
 	VkAttachmentDescription colorAttachment = {};
 	colorAttachment.format = swapChain->getFormat()->format;
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -75,7 +77,7 @@ void GraphicsPipeline::setupRenderPass(VkDevice_T* logicalDevice, const VulkanSw
 	}
 }
 
-void GraphicsPipeline::setupPipelineLayout(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain) {
+void GraphicsPipeline::setupPipelineLayout(VkDevice_T* logicalDevice) {
 	char* vertexContent = nullptr;
 	char* fragmentContent = nullptr;
 
@@ -131,19 +133,40 @@ void GraphicsPipeline::setupPipelineLayout(VkDevice_T* logicalDevice, const Vulk
 	createParams = RenderPipelineInfo::makeGraphicsPipelineCreateParams(shaderStages, &dynamicState, &vertexInputInfo, &inputAssembly, &viewportState, &rasterizer,
 		&multisampling, &colorBlending, this->pipelineLayout, this->renderPass);
 	
-	RenderPipelineInfo::createGraphicsPipelines(logicalDevice, createParams, &this->pipeline);
+	RenderPipelineInfo::createGraphicsPipelines(logicalDevice, createParams, this->pipeline);
 
 	vkDestroyShaderModule(logicalDevice, fragmentShaderModule, nullptr);
 	vkDestroyShaderModule(logicalDevice, vertexShaderModule, nullptr);
 }
 
-void GraphicsPipeline::setupFramebuffers(VkDevice_T* logicalDevice, const VulkanSwapChain* const swapChain) {
-	uint32_t bufferCount = swapChain->getSwapChainImageCount();
-	this->framebufferCount = bufferCount;
+void GraphicsPipeline::setupCommandPool(const VulkanDevice* const device, VkSurfaceKHR_T* surface) {
+	const QueueFamilyIndices* const indices = device->getQueueFamilyIndices();
 
+	VkCommandPoolCreateInfo poolInfo = {};
+	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	poolInfo.queueFamilyIndex = indices->graphicsFamily.index;
+
+	if (vkCreateCommandPool(device->logicalDevice, &poolInfo, nullptr, &this->commandPool) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create command pool!");
+	}
+}
+
+void GraphicsPipeline::setupFramebuffers(VkDevice_T* logicalDevice) {
+	uint32_t bufferCount = swapChain->getSwapChainImageCount();
+	VkCommandBuffer_T** commandBuffers = nullptr;
+	allocCommandBuffers(logicalDevice, bufferCount, commandBuffers);
+
+	Frame* const* const framebuffer = swapChain->getFramebuffer();
 	const VkExtent2D* const extent = swapChain->getExtents();
 
-	for (uint32_t i = 0; i < MAX_FRAMEBUFFERS; i++) {
+	for (uint32_t i = 0; i < bufferCount; i++) {
+		Frame* const frame = framebuffer[i];
+		frame->setupBuffer(logicalDevice, commandBuffers[i], extent, this->renderPass);
+	}
+	delete[] commandBuffers;
+
+	/*for (uint32_t i = 0; i < MAX_FRAMEBUFFERS; i++) {
 		VkImageView attachments[] = {
 			swapChain->getImageView(i)
 		};
@@ -160,56 +183,43 @@ void GraphicsPipeline::setupFramebuffers(VkDevice_T* logicalDevice, const Vulkan
 		if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &framebuffer[i]->frameBuffer) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create framebuffer!");
 		}
-	}
+	}*/
 }
 
-void GraphicsPipeline::setupCommandBuffers(const VulkanDevice* const device, VkSurfaceKHR_T* surface) {
-	const QueueFamilyIndices* const indices = device->getQueueFamilyIndices();
-
-	VkCommandPoolCreateInfo poolInfo = {};
-	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	poolInfo.queueFamilyIndex = indices->graphicsFamily.index;
-
-	if (vkCreateCommandPool(device->logicalDevice, &poolInfo, nullptr, &this->commandPool) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create command pool!");
+void GraphicsPipeline::allocCommandBuffers(VkDevice_T* logicalDevice, const uint32_t& count, VkCommandBuffer_T**& outBuffers) {
+	if (outBuffers == nullptr) {
+		outBuffers = new VkCommandBuffer_T* [count];
 	}
 
 	VkCommandBufferAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.commandPool = this->commandPool;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = MAX_FRAMEBUFFERS;
+	allocInfo.commandBufferCount = count;
 	std::vector<VkCommandBuffer> buffers(MAX_FRAMEBUFFERS);
 
-	if (vkAllocateCommandBuffers(device->logicalDevice, &allocInfo, buffers.data()) != VK_SUCCESS) {
+	if (vkAllocateCommandBuffers(logicalDevice, &allocInfo, outBuffers) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate command buffers!");
-	}
-
-	framebuffer = new Frame*[MAX_FRAMEBUFFERS];
-	for (uint32_t i = 0; i < MAX_FRAMEBUFFERS; i++) {
-		framebuffer[i] = new Frame();
-		framebuffer[i]->setup(device->logicalDevice, buffers[i]);
 	}
 }
 
-void GraphicsPipeline::render(const VulkanDevice* const device, const VulkanSwapChain* const swapChain) {
-	Frame* currentFrame = framebuffer[currentFramebufferIndex];
-	initFrame(device, swapChain, currentFrame);
+void GraphicsPipeline::render(const VulkanDevice* const device) {
+	Frame* currentFrame = swapChain->getCurrentFrame();
+	initFrame(device, currentFrame);
 
 	beginCommandBuffer(currentFrame->commandBuffer);
-	beginRenderPass(currentFrame->commandBuffer, swapChain);
+	beginRenderPass(currentFrame->commandBuffer);
 	addRenderCommmand(currentFrame->commandBuffer);
 	finishRenderPass(currentFrame->commandBuffer);
 	finishCommandBuffer(currentFrame->commandBuffer);
 	
-	submitRender(currentFrame, device, swapChain);
-	presentRender(currentFrame, device, swapChain);
+	submitRender(currentFrame, device);
+	presentRender(currentFrame, device);
 	
-	currentFramebufferIndex = (currentFramebufferIndex + 1) % MAX_FRAMEBUFFERS;
+	swapChain->incrementCurrentFrame();
 }
 
-void GraphicsPipeline::initFrame(const VulkanDevice* device, const VulkanSwapChain* const swapChain, Frame* currentFrame) {
+void GraphicsPipeline::initFrame(const VulkanDevice* device, Frame* currentFrame) {
 	currentFrame->syncObject->wait(device->logicalDevice);
 
 	currentFrame->syncObject->reset(device->logicalDevice);
@@ -232,11 +242,11 @@ void GraphicsPipeline::beginCommandBuffer(VkCommandBuffer_T* commandBuffer) {
 	}
 }
 
-void GraphicsPipeline::beginRenderPass(VkCommandBuffer_T* commandBuffer, const VulkanSwapChain* const swapChain) {
+void GraphicsPipeline::beginRenderPass(VkCommandBuffer_T* commandBuffer) {
 	VkRenderPassBeginInfo renderPassInfo = {};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = this->renderPass;
-	renderPassInfo.framebuffer = framebuffer[currentFramebufferIndex]->frameBuffer;
+	renderPassInfo.framebuffer = swapChain->getCurrentFrame()->frameBuffer;
 	renderPassInfo.renderArea.offset = { 0, 0 };
 	renderPassInfo.renderArea.extent = *swapChain->getExtents();
 
@@ -263,7 +273,7 @@ void GraphicsPipeline::finishCommandBuffer(VkCommandBuffer_T* commandBuffer) {
 	}
 }
 
-void GraphicsPipeline::submitRender(Frame* currentFrame, const VulkanDevice* const device, const VulkanSwapChain* const swapChain) {
+void GraphicsPipeline::submitRender(Frame* currentFrame, const VulkanDevice* const device) {
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -284,7 +294,7 @@ void GraphicsPipeline::submitRender(Frame* currentFrame, const VulkanDevice* con
 	}
 }
 
-void GraphicsPipeline::presentRender(Frame* currentFrame, const VulkanDevice* const device, const VulkanSwapChain* const swapChain) {
+void GraphicsPipeline::presentRender(Frame* currentFrame, const VulkanDevice* const device) {
 
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -296,7 +306,8 @@ void GraphicsPipeline::presentRender(Frame* currentFrame, const VulkanDevice* co
 	VkSwapchainKHR swapChains[] = { swapChain->getSwapChain() };
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = swapChains;
-	presentInfo.pImageIndices = &currentFramebufferIndex;
+	uint32_t currentFrameIndex = swapChain->getCurrentFrameIndex();
+	presentInfo.pImageIndices = &currentFrameIndex;
 	presentInfo.pResults = nullptr;
 
 	vkQueuePresentKHR(device->presentQueue, &presentInfo);
@@ -319,12 +330,6 @@ void GraphicsPipeline::initViewportScissor(VkCommandBuffer_T* commandBuffer, con
 }
 
 void GraphicsPipeline::teardown(VkDevice_T* logicalDevice) {
-	if (framebuffer != nullptr) {
-		for (uint32_t i = 0; i < MAX_FRAMEBUFFERS; i++) {
-			framebuffer[i]->teardown(logicalDevice);
-		}
-		delete[] framebuffer;
-	}
 	if (commandPool != nullptr) {
 		vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
 		commandPool = nullptr;

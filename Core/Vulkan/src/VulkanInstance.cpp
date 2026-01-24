@@ -62,6 +62,14 @@ bool VulkanInstance::setup(GLFWwindow* window) {
 	return true;
 }
 
+void VulkanInstance::recreateSwapChain() {
+	vkDeviceWaitIdle(device->logicalDevice);
+}
+
+void VulkanInstance::cleanupSwapChain() {
+
+}
+
 void VulkanInstance::teardown() {
 	if (swapChain != nullptr) {
 		swapChain->teardown(device->logicalDevice);

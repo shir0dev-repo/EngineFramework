@@ -59,5 +59,5 @@ struct RenderPipelineInfo {
 		VkPipelineColorBlendStateCreateInfo* blendState, VkPipelineLayout_T* pipelineLayout, VkRenderPass_T* renderPass);
 
 	static void createPipelineLayout(VkDevice_T* logicalDevice, VkPipelineLayout_T** pipelineLayout);
-	static void createGraphicsPipelines(VkDevice_T* logicalDevice, const GraphicsPipelineCreateParams& createInfo, VkPipeline_T** pipeline);
+	static void createGraphicsPipelines(VkDevice_T* logicalDevice, const GraphicsPipelineCreateParams& createInfo, VkPipeline_T*& pipeline);
 };

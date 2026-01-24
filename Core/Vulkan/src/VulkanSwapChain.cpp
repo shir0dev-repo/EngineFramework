@@ -2,6 +2,7 @@
 #include "../Util/QueueFamilyIndices.h"
 #include "../Util/SwapChainSupportDetails.h"
 #include "../VulkanDevice.h"
+#include "../../Graphics/Frame.h"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -34,7 +35,18 @@ void VulkanSwapChain::setup(const VulkanDevice* const device, VkSurfaceKHR_T* su
 	querySwapChainCapabilities(device->physicalDevice, surface, *this->supportDetails);
 
 	createSwapChain(device, surface, window);
-	createImageViews(device->logicalDevice);
+	createFramebuffers(device);
+}
+
+void VulkanSwapChain::recreate(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window) {
+	vkDeviceWaitIdle(device->logicalDevice);
+
+	cleanupSwapchain(device->logicalDevice, false);
+	
+	querySwapChainCapabilities(device->physicalDevice, surface, *this->supportDetails);
+
+	createSwapChain(device, surface, window);
+	recreateFramebuffers(device);
 }
 
 void VulkanSwapChain::createSwapChain(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window) {
@@ -46,8 +58,6 @@ void VulkanSwapChain::createSwapChain(const VulkanDevice* const device, VkSurfac
 	if (supportDetails->capabilities->maxImageCount > 0 && imageCount > supportDetails->capabilities->maxImageCount) {
 		imageCount = supportDetails->capabilities->maxImageCount;
 	}
-
-
 
 	VkSwapchainCreateInfoKHR createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -85,42 +95,40 @@ void VulkanSwapChain::createSwapChain(const VulkanDevice* const device, VkSurfac
 	}
 }
 
-void VulkanSwapChain::createImageViews(VkDevice_T* logicalDevice) {
-	vkGetSwapchainImagesKHR(logicalDevice, swapChain, &this->swapChainImageCount, nullptr);
-	this->swapChainImages = new VkImage_T * [swapChainImageCount];
-	vkGetSwapchainImagesKHR(logicalDevice, swapChain, &swapChainImageCount, this->swapChainImages);
 
-	swapChainImageViews = new VkImageView_T*[swapChainImageCount];
-	for (uint32_t i = 0; i < swapChainImageCount; i++) {
-		createSwapChainImageView(logicalDevice, i);
+
+void VulkanSwapChain::createFramebuffers(const VulkanDevice* const device) {
+	vkGetSwapchainImagesKHR(device->logicalDevice, swapChain, &this->swapChainImageCount, nullptr);
+	
+	this->framebuffer = new Frame * [swapChainImageCount] { nullptr };
+	VkImage_T** images = new VkImage_T * [swapChainImageCount] { nullptr };
+	
+	size_t frameBufferCount(swapChainImageCount);
+	vkGetSwapchainImagesKHR(device->logicalDevice, this->swapChain, &swapChainImageCount, images);
+	for (uint32_t i = 0; i < frameBufferCount; i++) {
+		Frame* frame = new Frame();
+		frame->setupImageView(device->logicalDevice, selectedFormat->format, images[i]);
+
+		framebuffer[i] = frame;
 	}
+
+	delete[] images;
 }
 
-void VulkanSwapChain::createSwapChainImageView(VkDevice_T* logicalDevice, uint32_t currentIndex) {
-	VkImageViewCreateInfo createInfo = {};
-	
-	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	createInfo.image = swapChainImages[currentIndex];
-	createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	createInfo.format = selectedFormat->format;
-	
-	createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-	createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-	createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-	createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-
-	createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	createInfo.subresourceRange.baseMipLevel = 0;
-	createInfo.subresourceRange.levelCount = 1;
-	createInfo.subresourceRange.baseArrayLayer = 0;
-	createInfo.subresourceRange.layerCount = 1;
-
-	if (vkCreateImageView(logicalDevice, &createInfo, nullptr, &swapChainImageViews[currentIndex]) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create image view!");
+void VulkanSwapChain::recreateFramebuffers(const VulkanDevice* const device) {
+	for (uint32_t i = 0; i < swapChainImageCount; i++) {
+		Frame* frame = framebuffer[i];
+		frame->setupImageView(device->logicalDevice, selectedFormat->format, frame->image);
 	}
 }
 
 void VulkanSwapChain::teardown(VkDevice_T* device) {
+	if (framebuffer != nullptr) {
+		for (uint32_t i = 0; i < swapChainImageCount; i++) {
+			framebuffer[i]->teardown(device, true);
+		}
+		delete[] framebuffer;
+	}
 	if (swapChainImageViews != nullptr) {
 		for (uint32_t i = 0; i < swapChainImageCount; i++) {
 			vkDestroyImageView(device, swapChainImageViews[i], nullptr);
@@ -146,6 +154,15 @@ void VulkanSwapChain::teardown(VkDevice_T* device) {
 	}
 
 	vkDestroySwapchainKHR(device, swapChain, nullptr);
+}
+
+void VulkanSwapChain::cleanupSwapchain(VkDevice_T* logicalDevice, bool isFinalTeardown) {
+	for (uint32_t i = 0; i < swapChainImageCount; i++) {
+		framebuffer[i]->teardown(logicalDevice, isFinalTeardown);
+	}
+
+	vkDestroySwapchainKHR(logicalDevice, swapChain, nullptr);
+	swapChain = nullptr;
 }
 
 void VulkanSwapChain::querySwapChainCapabilities(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, SwapChainSupportDetails& supportDetails) {

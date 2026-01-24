@@ -11,6 +11,7 @@ struct VulkanInstance {
 	struct VulkanSwapChain* swapChain = nullptr;
 
 	bool setup(GLFWwindow* window);
+	void recreateSwapChain();
 	void teardown();
 private:
 	bool setupValidator();
@@ -19,6 +20,8 @@ private:
 	void setupSurface(GLFWwindow* window);
 	void setupDevice(GLFWwindow* window);
 	void setupSwapchain(GLFWwindow* window);
+
+	void cleanupSwapChain();
 
 	void makeVkApplicationInfo(struct VkApplicationInfo& appInfo) const;
 	void makeVkDebugMessengerCreateInfo(struct VkDebugUtilsMessengerCreateInfoEXT& createInfo) const;
