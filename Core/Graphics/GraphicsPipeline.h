@@ -12,6 +12,8 @@ struct VkExtent2D;
 struct VkCommandPool_T;
 struct VkCommandBuffer_T;
 
+struct GLFWwindow;
+
 struct VulkanCommandPool;
 struct VulkanDevice;
 struct VulkanSwapChain;
@@ -25,7 +27,8 @@ struct GraphicsPipeline {
 	void setup(const VulkanDevice* const device, VulkanSwapChain* const swapChain, VkSurfaceKHR_T* surface);
 	void teardown(VkDevice_T* logicalDevice);
 
-	void render(const VulkanDevice* const device);
+	static void onWindowResized(GraphicsPipeline* pipelineInstance, GLFWwindow* window, int width, int height);
+	void render(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window);
 private:
 	void setupRenderPass(VkDevice_T* logicalDevice);
 	void setupPipelineLayout(VkDevice_T* logicalDevice);
@@ -33,23 +36,23 @@ private:
 	void allocCommandBuffers(VkDevice_T* logicalDevice, const uint32_t& count, VkCommandBuffer_T**& outBuffers);
 	void setupFramebuffers(VkDevice_T* logicalDevice);
 
-	void initFrame(const VulkanDevice* const device, Frame* currentFrame);
+	bool initFrame(const VulkanDevice* const device, Frame* currentFrame, VkSurfaceKHR_T* surface, GLFWwindow* window);
 	void beginCommandBuffer(VkCommandBuffer_T* commandBuffer);
 	void beginRenderPass(VkCommandBuffer_T* commandBuffer);
 	void addRenderCommmand(VkCommandBuffer_T* commandBuffer);
 	void finishRenderPass(VkCommandBuffer_T* commandBuffer);
 	void finishCommandBuffer(VkCommandBuffer_T* commandBuffer);
 
-	void submitRender(Frame* currentFrame, const VulkanDevice* const device);
-	void presentRender(Frame* currentFrame, const VulkanDevice* const device);
+	void submitRender(const VulkanDevice* const device, Frame* currentFrame);
+	void presentRender(const VulkanDevice* const device, Frame* currentFrame, VkSurfaceKHR_T* surface, GLFWwindow* window);
 
 	void initViewportScissor(VkCommandBuffer_T* commandBuffer, const VkExtent2D* extent);
 
+	bool frameBufferResized = false;
 	VkRenderPass_T* renderPass = nullptr;
 	VkPipelineLayout_T* pipelineLayout = nullptr;
 	VkPipeline_T* pipeline = nullptr;
 
 	VulkanSwapChain* swapChain;
-
 	VkCommandPool_T* commandPool = nullptr;
 };

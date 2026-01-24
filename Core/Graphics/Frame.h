@@ -20,8 +20,9 @@ struct Frame {
 	GraphicsSyncObject* syncObject = nullptr;
 	VkFramebuffer_T* frameBuffer = nullptr;
 
+	void setupSyncs(VkDevice_T* logicalDevice);
 	void setupImageView(VkDevice_T* logicalDevice, const VkFormat& surfaceFormat, VkImage_T* swapchainImage);
-	void setupBuffer(VkDevice_T* logicalDevice, VkCommandBuffer_T*& commandBuffer, const VkExtent2D* const extent, VkRenderPass_T* renderPass);
+	void setupBuffer(VkDevice_T* logicalDevice, const VkExtent2D* const extent, VkRenderPass_T* renderPass);
 
 	void teardown(VkDevice_T* logicalDevice, bool isFinalTeardown);
 };

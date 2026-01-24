@@ -9,7 +9,16 @@
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 
+Application* Application::instance = nullptr;
+
 int Application::run() {
+	if (instance == nullptr) {
+		instance = this;
+	}
+	else {
+		throw;
+	}
+
 	if (!initWindow()) {
 		return -1;
 	}
@@ -22,6 +31,14 @@ int Application::run() {
 	return 0;
 }
 
+void Application::onWindowResized(GLFWwindow* window, int width, int height) {
+	if (instance->graphicsPipeline == nullptr) {
+		return;
+	}
+
+	GraphicsPipeline::onWindowResized(instance->graphicsPipeline, window, width, height);
+}
+
 bool Application::initWindow() {
 	if (glfwInit() == GLFW_FALSE) {
 		glfwTerminate();
@@ -29,10 +46,10 @@ bool Application::initWindow() {
 	}
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // don't make an openGL context
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); // Set resizing to false, for now
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 	
 	this->window = new AppWindow();
-	window->setup(800, 800);
+	window->setup(800, 800, &Application::onWindowResized);
 
 	return 1;
 }
@@ -50,7 +67,7 @@ void Application::initGraphicsPipeline() {
 void Application::mainLoop() {
 	while (!glfwWindowShouldClose(window->GetWindow())) {
 		glfwPollEvents();
-		graphicsPipeline->render(vkInstance->device);
+		graphicsPipeline->render(vkInstance->device, vkInstance->surface, window->GetWindow());
 	}
 
 	vkDeviceWaitIdle(vkInstance->device->logicalDevice);
@@ -58,6 +75,7 @@ void Application::mainLoop() {
 
 void Application::cleanup() {
 	graphicsPipeline->teardown(vkInstance->device->logicalDevice);
+	delete graphicsPipeline;
 	vkInstance->teardown();
 	delete vkInstance;
 	window->teardown();

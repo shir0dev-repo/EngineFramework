@@ -10,18 +10,19 @@ struct VulkanInstance {
 	struct VkDebugUtilsMessengerEXT_T* debugMessenger = nullptr;
 	struct VulkanSwapChain* swapChain = nullptr;
 
+	static VulkanInstance *const getInstance();
+
 	bool setup(GLFWwindow* window);
-	void recreateSwapChain();
 	void teardown();
 private:
+	static VulkanInstance* vulkanInstance;
+
 	bool setupValidator();
 	void setupInstance();
 	void setupDebugMessenger();
 	void setupSurface(GLFWwindow* window);
 	void setupDevice(GLFWwindow* window);
 	void setupSwapchain(GLFWwindow* window);
-
-	void cleanupSwapChain();
 
 	void makeVkApplicationInfo(struct VkApplicationInfo& appInfo) const;
 	void makeVkDebugMessengerCreateInfo(struct VkDebugUtilsMessengerCreateInfoEXT& createInfo) const;

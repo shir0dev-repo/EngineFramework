@@ -4,12 +4,12 @@
 #include <vulkan/vulkan.h>
 #include <iostream>
 
-void Frame::setupBuffer(VkDevice_T* logicalDevice, VkCommandBuffer_T*& commandBuffer, const VkExtent2D* const extent, VkRenderPass_T* renderPass) {
+void Frame::setupSyncs(VkDevice_T* logicalDevice) {
 	syncObject = new GraphicsSyncObject();
 	syncObject->setup(logicalDevice);
-	
-	this->commandBuffer = commandBuffer;
+}
 
+void Frame::setupBuffer(VkDevice_T* logicalDevice, const VkExtent2D* const extent, VkRenderPass_T* renderPass) {
 	VkFramebufferCreateInfo framebufferInfo = {};
 	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 	framebufferInfo.renderPass = renderPass;

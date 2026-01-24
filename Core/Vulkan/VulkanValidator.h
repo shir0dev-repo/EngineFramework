@@ -14,7 +14,7 @@ struct VulkanValidator {
 	uint32_t numEnabledLayers = 0;
 	uint32_t numExtensions = 0;
 
-	void initialize();
+	void setup();
 
 	const char* const* getValidationLayerNames() const;
 	const char* const* getRequiredExtensions();

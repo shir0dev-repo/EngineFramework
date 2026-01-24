@@ -49,6 +49,16 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 }
 #pragma endregion
 
+VulkanInstance* VulkanInstance::vulkanInstance = nullptr;
+
+VulkanInstance* const VulkanInstance::getInstance() {
+	if (vulkanInstance == nullptr) {
+		vulkanInstance = new VulkanInstance();
+	}
+
+	return vulkanInstance;
+}
+
 bool VulkanInstance::setup(GLFWwindow* window) {
 	if (!setupValidator()) {
 		return false;
@@ -62,46 +72,9 @@ bool VulkanInstance::setup(GLFWwindow* window) {
 	return true;
 }
 
-void VulkanInstance::recreateSwapChain() {
-	vkDeviceWaitIdle(device->logicalDevice);
-}
-
-void VulkanInstance::cleanupSwapChain() {
-
-}
-
-void VulkanInstance::teardown() {
-	if (swapChain != nullptr) {
-		swapChain->teardown(device->logicalDevice);
-		delete swapChain;
-		swapChain = nullptr;
-	}
-	if (device != nullptr) {
-		device->teardown();
-		delete device;
-		device = nullptr;
-	}
-	if (validator->isValidationLayerEnabled) {
-		DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
-		debugMessenger = nullptr;
-	}
-	if (validator != nullptr) {
-		delete validator;
-		validator = nullptr;
-	}
-	if (surface != nullptr) {
-		vkDestroySurfaceKHR(instance, surface, nullptr);
-		surface = nullptr;
-	}
-	if (instance != nullptr) {
-		vkDestroyInstance(instance, nullptr);
-		instance = nullptr;
-	}
-}
-
 bool VulkanInstance::setupValidator() {
 	validator = new VulkanValidator();
-	validator->initialize();
+	validator->setup();
 
 	if (validator->isValidationLayerEnabled && !validator->isSupported) {
 		delete validator;
@@ -170,6 +143,35 @@ void VulkanInstance::setupSwapchain(GLFWwindow* window) {
 	this->swapChain->setup(device, this->surface, window);
 }
 
+void VulkanInstance::teardown() {
+	if (swapChain != nullptr) {
+		swapChain->teardown(device->logicalDevice);
+		delete swapChain;
+		swapChain = nullptr;
+	}
+	if (device != nullptr) {
+		device->teardown();
+		delete device;
+		device = nullptr;
+	}
+	if (validator != nullptr) {
+		if (validator->isValidationLayerEnabled) {
+			DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+			debugMessenger = nullptr;
+		}
+		delete validator;
+		validator = nullptr;
+	}
+	if (surface != nullptr) {
+		vkDestroySurfaceKHR(instance, surface, nullptr);
+		surface = nullptr;
+	}
+	if (instance != nullptr) {
+		vkDestroyInstance(instance, nullptr);
+		instance = nullptr;
+	}
+}
+
 void VulkanInstance::makeVkApplicationInfo(VkApplicationInfo& appInfo) const {
 	appInfo = {};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -187,7 +189,7 @@ void VulkanInstance::makeVkDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateI
 		VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
 		VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
 		VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-	createInfo.messageType = 
+	createInfo.messageType =
 		VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
 		VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
 		VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;

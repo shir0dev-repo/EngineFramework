@@ -26,6 +26,10 @@ static VkShaderModule createShaderModule(VkDevice_T* logicalDevice, const char* 
 	return shaderModule;
 }
 
+void GraphicsPipeline::onWindowResized(GraphicsPipeline* pipelineInstance, GLFWwindow* window, int width, int height) {
+	pipelineInstance->frameBufferResized = true;
+}
+
 void GraphicsPipeline::setup(const VulkanDevice* const device, VulkanSwapChain* const swapChain, VkSurfaceKHR_T* surface) {
 	this->swapChain = swapChain;
 
@@ -162,28 +166,10 @@ void GraphicsPipeline::setupFramebuffers(VkDevice_T* logicalDevice) {
 
 	for (uint32_t i = 0; i < bufferCount; i++) {
 		Frame* const frame = framebuffer[i];
-		frame->setupBuffer(logicalDevice, commandBuffers[i], extent, this->renderPass);
+		frame->commandBuffer = commandBuffers[i];
+		frame->setupBuffer(logicalDevice, extent, this->renderPass);
 	}
 	delete[] commandBuffers;
-
-	/*for (uint32_t i = 0; i < MAX_FRAMEBUFFERS; i++) {
-		VkImageView attachments[] = {
-			swapChain->getImageView(i)
-		};
-
-		VkFramebufferCreateInfo framebufferInfo = {};
-		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = renderPass;
-		framebufferInfo.attachmentCount = 1;
-		framebufferInfo.pAttachments = attachments;
-		framebufferInfo.width = extent->width;
-		framebufferInfo.height = extent->height;
-		framebufferInfo.layers = 1;
-
-		if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &framebuffer[i]->frameBuffer) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to create framebuffer!");
-		}
-	}*/
 }
 
 void GraphicsPipeline::allocCommandBuffers(VkDevice_T* logicalDevice, const uint32_t& count, VkCommandBuffer_T**& outBuffers) {
@@ -203,9 +189,12 @@ void GraphicsPipeline::allocCommandBuffers(VkDevice_T* logicalDevice, const uint
 	}
 }
 
-void GraphicsPipeline::render(const VulkanDevice* const device) {
+void GraphicsPipeline::render(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window) {
 	Frame* currentFrame = swapChain->getCurrentFrame();
-	initFrame(device, currentFrame);
+	bool shouldRender = initFrame(device, currentFrame, surface, window);
+	if (!shouldRender) {
+		return;
+	}
 
 	beginCommandBuffer(currentFrame->commandBuffer);
 	beginRenderPass(currentFrame->commandBuffer);
@@ -213,22 +202,32 @@ void GraphicsPipeline::render(const VulkanDevice* const device) {
 	finishRenderPass(currentFrame->commandBuffer);
 	finishCommandBuffer(currentFrame->commandBuffer);
 	
-	submitRender(currentFrame, device);
-	presentRender(currentFrame, device);
-	
-	swapChain->incrementCurrentFrame();
+	submitRender(device, currentFrame);
+	presentRender(device, currentFrame, surface, window);
 }
 
-void GraphicsPipeline::initFrame(const VulkanDevice* device, Frame* currentFrame) {
+bool GraphicsPipeline::initFrame(const VulkanDevice* device, Frame* currentFrame, VkSurfaceKHR_T* surface, GLFWwindow* window) {
 	currentFrame->syncObject->wait(device->logicalDevice);
 
-	currentFrame->syncObject->reset(device->logicalDevice);
-
 	uint32_t imageIndex;
-	vkAcquireNextImageKHR(device->logicalDevice, swapChain->getSwapChain(), UINT64_MAX, currentFrame->syncObject->imageAvailableSemaphore,
-		VK_NULL_HANDLE, &imageIndex);
+	VkResult result = vkAcquireNextImageKHR(device->logicalDevice, swapChain->getSwapChain(), UINT64_MAX,
+		currentFrame->syncObject->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
-	vkResetCommandBuffer(currentFrame->commandBuffer, 0);
+	if (swapChain->getCurrentFrameIndex() != imageIndex) {
+
+	}
+	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+		swapChain->recreate(device, renderPass, surface, window);
+		return false;
+	}
+	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+		throw std::runtime_error("Failed to acquire swapchain image!");
+	}
+	else {
+		currentFrame->syncObject->reset(device->logicalDevice);
+		vkResetCommandBuffer(currentFrame->commandBuffer, 0);
+		return true;
+	}
 }
 
 void GraphicsPipeline::beginCommandBuffer(VkCommandBuffer_T* commandBuffer) {
@@ -273,7 +272,7 @@ void GraphicsPipeline::finishCommandBuffer(VkCommandBuffer_T* commandBuffer) {
 	}
 }
 
-void GraphicsPipeline::submitRender(Frame* currentFrame, const VulkanDevice* const device) {
+void GraphicsPipeline::submitRender(const VulkanDevice* const device, Frame* currentFrame) {
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -294,7 +293,7 @@ void GraphicsPipeline::submitRender(Frame* currentFrame, const VulkanDevice* con
 	}
 }
 
-void GraphicsPipeline::presentRender(Frame* currentFrame, const VulkanDevice* const device) {
+void GraphicsPipeline::presentRender(const VulkanDevice* const device, Frame* currentFrame, VkSurfaceKHR_T* surface, GLFWwindow* window) {
 
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -310,7 +309,17 @@ void GraphicsPipeline::presentRender(Frame* currentFrame, const VulkanDevice* co
 	presentInfo.pImageIndices = &currentFrameIndex;
 	presentInfo.pResults = nullptr;
 
-	vkQueuePresentKHR(device->presentQueue, &presentInfo);
+	VkResult result = vkQueuePresentKHR(device->presentQueue, &presentInfo);
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || frameBufferResized) {
+		frameBufferResized = false;
+		swapChain->recreate(device, renderPass, surface, window);
+	}
+	else if (result != VK_SUCCESS) {
+		throw std::runtime_error("Failed to present swapchain image!");
+	}
+	else {
+		swapChain->incrementCurrentFrame();
+	}
 }
 
 void GraphicsPipeline::initViewportScissor(VkCommandBuffer_T* commandBuffer, const VkExtent2D* extent) {
@@ -330,10 +339,6 @@ void GraphicsPipeline::initViewportScissor(VkCommandBuffer_T* commandBuffer, con
 }
 
 void GraphicsPipeline::teardown(VkDevice_T* logicalDevice) {
-	if (commandPool != nullptr) {
-		vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
-		commandPool = nullptr;
-	}
 	if (pipeline != nullptr) {
 		vkDestroyPipeline(logicalDevice, pipeline, nullptr);
 		pipeline = nullptr;
@@ -345,6 +350,10 @@ void GraphicsPipeline::teardown(VkDevice_T* logicalDevice) {
 	if (renderPass != nullptr) {
 		vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
 		renderPass = nullptr;
+	}
+	if (commandPool != nullptr) {
+		vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
+		commandPool = nullptr;
 	}
 }
 

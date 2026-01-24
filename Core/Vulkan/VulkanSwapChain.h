@@ -15,6 +15,7 @@ struct VkPhysicalDevice_T;
 struct VkDevice_T;
 struct VkSurfaceKHR_T;
 struct VkSwapchainKHR_T;
+struct VkRenderPass_T;
 struct VkImage_T;
 struct VkFramebuffer_T;
 struct VkSurfaceCapabilitiesKHR;
@@ -40,7 +41,7 @@ struct VulkanSwapChain {
 	VkImageView_T* const getImageView(uint32_t i) const;
 
 	void setup(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window);
-	void recreate(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window);
+	void recreate(const VulkanDevice* const device, VkRenderPass_T* renderPass, VkSurfaceKHR_T* surface, GLFWwindow* window);
 	void teardown(VkDevice_T* logicalDevice);
 
 private:
@@ -49,7 +50,7 @@ private:
 
 	void cleanupSwapchain(VkDevice_T* logicalDevice, bool isFinalTeardown);
 
-	void recreateFramebuffers(const VulkanDevice* const device);
+	void recreateFramebuffers(const VulkanDevice* const device, VkRenderPass_T* renderPass);
 
 	static void querySupportedSurfaceFormats(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, VkSurfaceFormatKHR*& outFormats, uint32_t* count);
 	static void querySupportedPresentModes(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, VkPresentModeKHR*& outPresentModes, uint32_t* count);

@@ -8,7 +8,7 @@
 
 const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
 
-void VulkanValidator::initialize() {
+void VulkanValidator::setup() {
 	if (!isValidationLayerEnabled) {
 		isSupported = false;
 		return;

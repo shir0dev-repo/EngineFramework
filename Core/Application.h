@@ -1,5 +1,7 @@
 #pragma once
 
+struct GLFWwindow;
+
 struct AppWindow;
 struct VulkanInstance;
 struct GraphicsPipeline;
@@ -7,7 +9,9 @@ struct GraphicsPipeline;
 struct Application {
 	int run();
 
+	static void onWindowResized(GLFWwindow* window, int width, int height);
 private:
+	static Application* instance;
 	bool initWindow();
 	void initVulkan();
 	void initGraphicsPipeline();
