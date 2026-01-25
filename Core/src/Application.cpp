@@ -5,9 +5,19 @@
 #include "../Vulkan/VulkanDevice.h"
 #include "../Vulkan/VulkanSwapChain.h"
 #include "../Graphics/GraphicsPipeline.h"
+#include "../Graphics/Shader/Vertex.h"
+#include "../Graphics/Renderer/MeshRenderer.h"
+#include "../Graphics/Mesh/Mesh.h"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
+#include <vector>
+
+static std::vector<Vertex> vertices = {
+	{{  0.0f,   0.5f, 0.0f }, { 0.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f, 0.0f }},
+	{{ -0.5f,  -0.5f, 0.0f }, { 0.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }},
+	{{  0.5f,  -0.5f, 0.0f }, { 0.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, -1.0f }, { 1.0f, 1.0f, 1.0f }}
+};
 
 Application* Application::instance = nullptr;
 
@@ -65,12 +75,23 @@ void Application::initGraphicsPipeline() {
 }
 
 void Application::mainLoop() {
+	Mesh* mesh = new Mesh();
+	mesh->vertexData = vertices.data();
+	mesh->vertexCount = vertices.size();
+	MeshRenderer* renderer = new MeshRenderer();
+	renderer->setup(vkInstance->device, mesh);
+
 	while (!glfwWindowShouldClose(window->GetWindow())) {
 		glfwPollEvents();
+		renderer->draw(graphicsPipeline);
 		graphicsPipeline->render(vkInstance->device, vkInstance->surface, window->GetWindow());
 	}
 
 	vkDeviceWaitIdle(vkInstance->device->logicalDevice);
+
+	renderer->teardown(vkInstance->device->logicalDevice);
+	delete renderer;
+	delete mesh;
 }
 
 void Application::cleanup() {

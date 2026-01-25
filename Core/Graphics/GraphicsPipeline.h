@@ -10,6 +10,7 @@ struct VkFramebuffer_T;
 struct VkSurfaceKHR_T;
 struct VkExtent2D;
 struct VkCommandPool_T;
+struct VkBuffer_T;
 struct VkCommandBuffer_T;
 
 struct GLFWwindow;
@@ -18,6 +19,7 @@ struct VulkanCommandPool;
 struct VulkanDevice;
 struct VulkanSwapChain;
 struct GraphicsSyncObject;
+struct GPUBuffer;
 struct Frame;
 
 struct GraphicsPipeline {
@@ -28,17 +30,20 @@ struct GraphicsPipeline {
 	void teardown(VkDevice_T* logicalDevice);
 
 	static void onWindowResized(GraphicsPipeline* pipelineInstance, GLFWwindow* window, int width, int height);
+	void addRenderCommand(GPUBuffer* buffers, uint32_t bufferCount, uint32_t vertexCount, uint32_t indexCount);
 	void render(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window);
 private:
 	void setupRenderPass(VkDevice_T* logicalDevice);
 	void setupPipelineLayout(VkDevice_T* logicalDevice);
 	void setupCommandPool(const VulkanDevice* const device, VkSurfaceKHR_T* surface);
+	void setupVertexBuffer(const VulkanDevice* const device);
 	void allocCommandBuffers(VkDevice_T* logicalDevice, const uint32_t& count, VkCommandBuffer_T**& outBuffers);
-	void setupFramebuffers(VkDevice_T* logicalDevice);
+	void setupFramebuffers(VkDevice_T* logicalDevice, const uint32_t& bufferCount, VkCommandBuffer_T** commandBuffers);
 
 	bool initFrame(const VulkanDevice* const device, Frame* currentFrame, VkSurfaceKHR_T* surface, GLFWwindow* window);
 	void beginCommandBuffer(VkCommandBuffer_T* commandBuffer);
 	void beginRenderPass(VkCommandBuffer_T* commandBuffer);
+	void iterateRenderCommands(VkCommandBuffer_T* commandBuffer);
 	void addRenderCommmand(VkCommandBuffer_T* commandBuffer);
 	void finishRenderPass(VkCommandBuffer_T* commandBuffer);
 	void finishCommandBuffer(VkCommandBuffer_T* commandBuffer);
@@ -52,7 +57,8 @@ private:
 	VkRenderPass_T* renderPass = nullptr;
 	VkPipelineLayout_T* pipelineLayout = nullptr;
 	VkPipeline_T* pipeline = nullptr;
+	VulkanSwapChain* swapChain = nullptr;
 
-	VulkanSwapChain* swapChain;
 	VkCommandPool_T* commandPool = nullptr;
+	VkCommandBuffer_T* transferCommmandBuffer = nullptr;
 };

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -107,6 +107,8 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>E:\EngineFramework\lib;C:\VulkanSDK\1.4.335.0\Include;C:\Program Files\Microsoft Visual Studio\2022\Libraries\glfw-3.4.bin.WIN64\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>
+      </DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -130,9 +132,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Core\Graphics\Renderer\src\MeshRenderer.cpp" />
+    <ClCompile Include="Core\Graphics\Shader\src\GPUBuffer.cpp" />
+    <ClCompile Include="Core\Graphics\Shader\src\Vertex.cpp" />
     <ClCompile Include="Core\Graphics\src\Frame.cpp" />
     <ClCompile Include="Core\Graphics\src\GraphicsPipeline.cpp" />
     <ClCompile Include="Core\Graphics\src\GraphicsSyncObject.cpp" />
+    <ClCompile Include="Core\Graphics\src\RenderCommand.cpp" />
     <ClCompile Include="Core\Graphics\src\RenderPipelineInfo.cpp" />
     <ClCompile Include="Core\Graphics\Util\src\RenderUtils.cpp" />
     <ClCompile Include="Core\src\Application.cpp" />
@@ -154,7 +160,12 @@
     <ClInclude Include="Core\Graphics\Frame.h" />
     <ClInclude Include="Core\Graphics\GraphicsPipeline.h" />
     <ClInclude Include="Core\Graphics\GraphicsSyncObject.h" />
+    <ClInclude Include="Core\Graphics\Mesh\Mesh.h" />
+    <ClInclude Include="Core\Graphics\RenderCommand.h" />
+    <ClInclude Include="Core\Graphics\Renderer\MeshRenderer.h" />
     <ClInclude Include="Core\Graphics\RenderPipelineInfo.h" />
+    <ClInclude Include="Core\Graphics\Shader\GPUBuffer.h" />
+    <ClInclude Include="Core\Graphics\Shader\Vertex.h" />
     <ClInclude Include="Core\Graphics\Util\RenderUtils.h" />
     <ClInclude Include="Core\Vulkan\Util\QueueFamilyIndices.h" />
     <ClInclude Include="Core\Vulkan\Util\SwapChainSupportDetails.h" />

@@ -1,4 +1,7 @@
 #include "../GraphicsPipeline.h"
+#include "../Shader/Vertex.h"
+#include "../RenderCommand.h"
+
 #include "../RenderPipelineInfo.h"
 #include "../Util/RenderUtils.h"
 #include "../../Vulkan/Util/QueueFamilyIndices.h"
@@ -11,6 +14,8 @@
 #include <vulkan/vulkan.h>
 #include <fstream>
 #include <vector>
+
+static std::vector<RenderCommand*> renderCmds;
 
 static VkShaderModule createShaderModule(VkDevice_T* logicalDevice, const char* byteCode, const uint32_t& size) {
 	VkShaderModuleCreateInfo createInfo = {};
@@ -36,7 +41,13 @@ void GraphicsPipeline::setup(const VulkanDevice* const device, VulkanSwapChain* 
 	setupRenderPass(device->logicalDevice);
 	setupPipelineLayout(device->logicalDevice);
 	setupCommandPool(device, surface);
-	setupFramebuffers(device->logicalDevice);
+	setupVertexBuffer(device);
+
+	uint32_t bufferCount = swapChain->getSwapChainImageCount();
+	VkCommandBuffer_T** commandBuffers = nullptr;
+	allocCommandBuffers(device->logicalDevice, bufferCount, commandBuffers);
+	setupFramebuffers(device->logicalDevice, bufferCount, commandBuffers);
+	delete[] commandBuffers;
 }
 
 void GraphicsPipeline::setupRenderPass(VkDevice_T* logicalDevice) {
@@ -156,25 +167,15 @@ void GraphicsPipeline::setupCommandPool(const VulkanDevice* const device, VkSurf
 	}
 }
 
-void GraphicsPipeline::setupFramebuffers(VkDevice_T* logicalDevice) {
-	uint32_t bufferCount = swapChain->getSwapChainImageCount();
-	VkCommandBuffer_T** commandBuffers = nullptr;
-	allocCommandBuffers(logicalDevice, bufferCount, commandBuffers);
-
-	Frame* const* const framebuffer = swapChain->getFramebuffer();
-	const VkExtent2D* const extent = swapChain->getExtents();
-
-	for (uint32_t i = 0; i < bufferCount; i++) {
-		Frame* const frame = framebuffer[i];
-		frame->commandBuffer = commandBuffers[i];
-		frame->setupBuffer(logicalDevice, extent, this->renderPass);
-	}
-	delete[] commandBuffers;
+void GraphicsPipeline::setupVertexBuffer(const VulkanDevice* const device) {
+	VkBufferCreateInfo bufferInfo = {};
+	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	
 }
 
 void GraphicsPipeline::allocCommandBuffers(VkDevice_T* logicalDevice, const uint32_t& count, VkCommandBuffer_T**& outBuffers) {
 	if (outBuffers == nullptr) {
-		outBuffers = new VkCommandBuffer_T* [count];
+		outBuffers = new VkCommandBuffer_T * [count];
 	}
 
 	VkCommandBufferAllocateInfo allocInfo = {};
@@ -189,6 +190,17 @@ void GraphicsPipeline::allocCommandBuffers(VkDevice_T* logicalDevice, const uint
 	}
 }
 
+void GraphicsPipeline::setupFramebuffers(VkDevice_T* logicalDevice, const uint32_t& bufferCount, VkCommandBuffer_T** commandBuffers) {
+	Frame* const* const framebuffer = swapChain->getFramebuffer();
+	const VkExtent2D* const extent = swapChain->getExtents();
+
+	for (uint32_t i = 0; i < bufferCount; i++) {
+		Frame* const frame = framebuffer[i];
+		frame->commandBuffer = commandBuffers[i];
+		frame->setupBuffer(logicalDevice, extent, this->renderPass);
+	}
+}
+
 void GraphicsPipeline::render(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window) {
 	Frame* currentFrame = swapChain->getCurrentFrame();
 	bool shouldRender = initFrame(device, currentFrame, surface, window);
@@ -198,7 +210,8 @@ void GraphicsPipeline::render(const VulkanDevice* const device, VkSurfaceKHR_T* 
 
 	beginCommandBuffer(currentFrame->commandBuffer);
 	beginRenderPass(currentFrame->commandBuffer);
-	addRenderCommmand(currentFrame->commandBuffer);
+	iterateRenderCommands(currentFrame->commandBuffer);
+	//addRenderCommmand(currentFrame->commandBuffer);
 	finishRenderPass(currentFrame->commandBuffer);
 	finishCommandBuffer(currentFrame->commandBuffer);
 	
@@ -258,8 +271,23 @@ void GraphicsPipeline::beginRenderPass(VkCommandBuffer_T* commandBuffer) {
 	initViewportScissor(commandBuffer, swapChain->getExtents());
 }
 
+void GraphicsPipeline::addRenderCommand(GPUBuffer* buffers, uint32_t bufferCount, uint32_t vertexCount, uint32_t indexCount) {
+	RenderCommand* cmd = RenderCommand::create(buffers, bufferCount, vertexCount, indexCount);
+	renderCmds.push_back(cmd);
+}
+
 void GraphicsPipeline::addRenderCommmand(VkCommandBuffer_T* commandBuffer) {
 	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+}
+
+void GraphicsPipeline::iterateRenderCommands(VkCommandBuffer_T* commandBuffer) {
+	for (uint32_t i = 0; i < renderCmds.size(); i++) {
+		RenderCommand* cmd = renderCmds.data()[i];
+		cmd->execute(commandBuffer);
+		delete cmd;
+	}
+
+	renderCmds.clear();
 }
 
 void GraphicsPipeline::finishRenderPass(VkCommandBuffer_T* commandBuffer) {
