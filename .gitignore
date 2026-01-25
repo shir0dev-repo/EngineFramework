@@ -17,7 +17,7 @@
 mono_crash.*
 
 #doxygen generated files
-*/docs/
+doc/*
 
 # Build results
 [Dd]ebug/
