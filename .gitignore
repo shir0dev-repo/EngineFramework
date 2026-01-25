@@ -16,6 +16,9 @@
 # Mono auto generated files
 mono_crash.*
 
+#doxygen generated files
+*/docs/
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
