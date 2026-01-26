@@ -138,12 +138,12 @@
     <ClCompile Include="Core\Graphics\src\Frame.cpp" />
     <ClCompile Include="Core\Graphics\src\GraphicsPipeline.cpp" />
     <ClCompile Include="Core\Graphics\src\GraphicsSyncObject.cpp" />
+    <ClCompile Include="Core\Graphics\src\GraphicsUtils.cpp" />
     <ClCompile Include="Core\Graphics\src\RenderCommand.cpp" />
     <ClCompile Include="Core\Graphics\src\RenderPipelineInfo.cpp" />
     <ClCompile Include="Core\Graphics\Util\src\RenderUtils.cpp" />
     <ClCompile Include="Core\src\Application.cpp" />
     <ClCompile Include="Core\src\AppWindow.cpp" />
-    <ClCompile Include="Core\Vulkan\src\VulkanCommandPool.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanInstance.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanSwapChain.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanValidator.cpp" />
@@ -160,6 +160,7 @@
     <ClInclude Include="Core\Graphics\Frame.h" />
     <ClInclude Include="Core\Graphics\GraphicsPipeline.h" />
     <ClInclude Include="Core\Graphics\GraphicsSyncObject.h" />
+    <ClInclude Include="Core\Graphics\GraphicsUtils.h" />
     <ClInclude Include="Core\Graphics\Mesh\Mesh.h" />
     <ClInclude Include="Core\Graphics\RenderCommand.h" />
     <ClInclude Include="Core\Graphics\Renderer\MeshRenderer.h" />
@@ -169,7 +170,6 @@
     <ClInclude Include="Core\Graphics\Util\RenderUtils.h" />
     <ClInclude Include="Core\Vulkan\Util\QueueFamilyIndices.h" />
     <ClInclude Include="Core\Vulkan\Util\SwapChainSupportDetails.h" />
-    <ClInclude Include="Core\Vulkan\VulkanCommandPool.h" />
     <ClInclude Include="Core\Vulkan\VulkanInstance.h" />
     <ClInclude Include="Core\Vulkan\VulkanSwapChain.h" />
     <ClInclude Include="Core\Vulkan\VulkanValidator.h" />

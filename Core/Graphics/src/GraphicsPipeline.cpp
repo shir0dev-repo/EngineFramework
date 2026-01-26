@@ -7,7 +7,6 @@
 #include "../../Vulkan/Util/QueueFamilyIndices.h"
 #include "../../Vulkan/VulkanSwapChain.h"
 #include "../../Vulkan/VulkanDevice.h"
-#include "../../Vulkan/VulkanCommandPool.h"
 #include "../GraphicsSyncObject.h"
 #include "../Frame.h"
 
@@ -16,6 +15,12 @@
 #include <vector>
 
 static std::vector<RenderCommand*> renderCmds;
+
+GraphicsPipeline* GraphicsPipeline::instance = nullptr;
+
+GraphicsPipeline* const GraphicsPipeline::getInstance() {
+	return instance;
+}
 
 static VkShaderModule createShaderModule(VkDevice_T* logicalDevice, const char* byteCode, const uint32_t& size) {
 	VkShaderModuleCreateInfo createInfo = {};
@@ -36,6 +41,7 @@ void GraphicsPipeline::onWindowResized(GraphicsPipeline* pipelineInstance, GLFWw
 }
 
 void GraphicsPipeline::setup(const VulkanDevice* const device, VulkanSwapChain* const swapChain, VkSurfaceKHR_T* surface) {
+	instance = this;
 	this->swapChain = swapChain;
 
 	setupRenderPass(device->logicalDevice);

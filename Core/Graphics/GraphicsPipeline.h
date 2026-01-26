@@ -26,13 +26,19 @@ struct GraphicsPipeline {
 	const uint32_t MAX_FRAMEBUFFERS = 3;
 	static bool readFile(const char* filePath, char*& outFileContents, uint32_t& fileSize);
 	
+	static GraphicsPipeline* const getInstance();
+
 	void setup(const VulkanDevice* const device, VulkanSwapChain* const swapChain, VkSurfaceKHR_T* surface);
 	void teardown(VkDevice_T* logicalDevice);
+
+	VkCommandPool_T* const getCommandPool() { return commandPool; }
 
 	static void onWindowResized(GraphicsPipeline* pipelineInstance, GLFWwindow* window, int width, int height);
 	void addRenderCommand(GPUBuffer* buffers, uint32_t bufferCount, uint32_t vertexCount, uint32_t indexCount);
 	void render(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window);
 private:
+	static GraphicsPipeline* instance;
+
 	void setupRenderPass(VkDevice_T* logicalDevice);
 	void setupPipelineLayout(VkDevice_T* logicalDevice);
 	void setupCommandPool(const VulkanDevice* const device, VkSurfaceKHR_T* surface);
@@ -54,6 +60,7 @@ private:
 	void initViewportScissor(VkCommandBuffer_T* commandBuffer, const VkExtent2D* extent);
 
 	bool frameBufferResized = false;
+
 	VkRenderPass_T* renderPass = nullptr;
 	VkPipelineLayout_T* pipelineLayout = nullptr;
 	VkPipeline_T* pipeline = nullptr;

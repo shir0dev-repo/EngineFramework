@@ -1,5 +1,6 @@
 #include "../GPUBuffer.h"
 #include "../../../Vulkan/VulkanDevice.h"
+#include "../../GraphicsUtils.h"
 
 #include <vulkan/vulkan.h>
 #include <iostream>
@@ -44,14 +45,47 @@ void GPUBuffer::createBuffer(const VulkanDevice* const device, VkDeviceSize size
 	vkBindBufferMemory(device->logicalDevice, buffer, bufferMemory, 0);
 }
 
-void GPUBuffer::copyBuffer(VkBuffer_T* src, VkBuffer_T* dst, VkDeviceSize size, uint32_t dstOffset) {
+void GPUBuffer::copyBuffer(const VulkanDevice* const device, VkBuffer_T* src, VkBuffer_T* dst, VkDeviceSize size, uint32_t dstOffset) {
+	VkCommandPool_T* cmdPool;
+	if (GraphicsUtils::GetCurrentCommandPool(&cmdPool) == false) {
+		throw std::runtime_error("Could not obtain current command pool!");
+	}
+
 	VkCommandBufferAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandPool = cmdPool;
+	allocInfo.commandBufferCount = 1;
+
+	VkCommandBuffer_T* cmdBuffer;
+	vkAllocateCommandBuffers(device->logicalDevice, &allocInfo, &cmdBuffer);
+
+	VkCommandBufferBeginInfo beginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	vkBeginCommandBuffer(cmdBuffer, &beginInfo);
+
+	VkBufferCopy copyRegion{};
+	copyRegion.size = size;
+	copyRegion.srcOffset = 0;
+	copyRegion.dstOffset = dstOffset;
+
+	vkCmdCopyBuffer(cmdBuffer, src, dst, 1, &copyRegion);
+	vkEndCommandBuffer(cmdBuffer);
+
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &cmdBuffer;
+
+	vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(device->graphicsQueue);
+	vkFreeCommandBuffers(device->logicalDevice, cmdPool, 1, &cmdBuffer);
 }
 
 GPUBuffer* GPUBuffer::create(const VulkanDevice* const device, uint32_t sizeInBytes, VkBufferUsageFlags usage, const void* data) {
-
-	if (sizeInBytes <= 0) {
-		throw std::runtime_error("Size of GPUBuffer cannot be zero!");
+	if (sizeInBytes <= 0 || data == nullptr) {
+		return nullptr;
 	}
 
 	GPUBuffer* buffer = new GPUBuffer();
@@ -61,10 +95,6 @@ GPUBuffer* GPUBuffer::create(const VulkanDevice* const device, uint32_t sizeInBy
 
 	VkMemoryPropertyFlags memProps = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 	createBuffer(device, sizeInBytes, VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage, memProps, buffer->vkBuffer, buffer->vkMemory);
-	
-	if (data == nullptr) {
-		return buffer;
-	}
 	
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingMemory;
@@ -77,7 +107,9 @@ GPUBuffer* GPUBuffer::create(const VulkanDevice* const device, uint32_t sizeInBy
 	memcpy(mappedData, data, sizeInBytes);
 	vkUnmapMemory(device->logicalDevice, stagingMemory);
 
-	buffer->allocateGPU(device, buffer->memoryProperties);
+	copyBuffer(device, stagingBuffer, buffer->vkBuffer, sizeInBytes);
+	vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
 
 	return buffer;
 }
@@ -100,24 +132,7 @@ void GPUBuffer::bufferData(const VulkanDevice* const device, const void* data, u
 	memcpy(mappedData, data, sizeInBytes);
 	vkUnmapMemory(device->logicalDevice, stagingMemory);
 
-	copyBuffer(stagingBuffer, this->vkBuffer, sizeInBytes, offset);
-}
-
-void GPUBuffer::allocateCPU(uint32_t sizeInBytes, const void* data) {
-	if (sizeInBytes > 0 && data != nullptr) {
-		this->bufferSize = sizeInBytes;
-		this->data = malloc(sizeInBytes);
-		memcpy(this->data, data, sizeInBytes);
-	}
-	else {
-		std::cout << "Failed to allocate memory for buffer on CPU! Reason:\n";
-		if (sizeInBytes <= 0) {
-			std::cout << "|-- specified size was 0 bytes.\n";
-		}
-		if (data == nullptr) {
-			std::cout << "|-- specified data was nullptr.\n";
-		}
-	}
+	copyBuffer(device, stagingBuffer, this->vkBuffer, sizeInBytes, offset);
 }
 
 void GPUBuffer::allocateGPU(const VulkanDevice* const device, VkMemoryPropertyFlags properties, uint32_t bufferOffset) {
@@ -140,13 +155,9 @@ void GPUBuffer::allocateGPU(const VulkanDevice* const device, VkMemoryPropertyFl
 }
 
 void GPUBuffer::updateGPU(VkDevice_T* logicalDevice) {
-	if (bufferSize <= 0 || data == nullptr) {
-		return;
-	}
-
 	void* mapped = nullptr;
 	vkMapMemory(logicalDevice, vkMemory, 0, bufferSize, 0, &mapped);
-	memcpy(mapped, data, bufferSize);
+	//memcpy(mapped, data, bufferSize);
 	vkUnmapMemory(logicalDevice, vkMemory);
 }
 
@@ -166,11 +177,6 @@ void GPUBuffer::unbind() {
 }
 
 void GPUBuffer::dispose(VkDevice_T* logicalDevice) {
-	if (data != nullptr) {
-		free(data);
-		bufferSize = 0;
-		data = nullptr;
-	}
 	if (vkBuffer != nullptr) {
 		vkDestroyBuffer(logicalDevice, vkBuffer, nullptr);
 		vkBuffer = nullptr;

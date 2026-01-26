@@ -21,15 +21,6 @@ static constexpr uint32_t clamp(uint32_t val, uint32_t min, uint32_t max) {
 	return result;
 }
 
-VkImageView_T* const VulkanSwapChain::getImageView(uint32_t i) const {
-	if (i < 0 || i > swapChainImageCount) {
-		return nullptr;
-	}
-	else {
-		return swapChainImageViews[i];
-	}
-}
-
 void VulkanSwapChain::setup(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window) {
 	this->supportDetails = new SwapChainSupportDetails();
 	querySwapChainCapabilities(device->physicalDevice, surface, *this->supportDetails);
@@ -148,17 +139,6 @@ void VulkanSwapChain::teardown(VkDevice_T* device) {
 		}
 		delete[] framebuffer;
 	}
-	if (swapChainImageViews != nullptr) {
-		for (uint32_t i = 0; i < swapChainImageCount; i++) {
-			vkDestroyImageView(device, swapChainImageViews[i], nullptr);
-		}
-		delete[] swapChainImageViews;
-		swapChainImageViews = nullptr;
-	}
-	if (swapChainImages != nullptr) {
-		delete[] swapChainImages;
-		swapChainImages = nullptr;
-	}
 	if (supportDetails != nullptr) {
 		delete supportDetails;
 		supportDetails = nullptr;
@@ -243,7 +223,6 @@ void VulkanSwapChain::chooseSwapSurfaceFormat(const VkSurfaceFormatKHR* availabl
 	}
 
 	selectedFormat = new VkSurfaceFormatKHR(availableFormats[0]);
-	swapChainImageFormat = selectedFormat->format;
 }
 
 void VulkanSwapChain::chooseSwapPresentMode(const VkPresentModeKHR* availablePresentModes, uint32_t count) {
