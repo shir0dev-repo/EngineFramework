@@ -46,8 +46,14 @@ void VulkanDevice::pickPhysicalDevice(VkInstance_T* instance, VkSurfaceKHR_T* su
 		uint32_t score = rateDeviceSuitability(device, surface);
 		candidates.insert(std::make_pair(score, device));
 	}
+
 	if (candidates.rbegin()->first > 0) {
 		this->physicalDevice = candidates.rbegin()->second;
+		VkPhysicalDeviceFeatures supportedFeatures = {};
+		vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
+		if (supportedFeatures.samplerAnisotropy) {
+			this->anisotropicSamplingSupported = true;
+		}
 	}
 	else {
 		throw std::runtime_error("Failed to find a suitable GPU!");
@@ -74,7 +80,10 @@ void VulkanDevice::createLogicalDevice(const VulkanValidator& validator, VkSurfa
 	}
 
 	VkPhysicalDeviceFeatures deviceFeatures{};
-	
+	if (anisotropicSamplingSupported) {
+		deviceFeatures.samplerAnisotropy = VK_TRUE;
+	}
+
 	VkDeviceCreateInfo deviceCreateInfo{};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());

@@ -40,6 +40,7 @@ struct VulkanDevice {
 	/// <summary>Cleans up any resources created from the device.</summary>
 	void teardown();
 
+	bool deviceSupportsSamplingAnisotropy() const { return anisotropicSamplingSupported; }
 private:
 	/// <summary>Selects the best physical device on this machine.</summary>
 	/// <param name="instance">The current Vulkan instance.</param>
@@ -50,4 +51,6 @@ private:
 	/// <param name="validator">The validation layer of Vulkan.</param>
 	/// <param name="surface">The surface this device will render to.</param>
 	void createLogicalDevice(const VulkanValidator& validator, VkSurfaceKHR_T* surface);
+
+	bool anisotropicSamplingSupported = false;
 };

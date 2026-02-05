@@ -176,6 +176,42 @@ void VulkanInstance::teardown() {
 	}
 }
 
+bool VulkanInstance::beginSingleUseCommandBuffer(VkCommandBuffer_T** buffer) const {
+	if (this->device == nullptr || this->vkGenericCommandPool == nullptr) {
+		*buffer = nullptr;
+		return false;
+	}
+	
+	VkCommandBufferAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandPool = vkGenericCommandPool;
+	allocInfo.commandBufferCount = 1;
+	if (vkAllocateCommandBuffers(device->logicalDevice, &allocInfo, &(*buffer)) != VK_SUCCESS) {
+		return false;
+	}
+
+	VkCommandBufferBeginInfo beginInfo = {};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	return vkBeginCommandBuffer(*buffer, &beginInfo) == VK_SUCCESS;
+}
+
+void VulkanInstance::endSingleUseCommandBuffer(VkCommandBuffer_T* buffer) const {
+	vkEndCommandBuffer(buffer);
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &buffer;
+
+	vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(device->graphicsQueue);
+
+	vkFreeCommandBuffers(device->logicalDevice, vkGenericCommandPool, 1, &buffer);
+}
+
 void VulkanInstance::makeVkApplicationInfo(VkApplicationInfo& appInfo) const {
 	appInfo = {};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;

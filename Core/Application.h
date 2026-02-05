@@ -33,10 +33,14 @@ private:
 	/// </summary>
 	/// <returns>Whether or not GLFW successfully initialized.</returns>
 	bool initWindow();
+
+	void initAssets();
+
 	/// <summary>
 	/// Initializes Vulkan requirements.
 	/// </summary>
 	void initVulkan();
+	
 	/// <summary>
 	/// Initializes the application's graphics pipeline.
 	/// </summary>

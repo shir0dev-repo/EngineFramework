@@ -1,29 +1,40 @@
 #pragma once
 
+struct VkCommandPool_T;
+struct VkCommandBuffer_T;
+struct VkInstance_T;
+struct VkSurfaceKHR_T;
+struct VkDebugUtilsMessengerEXT_T;
 struct VkDebugUtilsMessengerCreateInfoEXT;
+struct VkApplicationInfo;
+struct VkInstanceCreateInfo;
 
 struct GLFWwindow;
+
+struct VulkanValidator;
+struct VulkanDevice;
+struct VulkanSwapChain;
 
 /// <summary>Wrapper object for the instance of Vulkan.</summary>
 struct VulkanInstance {
 	
 	/// <summary>Vulkan validation layer.</summary>
-	struct VulkanValidator* validator = nullptr;
+	VulkanValidator* validator = nullptr;
 	
 	/// <summary>The VulkanDevice in charge of rendering.</summary>
-	struct VulkanDevice* device = nullptr;
+	VulkanDevice* device = nullptr;
 	
 	/// <summary>The backing instance of Vulkan.</summary>
-	struct VkInstance_T* instance = nullptr;
+	VkInstance_T* instance = nullptr;
 	
 	/// <summary>The surface being rendered to.</summary>
-	struct VkSurfaceKHR_T* surface = nullptr;
+	VkSurfaceKHR_T* surface = nullptr;
 	
 	/// <summary>Debug messenger sending messages to console.</summary>
-	struct VkDebugUtilsMessengerEXT_T* debugMessenger = nullptr;
+	VkDebugUtilsMessengerEXT_T* debugMessenger = nullptr;
 	
 	/// <summary>The VulkanSwapChain.</summary>
-	struct VulkanSwapChain* swapChain = nullptr;
+	VulkanSwapChain* swapChain = nullptr;
 	
 	/// <summary>Singleton reference to VulkanInstance.</summary>
 	/// <returns>VulkanInstance::instance.</returns>
@@ -34,6 +45,9 @@ struct VulkanInstance {
 	/// <returns>If the creation of the VulkanInstance was successful.</returns>
 	bool setup(GLFWwindow* window);
 	
+	bool beginSingleUseCommandBuffer(VkCommandBuffer_T** buffer) const;
+	void endSingleUseCommandBuffer(VkCommandBuffer_T* buffer) const;
+
 	/// <summary>Cleans up any underlying resources created by the VulkanInstance.</summary>
 	void teardown();
 private:
@@ -63,17 +77,20 @@ private:
 	/// <param name="window">Current GLFW window handle.</param>
 	void setupSwapchain(GLFWwindow* window);
 
+	void setupGenericCommandPool();
 
 	/// <summary>Helper function for creating the Vulkan Application Info.</summary>
 	/// <param name="appInfo">The resulting application info.</param>
-	void makeVkApplicationInfo(struct VkApplicationInfo& appInfo) const;
+	void makeVkApplicationInfo(VkApplicationInfo& appInfo) const;
 	
 	/// <summary>Helper function for creating the Vulkan Debug Messenger Create Info.
 	/// <param name="createInfo">The resulting create info.</param>
-	void makeVkDebugMessengerCreateInfo(struct VkDebugUtilsMessengerCreateInfoEXT& createInfo) const;
+	void makeVkDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) const;
 	
 	/// <summary>Helper function for creating Vulkan Instance Info.</summary>
 	/// <param name="appInfo">The info regarding the application.</param>
 	/// <param name="createInfo">The resulting create info.</param>
-	void makeVkInstanceCreateInfo(const struct VkApplicationInfo& appInfo, struct VkInstanceCreateInfo& createInfo) const;
+	void makeVkInstanceCreateInfo(const VkApplicationInfo& appInfo, VkInstanceCreateInfo& createInfo) const;
+
+	VkCommandPool_T* vkGenericCommandPool = nullptr;
 };

@@ -13,6 +13,7 @@
 #include "../Graphics/Shader/PipelineShader.h"
 #include "../Graphics/Renderer/Renderer.h"
 #include "../Component/Camera.h"
+#include "../Graphics/Texture/GPUTexture.h"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -29,6 +30,7 @@ static std::vector<uint32_t> indices = {
 	0, 1, 2,
 	2, 3, 0
 };
+static GPUTexture* defaultTexture; 
 
 Application* const Application::getInstance() {
 	static Application* instance = nullptr;
@@ -44,6 +46,7 @@ int Application::run() {
 		return -1;
 	}
 
+	initAssets();
 	initVulkan();
 	initRenderer();
 	mainLoop();
@@ -71,6 +74,10 @@ bool Application::initWindow() {
 	return 1;
 }
 
+void Application::initAssets() {
+	defaultTexture = GPUTexture::createTexture("Assets/Textures/texture.jpg", "default");
+}
+
 void Application::initVulkan() {
 	this->vkInstance = VulkanInstance::getInstance();
 	this->vkInstance->setup(this->window->GetWindow());
@@ -87,6 +94,8 @@ void Application::initRenderer() {
 	shader.fragmentModule = fragment;
 
 	renderer->addPipeline(&shader);
+
+	GPUTexture::loadGPU(vkInstance, defaultTexture);
 }
 
 void Application::mainLoop() {
@@ -114,6 +123,7 @@ void Application::mainLoop() {
 }
 
 void Application::cleanup() {
+	GPUTexture::cleanup(vkInstance);
 	ShaderModule::teardown(vkInstance->device->logicalDevice);
 	renderer->teardown(vkInstance->device->logicalDevice);
 	delete renderer;
