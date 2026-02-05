@@ -30,16 +30,16 @@ static std::vector<uint32_t> indices = {
 	2, 3, 0
 };
 
-Application* Application::instance = nullptr;
+Application* const Application::getInstance() {
+	static Application* instance = nullptr;
+	if (instance == nullptr) {
+		instance = new Application();
+	}
+
+	return instance;
+}
 
 int Application::run() {
-	if (instance == nullptr) {
-		instance = this;
-	}
-	else {
-		throw;
-	}
-
 	if (!initWindow()) {
 		return -1;
 	}
@@ -53,7 +53,7 @@ int Application::run() {
 }
 
 void Application::onWindowResized(GLFWwindow* window, int width, int height) {
-	
+	getInstance()->renderer->notifyFramebufferResized();
 }
 
 bool Application::initWindow() {

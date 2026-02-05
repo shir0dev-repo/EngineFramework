@@ -3,7 +3,6 @@
 #include <iostream>
 #include "Core/Application.h"
 int main() {
-	Application app{};
-
-	return app.run();
+	Application* app = Application::getInstance();
+	return app->run();
 }

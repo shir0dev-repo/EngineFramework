@@ -29,10 +29,12 @@ Renderer* const Renderer::getInstance() {
 }
 
 VkCommandPool_T* const Renderer::getCurrentCommandPool() const { return this->vkCommandPool; }
-
 VkRenderPass_T* const Renderer::getRenderPass() const { return vkRenderPass; }
-
 VkDescriptorSetLayout_T* const Renderer::getGlobalDescriptorSetLayout() const { return globalDescriptorLayout; }
+
+void Renderer::notifyFramebufferResized() {
+	frameBufferResized = true;
+}
 
 void Renderer::setup(VulkanInstance* vkInstance) {
 	this->swapChain = vkInstance->swapChain; // cached reference
@@ -245,7 +247,7 @@ GraphicsPipeline* const Renderer::getPipeline(const PipelineShader* pipelineShad
 void Renderer::render(VulkanInstance* instance, GLFWwindow* window) {
 	bool shouldRender = beginFrame(instance->device);
 	if (!shouldRender) {
-		swapChain->recreate(instance->device, vkRenderPass, instance->surface, window);
+		handleInvalidSwapchain(instance, window);
 		return;
 	}
 
@@ -269,10 +271,10 @@ void Renderer::render(VulkanInstance* instance, GLFWwindow* window) {
 	updateGlobalBuffer(instance->device);
 
 	submitRender(instance->device);
-	bool successfullyPresented = presentRender(instance->device, instance->surface, window);
+	bool successfullyPresented = presentRender(instance->device);
 
 	if (!successfullyPresented) {
-		swapChain->recreate(instance->device, vkRenderPass, instance->surface, window);
+		handleInvalidSwapchain(instance, window);
 	}
 	else {
 		currentFrame = (currentFrame + 1) % swapChain->getSwapChainImageCount();
@@ -288,6 +290,7 @@ bool Renderer::beginFrame(const VulkanDevice* const device) {
 		currentSync.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
 	if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
+		frameBufferResized = false;
 		return false;
 	}
 	else if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR) {
@@ -429,7 +432,7 @@ void Renderer::submitRender(const VulkanDevice* const device) {
 	}
 }
 
-bool Renderer::presentRender(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window) {
+bool Renderer::presentRender(const VulkanDevice* const device) {
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
@@ -445,8 +448,8 @@ bool Renderer::presentRender(const VulkanDevice* const device, VkSurfaceKHR_T* s
 	presentInfo.pResults = nullptr;
 
 	VkResult result = vkQueuePresentKHR(device->presentQueue, &presentInfo);
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR /*|| frameBufferResized*/) {
-		/*frameBufferResized = false;*/
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || frameBufferResized) {
+		frameBufferResized = false;
 		return false;
 	}
 	else if (result != VK_SUCCESS) {
@@ -455,6 +458,20 @@ bool Renderer::presentRender(const VulkanDevice* const device, VkSurfaceKHR_T* s
 	else {
 		return true;
 	}
+}
+
+void Renderer::handleInvalidSwapchain(const VulkanInstance* const instance, GLFWwindow* window) {
+	this->swapChain->recreate(instance->device, vkRenderPass, instance->surface, window);
+
+	for (uint32_t i = 0; i < numFrames; i++) {
+		vkDestroyFramebuffer(instance->device->logicalDevice, vkFramebuffers[i], nullptr);
+	}
+	delete[] vkFramebuffers;
+	vkFramebuffers = nullptr;
+
+	numFrames = swapChain->getSwapChainImageCount();
+	currentFrame = 0;
+	setupFramebuffers(instance->device);
 }
 
 void Renderer::teardown(VkDevice_T* logicalDevice) {

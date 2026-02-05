@@ -16,6 +16,11 @@ struct Application {
 	int run();
 
 	/// <summary>
+	/// Currently running instance of the application.
+	/// </summary>
+	static Application* const getInstance();
+
+	/// <summary>
 	/// GLFW callback.
 	/// </summary>
 	/// <param name="window">The GLFW window handle.</param>
@@ -23,10 +28,6 @@ struct Application {
 	/// <param name="height">The new height of the window.</param>
 	static void onWindowResized(GLFWwindow* window, int width, int height);
 private:
-	/// <summary>
-	/// Currently running instance of the application.
-	/// </summary>
-	static Application* instance;
 	/// <summary>
 	/// Initializes GLFW window.
 	/// </summary>

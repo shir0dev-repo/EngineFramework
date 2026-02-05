@@ -39,6 +39,8 @@ struct Renderer {
 	void removePipeline(GraphicsPipeline* pipeline);
 
 	void render(VulkanInstance* instance, GLFWwindow* window);
+	
+	void notifyFramebufferResized();
 
 	void setup(VulkanInstance* vkInstance);
 	void teardown(VkDevice_T* logicalDevice);
@@ -67,7 +69,9 @@ private:
 	void finalizeCommandBufferForCurrentFrame();
 
 	void submitRender(const VulkanDevice* const device);
-	bool presentRender(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window);
+	bool presentRender(const VulkanDevice* const device);
+
+	void handleInvalidSwapchain(const VulkanInstance* const instance, GLFWwindow* window);
 
 	linkedList<GraphicsPipeline*>* graphicsPipelines = nullptr;
 
@@ -89,4 +93,5 @@ private:
 
 	uint32_t numFrames = 0;
 	uint32_t currentFrame = 0;
+	bool frameBufferResized = false;
 };

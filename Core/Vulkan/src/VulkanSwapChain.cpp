@@ -141,6 +141,8 @@ void VulkanSwapChain::recreate(const VulkanDevice* const device, VkRenderPass_T*
 	cleanupSwapchain(device->logicalDevice, false);
 	querySwapChainCapabilities(device->physicalDevice, surface, *this->supportDetails);
 	createSwapChain(device, surface, window);
+	createImages(device->logicalDevice);
+	createImageViews(device->logicalDevice);
 }
 
 void VulkanSwapChain::teardown(VkDevice_T* device) {
@@ -173,6 +175,14 @@ void VulkanSwapChain::teardown(VkDevice_T* device) {
 }
 
 void VulkanSwapChain::cleanupSwapchain(VkDevice_T* logicalDevice, bool isFinalTeardown) {
+	for (uint32_t i = 0; i < swapChainImageCount; i++) {
+		vkDestroyImageView(logicalDevice, swapChainImageViews[i], nullptr);
+	}
+	delete[] swapChainImages;
+	swapChainImages = nullptr;
+	delete[] swapChainImageViews;
+	swapChainImageViews = nullptr;
+
 	vkDestroySwapchainKHR(logicalDevice, swapChain, nullptr);
 	swapChain = nullptr;
 }
