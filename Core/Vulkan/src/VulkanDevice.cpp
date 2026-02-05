@@ -55,11 +55,11 @@ void VulkanDevice::pickPhysicalDevice(VkInstance_T* instance, VkSurfaceKHR_T* su
 }
 
 void VulkanDevice::createLogicalDevice(const VulkanValidator& validator, VkSurfaceKHR_T* surface) {
-	this->queueFamily = new QueueFamilyIndices();
-	QueueFamilyIndices::findQueueFamilies(physicalDevice, surface, *this->queueFamily);
+	QueueFamilyIndices queueFamily = {};
+	QueueFamilyIndices::findQueueFamilies(physicalDevice, surface, queueFamily);
 	
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	std::set<uint32_t> uniqueQueueFamilies = { queueFamily->graphicsFamily.index, queueFamily->presentFamily.index };
+	std::set<uint32_t> uniqueQueueFamilies = { queueFamily.graphicsFamily.index, queueFamily.presentFamily.index };
 
 	float queuePriority = 1.0f;
 	for (uint32_t queueFamily : uniqueQueueFamilies) {
@@ -95,8 +95,11 @@ void VulkanDevice::createLogicalDevice(const VulkanValidator& validator, VkSurfa
 		throw std::runtime_error("Failed to create logical device!");
 	}
 
-	vkGetDeviceQueue(logicalDevice, queueFamily->graphicsFamily.index, 0, &this->graphicsQueue);
-	vkGetDeviceQueue(logicalDevice, queueFamily->presentFamily.index, 0, &this->presentQueue);
+	this->graphicsQueueFamilyIndex = queueFamily.graphicsFamily.index;
+	this->presentQueueFamilyIndex = queueFamily.presentFamily.index;
+
+	vkGetDeviceQueue(logicalDevice, graphicsQueueFamilyIndex, 0, &this->graphicsQueue);
+	vkGetDeviceQueue(logicalDevice, presentQueueFamilyIndex, 0, &this->presentQueue);
 }
 
 bool checkDeviceExtensionSupport(VkPhysicalDevice_T* device) {

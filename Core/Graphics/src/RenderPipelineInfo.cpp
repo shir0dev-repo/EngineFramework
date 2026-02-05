@@ -97,10 +97,13 @@ void RenderPipelineInfo::makePipelineColorBlendStateCreateInfo(VkPipelineColorBl
 	createInfo.pAttachments = attachmentStates;
 }
 
-void RenderPipelineInfo::createPipelineLayout(VkDevice_T* logicalDevice, VkPipelineLayout_T** pipelineLayout) {
+void RenderPipelineInfo::createPipelineLayout(VkDevice_T* logicalDevice, VkDescriptorSetLayout_T** descriptorSetLayout,
+	VkPipelineLayout_T** pipelineLayout) {
+	
 	VkPipelineLayoutCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-
+	createInfo.setLayoutCount = 1;
+	createInfo.pSetLayouts = descriptorSetLayout;
 	if (vkCreatePipelineLayout(logicalDevice, &createInfo, nullptr, pipelineLayout) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create pipeline layout!");
 	}
@@ -123,7 +126,6 @@ GraphicsPipelineCreateParams RenderPipelineInfo::makeGraphicsPipelineCreateParam
 	params.blendState = blendState;
 	params.pipelineLayout = pipelineLayout;
 	params.renderPass = renderPass;
-
 	return params;
 }
 

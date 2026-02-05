@@ -21,34 +21,29 @@ static constexpr uint32_t clamp(uint32_t val, uint32_t min, uint32_t max) {
 	return result;
 }
 
+VkImage_T* const VulkanSwapChain::getImage(uint32_t index) {
+	if (index < 0 || index >= swapChainImageCount) {
+		throw std::runtime_error("Invalid index for swap chain image!");
+	}
+
+	return this->swapChainImages[index];
+}
+
+VkImageView_T* const VulkanSwapChain::getImageView(uint32_t index) {
+	if (index < 0 || index >= swapChainImageCount) {
+		throw std::runtime_error("Invalid index for swap chain image view!");
+	}
+
+	return this->swapChainImageViews[index];
+}
+
 void VulkanSwapChain::setup(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window) {
 	this->supportDetails = new SwapChainSupportDetails();
 	querySwapChainCapabilities(device->physicalDevice, surface, *this->supportDetails);
 
 	createSwapChain(device, surface, window);
-	createFramebuffers(device);
-}
-
-void VulkanSwapChain::recreate(const VulkanDevice* const device, VkRenderPass_T* renderPass, VkSurfaceKHR_T* surface, GLFWwindow* window) {
-	int width = 0, height = 0;
-	glfwGetFramebufferSize(window, &width, &height);
-	while (width == 0 || height == 0) {
-		if (glfwWindowShouldClose(window)) {
-			return;
-		}
-		glfwGetFramebufferSize(window, &width, &height);
-		glfwWaitEvents();
-	}
-	
-	vkDeviceWaitIdle(device->logicalDevice);
-
-	cleanupSwapchain(device->logicalDevice, false);
-	
-	querySwapChainCapabilities(device->physicalDevice, surface, *this->supportDetails);
-
-	createSwapChain(device, surface, window);
-	recreateFramebuffers(device, renderPass);
-	currentFrameIndex = 0;
+	createImages(device->logicalDevice);
+	createImageViews(device->logicalDevice);
 }
 
 void VulkanSwapChain::createSwapChain(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window) {
@@ -71,11 +66,11 @@ void VulkanSwapChain::createSwapChain(const VulkanDevice* const device, VkSurfac
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	QueueFamilyIndices indices = {};
-	QueueFamilyIndices::findQueueFamilies(device->physicalDevice, surface, indices);
-	uint32_t queueFamilyIndices[] = { indices.graphicsFamily.index, indices.presentFamily.index };
+	uint32_t gIndex = device->graphicsQueueFamilyIndex;
+	uint32_t pIndex = device->presentQueueFamilyIndex;
+	uint32_t queueFamilyIndices[] = { gIndex, pIndex };
 
-	if (indices.graphicsFamily.index != indices.presentFamily.index) {
+	if (gIndex != pIndex) {
 		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 		createInfo.queueFamilyIndexCount = 2;
 		createInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -97,48 +92,72 @@ void VulkanSwapChain::createSwapChain(const VulkanDevice* const device, VkSurfac
 	}
 }
 
+void VulkanSwapChain::createImages(VkDevice_T* logicalDevice) {
+	vkGetSwapchainImagesKHR(logicalDevice, swapChain, &this->swapChainImageCount, nullptr);
+	this->swapChainImages = new VkImage_T* [swapChainImageCount] { nullptr };
+	vkGetSwapchainImagesKHR(logicalDevice, swapChain, &swapChainImageCount, this->swapChainImages);
+}
+void VulkanSwapChain::createImageViews(VkDevice_T* logicalDevice) {
+	this->swapChainImageViews = new VkImageView_T* [swapChainImageCount] { nullptr };
 
+	for (uint32_t i = 0; i < this->swapChainImageCount; i++) {
+		VkImage_T* image = swapChainImages[i];
 
-void VulkanSwapChain::createFramebuffers(const VulkanDevice* const device) {
-	vkGetSwapchainImagesKHR(device->logicalDevice, swapChain, &this->swapChainImageCount, nullptr);
-	
-	this->framebuffer = new Frame * [swapChainImageCount] { nullptr };
-	VkImage_T** images = new VkImage_T * [swapChainImageCount] { nullptr };
-	
-	size_t frameBufferCount(swapChainImageCount);
-	vkGetSwapchainImagesKHR(device->logicalDevice, this->swapChain, &swapChainImageCount, images);
-	for (uint32_t i = 0; i < frameBufferCount; i++) {
-		Frame* frame = new Frame();
-		frame->setupSyncs(device->logicalDevice);
-		frame->setupImageView(device->logicalDevice, selectedFormat->format, images[i]);
+		VkImageViewCreateInfo createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		createInfo.image = image;
+		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		createInfo.format = selectedFormat->format;
 
-		framebuffer[i] = frame;
+		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+		createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		createInfo.subresourceRange.baseMipLevel = 0;
+		createInfo.subresourceRange.levelCount = 1;
+		createInfo.subresourceRange.baseArrayLayer = 0;
+		createInfo.subresourceRange.layerCount = 1;
+
+		if (vkCreateImageView(logicalDevice, &createInfo, nullptr, &this->swapChainImageViews[i]) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create image view!");
+		}
 	}
-
-	delete[] images;
 }
 
-void VulkanSwapChain::recreateFramebuffers(const VulkanDevice* const device, VkRenderPass_T* renderPass) {
-	VkImage_T** images = new VkImage_T * [swapChainImageCount]{ nullptr };
-	vkGetSwapchainImagesKHR(device->logicalDevice, this->swapChain, &swapChainImageCount, images);
-
-	for (uint32_t i = 0; i < swapChainImageCount; i++) {
-		Frame* frame = framebuffer[i];
-		VkImage_T* image = images[i];
-		frame->setupImageView(device->logicalDevice, selectedFormat->format, image);
-		frame->setupBuffer(device->logicalDevice, swapExtent, renderPass);
+void VulkanSwapChain::recreate(const VulkanDevice* const device, VkRenderPass_T* renderPass, VkSurfaceKHR_T* surface, GLFWwindow* window) {
+	int width = 0, height = 0;
+	glfwGetFramebufferSize(window, &width, &height);
+	while (width == 0 || height == 0) {
+		if (glfwWindowShouldClose(window)) {
+			return;
+		}
+		glfwGetFramebufferSize(window, &width, &height);
+		glfwWaitEvents();
 	}
+	vkDeviceWaitIdle(device->logicalDevice);
 
-	delete[] images;
+	cleanupSwapchain(device->logicalDevice, false);
+	querySwapChainCapabilities(device->physicalDevice, surface, *this->supportDetails);
+	createSwapChain(device, surface, window);
 }
 
 void VulkanSwapChain::teardown(VkDevice_T* device) {
-	if (framebuffer != nullptr) {
+	if (swapChainImageViews != nullptr) {
 		for (uint32_t i = 0; i < swapChainImageCount; i++) {
-			framebuffer[i]->teardown(device, true);
+			vkDestroyImageView(device, swapChainImageViews[i], nullptr);
 		}
-		delete[] framebuffer;
+		delete[] swapChainImageViews;
+		delete[] swapChainImages;
+		swapChainImageViews = nullptr;
+		swapChainImages = nullptr;
 	}
+	if (swapChain != nullptr) {
+		vkDestroySwapchainKHR(device, swapChain, nullptr);
+		swapChain = nullptr;
+	}
+	
 	if (supportDetails != nullptr) {
 		delete supportDetails;
 		supportDetails = nullptr;
@@ -151,15 +170,9 @@ void VulkanSwapChain::teardown(VkDevice_T* device) {
 		delete swapExtent;
 		swapExtent = nullptr;
 	}
-
-	vkDestroySwapchainKHR(device, swapChain, nullptr);
 }
 
 void VulkanSwapChain::cleanupSwapchain(VkDevice_T* logicalDevice, bool isFinalTeardown) {
-	for (uint32_t i = 0; i < swapChainImageCount; i++) {
-		framebuffer[i]->teardown(logicalDevice, isFinalTeardown);
-	}
-
 	vkDestroySwapchainKHR(logicalDevice, swapChain, nullptr);
 	swapChain = nullptr;
 }

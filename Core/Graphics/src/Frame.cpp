@@ -1,5 +1,8 @@
 #include "../Frame.h"
 #include "../GraphicsSyncObject.h"
+#include "../Shader/MatrixBufferObject.h"
+#include "../Shader/GPUBuffer.h"
+#include "../../Vulkan/VulkanDevice.h"
 
 #include <vulkan/vulkan.h>
 #include <iostream>
@@ -9,7 +12,7 @@ void Frame::setupSyncs(VkDevice_T* logicalDevice) {
 	syncObject->setup(logicalDevice);
 }
 
-void Frame::setupBuffer(VkDevice_T* logicalDevice, const VkExtent2D* const extent, VkRenderPass_T* renderPass) {
+void Frame::setupBuffer(const VulkanDevice* const device, const VkExtent2D* const extent, VkRenderPass_T* renderPass) {
 	VkFramebufferCreateInfo framebufferInfo = {};
 	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 	framebufferInfo.renderPass = renderPass;
@@ -19,9 +22,16 @@ void Frame::setupBuffer(VkDevice_T* logicalDevice, const VkExtent2D* const exten
 	framebufferInfo.height = extent->height;
 	framebufferInfo.layers = 1;
 
-	if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &this->frameBuffer) != VK_SUCCESS) {
+	if (vkCreateFramebuffer(device->logicalDevice, &framebufferInfo, nullptr, &this->frameBuffer) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create framebuffer!");
 	}
+
+	VkDeviceSize uniformBufferSize = sizeof(MatrixBufferObject);
+	VkBufferUsageFlags usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	VkMemoryPropertyFlags memProps = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	
+	GPUBuffer::createBuffer(device, uniformBufferSize, usage, memProps, this->uniformBuffer, this->uniformMemory);
+	vkMapMemory(device->logicalDevice, uniformMemory, 0, uniformBufferSize, 0, &uniformBufferMapped);
 }
 
 void Frame::setupImageView(VkDevice_T* logicalDevice, const VkFormat& surfaceFormat, VkImage_T* swapchainImage) {
@@ -51,9 +61,16 @@ void Frame::setupImageView(VkDevice_T* logicalDevice, const VkFormat& surfaceFor
 	}
 }
 
+void Frame::updateUniforms(const MatrixBufferObject* viewProjMatrices) {
+	memcpy(this->uniformBufferMapped, viewProjMatrices, sizeof(MatrixBufferObject));
+}
+
 void Frame::teardown(VkDevice_T* logicalDevice, bool isFinalTeardown) {
-	if (isFinalTeardown)
+	if (isFinalTeardown) {
 		syncObject->teardown(logicalDevice);
+		vkDestroyBuffer(logicalDevice, uniformBuffer, nullptr);
+		vkFreeMemory(logicalDevice, uniformMemory, nullptr);
+	}
 
 	vkDestroyFramebuffer(logicalDevice, this->frameBuffer, nullptr);
 	frameBuffer = nullptr;

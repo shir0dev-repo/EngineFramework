@@ -3,24 +3,24 @@
 
 #include <vulkan/vulkan.h>
 
-RenderCommand* RenderCommand::create(GPUBuffer* targetBuffers, uint32_t bufferCount, uint32_t vertexCount, uint32_t indexCount) {
+RenderCommand* RenderCommand::create(GPUBuffer* vertexBuffer, GPUBuffer* indexBuffer, uint32_t vertexCount, uint32_t indexCount) {
 	RenderCommand* cmd = new RenderCommand();
-	cmd->targetBuffers = targetBuffers;
-	cmd->bufferCount = bufferCount;
+	cmd->vertexBuffer = vertexBuffer;
 	cmd->vertexCount = vertexCount;
+
+	cmd->indexBuffer = indexBuffer;
 	cmd->indexCount = indexCount;
 
 	return cmd;
 }
 
 void RenderCommand::execute(VkCommandBuffer_T* commandBuffer) {
-	if (targetBuffers == nullptr) {
+	if (vertexBuffer == nullptr || indexBuffer == nullptr) {
 		return;
 	}
 
-	for (uint32_t i = 0; i < bufferCount; i++) {
-		targetBuffers[i].bind(commandBuffer);
-	}
+	vertexBuffer->bind(commandBuffer);
+	indexBuffer->bind(commandBuffer);
 
-	vkCmdDraw(commandBuffer, vertexCount, 1, 0, 0);
+	vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 0);
 }

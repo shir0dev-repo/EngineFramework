@@ -45,16 +45,11 @@ void GPUBuffer::createBuffer(const VulkanDevice* const device, VkDeviceSize size
 	vkBindBufferMemory(device->logicalDevice, buffer, bufferMemory, 0);
 }
 
-void GPUBuffer::copyBuffer(const VulkanDevice* const device, VkBuffer_T* src, VkBuffer_T* dst, VkDeviceSize size, uint32_t dstOffset) {
-	VkCommandPool_T* cmdPool;
-	if (GraphicsUtils::GetCurrentCommandPool(&cmdPool) == false) {
-		throw std::runtime_error("Could not obtain current command pool!");
-	}
-
+void GPUBuffer::copyBuffer(const VulkanDevice* const device, VkCommandPool_T* commandPool, VkBuffer_T* src, VkBuffer_T* dst, VkDeviceSize size, uint32_t dstOffset) {
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandPool = cmdPool;
+	allocInfo.commandPool = commandPool;
 	allocInfo.commandBufferCount = 1;
 
 	VkCommandBuffer_T* cmdBuffer;
@@ -80,10 +75,10 @@ void GPUBuffer::copyBuffer(const VulkanDevice* const device, VkBuffer_T* src, Vk
 
 	vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
 	vkQueueWaitIdle(device->graphicsQueue);
-	vkFreeCommandBuffers(device->logicalDevice, cmdPool, 1, &cmdBuffer);
+	vkFreeCommandBuffers(device->logicalDevice, commandPool, 1, &cmdBuffer);
 }
 
-GPUBuffer* GPUBuffer::create(const VulkanDevice* const device, uint32_t sizeInBytes, VkBufferUsageFlags usage, const void* data) {
+GPUBuffer* GPUBuffer::create(const VulkanDevice* const device, VkCommandPool_T* commandPool, uint32_t sizeInBytes, VkBufferUsageFlags usage, const void* data) {
 	if (sizeInBytes <= 0 || data == nullptr) {
 		return nullptr;
 	}
@@ -107,14 +102,14 @@ GPUBuffer* GPUBuffer::create(const VulkanDevice* const device, uint32_t sizeInBy
 	memcpy(mappedData, data, sizeInBytes);
 	vkUnmapMemory(device->logicalDevice, stagingMemory);
 
-	copyBuffer(device, stagingBuffer, buffer->vkBuffer, sizeInBytes);
+	copyBuffer(device, commandPool, stagingBuffer, buffer->vkBuffer, sizeInBytes);
 	vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
 	vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
 
 	return buffer;
 }
 
-void GPUBuffer::bufferData(const VulkanDevice* const device, const void* data, uint32_t sizeInBytes, uint32_t offset) {
+void GPUBuffer::bufferData(const VulkanDevice* const device, VkCommandPool_T* commandPool, const void* data, uint32_t sizeInBytes, uint32_t offset) {
 	if (sizeInBytes <= 0) {
 		throw std::runtime_error("Cannot buffer zero bytes of data!");
 	}
@@ -132,7 +127,7 @@ void GPUBuffer::bufferData(const VulkanDevice* const device, const void* data, u
 	memcpy(mappedData, data, sizeInBytes);
 	vkUnmapMemory(device->logicalDevice, stagingMemory);
 
-	copyBuffer(device, stagingBuffer, this->vkBuffer, sizeInBytes, offset);
+	copyBuffer(device, commandPool, stagingBuffer, this->vkBuffer, sizeInBytes, offset);
 }
 
 void GPUBuffer::allocateGPU(const VulkanDevice* const device, VkMemoryPropertyFlags properties, uint32_t bufferOffset) {

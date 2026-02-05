@@ -19,6 +19,7 @@ struct VkDevice_T;
 struct VkPipelineLayout_T;
 struct VkRenderPass_T;
 struct VkPipeline_T;
+struct VkDescriptorSetLayout_T;
 
 struct GraphicsPipelineCreateParams {
 	VkPipelineShaderStageCreateInfo* shaderStages = nullptr;
@@ -50,6 +51,6 @@ struct RenderPipelineInfo {
 		VkPipelineRasterizationStateCreateInfo* rasterizer, VkPipelineMultisampleStateCreateInfo* multisampler,
 		VkPipelineColorBlendStateCreateInfo* blendState, VkPipelineLayout_T* pipelineLayout, VkRenderPass_T* renderPass);
 
-	static void createPipelineLayout(VkDevice_T* logicalDevice, VkPipelineLayout_T** pipelineLayout);
+	static void createPipelineLayout(VkDevice_T* logicalDevice, VkDescriptorSetLayout_T** descriptorSetLayout, VkPipelineLayout_T** pipelineLayout);
 	static void createGraphicsPipelines(VkDevice_T* logicalDevice, const GraphicsPipelineCreateParams& createInfo, VkPipeline_T*& pipeline);
 };

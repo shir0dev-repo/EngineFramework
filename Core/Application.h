@@ -4,6 +4,7 @@ struct GLFWwindow;
 
 struct AppWindow;
 struct VulkanInstance;
+struct Renderer;
 struct GraphicsPipeline;
 
 /// <summary>The core engine application.</summary>
@@ -38,7 +39,7 @@ private:
 	/// <summary>
 	/// Initializes the application's graphics pipeline.
 	/// </summary>
-	void initGraphicsPipeline();
+	void initRenderer();
 	/// <summary>
 	/// Runs every frame.
 	/// </summary>
@@ -59,5 +60,5 @@ private:
 	/// <summary>
 	/// The GraphicsPipeline of the application.
 	/// </summary>
-	GraphicsPipeline* graphicsPipeline = nullptr;
+	Renderer* renderer = nullptr;
 };

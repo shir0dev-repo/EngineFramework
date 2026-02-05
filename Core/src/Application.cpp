@@ -4,19 +4,31 @@
 #include "../Vulkan/VulkanValidator.h"
 #include "../Vulkan/VulkanDevice.h"
 #include "../Vulkan/VulkanSwapChain.h"
-#include "../Graphics/GraphicsPipeline.h"
+#include "../Graphics/Pipeline/GraphicsPipeline.h"
+#include "../Graphics/Pipeline/RenderPass.h"
 #include "../Graphics/Shader/Vertex.h"
 #include "../Graphics/Renderer/MeshRenderer.h"
 #include "../Graphics/Mesh/Mesh.h"
+#include "../Graphics/Shader/ShaderModule.h"
+#include "../Graphics/Shader/PipelineShader.h"
+#include "../Graphics/Renderer/Renderer.h"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 #include <vector>
 
+static GraphicsPipeline* pipeline;
+
 static std::vector<Vertex> vertices = {
-	{{  0.0f,   0.5f, 0.0f }, { 0.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f, 0.0f }},
 	{{ -0.5f,  -0.5f, 0.0f }, { 0.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }},
-	{{  0.5f,  -0.5f, 0.0f }, { 0.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, -1.0f }, { 1.0f, 1.0f, 1.0f }}
+	{{  0.5f,  -0.5f, 0.0f }, { 0.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }},
+	{{  0.5f,   0.5f, 0.0f }, { 0.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f, 0.0f }},
+	{{ -0.5f,   0.5f, 0.0f }, { 0.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, -1.0f }, { 1.0f, 1.0f, 1.0f }}
+};
+
+static std::vector<uint32_t> indices = {
+	0, 1, 2,
+	2, 3, 0
 };
 
 Application* Application::instance = nullptr;
@@ -34,7 +46,7 @@ int Application::run() {
 	}
 
 	initVulkan();
-	initGraphicsPipeline();
+	initRenderer();
 	mainLoop();
 	cleanup();
 
@@ -42,11 +54,7 @@ int Application::run() {
 }
 
 void Application::onWindowResized(GLFWwindow* window, int width, int height) {
-	if (instance->graphicsPipeline == nullptr) {
-		return;
-	}
-
-	GraphicsPipeline::onWindowResized(instance->graphicsPipeline, window, width, height);
+	
 }
 
 bool Application::initWindow() {
@@ -65,38 +73,51 @@ bool Application::initWindow() {
 }
 
 void Application::initVulkan() {
-	this->vkInstance = new VulkanInstance();
+	this->vkInstance = VulkanInstance::getInstance();
 	this->vkInstance->setup(this->window->GetWindow());
 }
 
-void Application::initGraphicsPipeline() {
-	this->graphicsPipeline = new GraphicsPipeline();
-	this->graphicsPipeline->setup(vkInstance->device, vkInstance->swapChain, vkInstance->surface);
+void Application::initRenderer() {
+	this->renderer = new Renderer();
+	renderer->setup(vkInstance);
+
+	ShaderModule* vertex = ShaderModule::createNew(vkInstance->device->logicalDevice, "Assets/Shaders/vert.spv", "default-v");
+	ShaderModule* fragment = ShaderModule::createNew(vkInstance->device->logicalDevice, "Assets/Shaders/frag.spv", "default-f");
+	PipelineShader shader = {};
+	shader.vertexModule = vertex;
+	shader.fragmentModule = fragment;
+
+	renderer->addPipeline(&shader);
 }
 
 void Application::mainLoop() {
 	Mesh* mesh = new Mesh();
 	mesh->vertexData = vertices.data();
 	mesh->vertexCount = vertices.size();
-	MeshRenderer* renderer = new MeshRenderer();
-	renderer->setup(vkInstance->device, mesh);
+	mesh->indexData = indices.data();
+	mesh->indexCount = indices.size();
+
+	MeshRenderer* meshRenderer = new MeshRenderer();
+	meshRenderer->setup(vkInstance->device, mesh, renderer);
 
 	while (!glfwWindowShouldClose(window->GetWindow())) {
 		glfwPollEvents();
-		renderer->draw(graphicsPipeline);
-		graphicsPipeline->render(vkInstance->device, vkInstance->surface, window->GetWindow());
-	}
 
+		meshRenderer->draw(renderer->getPipeline(nullptr));
+		renderer->render(vkInstance, window->GetWindow());
+	}
+	
 	vkDeviceWaitIdle(vkInstance->device->logicalDevice);
 
-	renderer->teardown(vkInstance->device->logicalDevice);
-	delete renderer;
+	meshRenderer->teardown(vkInstance->device->logicalDevice);
+	delete meshRenderer;
 	delete mesh;
 }
 
 void Application::cleanup() {
-	graphicsPipeline->teardown(vkInstance->device->logicalDevice);
-	delete graphicsPipeline;
+	ShaderModule::teardown(vkInstance->device->logicalDevice);
+	renderer->teardown(vkInstance->device->logicalDevice);
+	delete renderer;
 	vkInstance->teardown();
 	delete vkInstance;
 	window->teardown();
