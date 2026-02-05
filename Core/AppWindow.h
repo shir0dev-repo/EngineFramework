@@ -14,7 +14,7 @@ struct AppWindow {
 
 	/// <summary>Gets a singleton reference to the AppWindow.</summary>
 	/// <returns>The AppWindow::instance.</returns>
-	AppWindow* const getInstance();
+	static AppWindow* const getInstance();
 
 	/// <summary>Initializes the GLFW window.</summary>
 	/// <param name="width">The initial width of the window.</param>

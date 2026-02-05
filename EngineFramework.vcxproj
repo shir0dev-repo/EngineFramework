@@ -162,6 +162,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Component\Camera.h" />
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Core\AppWindow.h" />
     <ClInclude Include="Core\Graphics\Uniform\GPUCameraData.h" />

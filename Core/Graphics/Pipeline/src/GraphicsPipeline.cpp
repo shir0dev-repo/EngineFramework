@@ -8,12 +8,14 @@
 #include "../../Shader/Reflection/PushConstantInfo.h"
 #include "../../Shader/Reflection/VertexAttributeInfo.h"
 #include "../../Shader/Reflection/FragmentOutputInfo.h"
+#include "../../Shader/Vertex.h"
 #include "../../Uniform/UniformBuffer.h"
 #include "../../RenderPipelineInfo.h"
 #include "../../../Vulkan/VulkanInstance.h"
 #include "../../../Vulkan/VulkanDevice.h"
 #include "../../../Vulkan/VulkanSwapChain.h"
 #include "../../../Structure/linkedList.h"
+
 #include "../../Renderer/MeshRenderer.h"
 #include "../../Mesh/Mesh.h"
 
@@ -187,7 +189,7 @@ void GraphicsPipeline::createPipeline(const VulkanInstance* const instance, Rend
 	mergeVertexInputAttributes(summary->pVertexInputAttributeInfos, summary->numVertexInputAttributeInfos, &vertexAttributes);
 	VkVertexInputBindingDescription vertexBindingDesc = {};
 	vertexBindingDesc.binding = 0;
-	vertexBindingDesc.stride = sizeof(float) * 3 * 4;
+	vertexBindingDesc.stride = sizeof(Vertex);
 	vertexBindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 	VkPipelineVertexInputStateCreateInfo vertexCreateInfo = {};

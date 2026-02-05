@@ -227,5 +227,8 @@
     <ClInclude Include="Core\Graphics\Uniform\UniformBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Component\Camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

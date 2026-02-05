@@ -12,18 +12,17 @@
 #include "../Graphics/Shader/ShaderModule.h"
 #include "../Graphics/Shader/PipelineShader.h"
 #include "../Graphics/Renderer/Renderer.h"
+#include "../Component/Camera.h"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 #include <vector>
 
-static GraphicsPipeline* pipeline;
-
 static std::vector<Vertex> vertices = {
-	{{ -0.5f,  -0.5f, 0.0f }, { 0.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }},
-	{{  0.5f,  -0.5f, 0.0f }, { 0.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }},
-	{{  0.5f,   0.5f, 0.0f }, { 0.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f, 0.0f }},
-	{{ -0.5f,   0.5f, 0.0f }, { 0.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, -1.0f }, { 1.0f, 1.0f, 1.0f }}
+	{{ -0.5f,  -0.5f, 1.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }},
+	{{  0.5f,  -0.5f, 1.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }},
+	{{  0.5f,   0.5f, 1.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f, 0.0f }},
+	{{ -0.5f,   0.5f, 1.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 0.0f }}
 };
 
 static std::vector<uint32_t> indices = {
@@ -66,7 +65,7 @@ bool Application::initWindow() {
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // don't make an openGL context
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 	
-	this->window = new AppWindow();
+	this->window = AppWindow::getInstance();
 	window->setup(800, 800, &Application::onWindowResized);
 
 	return 1;
@@ -78,7 +77,7 @@ void Application::initVulkan() {
 }
 
 void Application::initRenderer() {
-	this->renderer = new Renderer();
+	this->renderer = Renderer::getInstance();
 	renderer->setup(vkInstance);
 
 	ShaderModule* vertex = ShaderModule::createNew(vkInstance->device->logicalDevice, "Assets/Shaders/vert.spv", "default-v");
@@ -102,7 +101,7 @@ void Application::mainLoop() {
 
 	while (!glfwWindowShouldClose(window->GetWindow())) {
 		glfwPollEvents();
-
+		
 		meshRenderer->draw(renderer->getPipeline(nullptr));
 		renderer->render(vkInstance, window->GetWindow());
 	}
@@ -121,7 +120,6 @@ void Application::cleanup() {
 	vkInstance->teardown();
 	delete vkInstance;
 	window->teardown();
-	delete window;
 	
 	glfwTerminate();
 }

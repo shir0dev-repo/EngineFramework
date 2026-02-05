@@ -10,36 +10,40 @@
 #include "../../../Vulkan/VulkanDevice.h"
 #include "../../../Vulkan/VulkanSwapChain.h"
 #include "../../../Structure/linkedList.h"
+#include "../../../AppWindow.h"
 
+#include <shml/quat.hpp>
+#include <shml/mathutil.hpp>
+#include <shml/matrix4f.hpp>
 #include <vulkan/vulkan.h>
+#include <GLFW/glfw3.h>
 #include <iostream>
 #include <vector>
 
-Renderer* Renderer::instance = nullptr;
-
-Renderer* const Renderer::getInstance() { return instance; }
-
-VkCommandPool_T* const Renderer::getCurrentCommandPool() const {
-	return this->vkCommandPool;
+Renderer* const Renderer::getInstance() {
+	static Renderer* instance = nullptr;
+	if (instance == nullptr) {
+		instance = new Renderer();
+	}
+	return instance;
 }
 
-VkRenderPass_T* const Renderer::getRenderPass() const {
-	return vkRenderPass;
-}
+VkCommandPool_T* const Renderer::getCurrentCommandPool() const { return this->vkCommandPool; }
 
-VkDescriptorSetLayout_T* const Renderer::getGlobalDescriptorSetLayout() const {
-	return globalDescriptorLayout;
-}
+VkRenderPass_T* const Renderer::getRenderPass() const { return vkRenderPass; }
+
+VkDescriptorSetLayout_T* const Renderer::getGlobalDescriptorSetLayout() const { return globalDescriptorLayout; }
 
 void Renderer::setup(VulkanInstance* vkInstance) {
-	instance = this;
 	this->swapChain = vkInstance->swapChain; // cached reference
+	this->numFrames = swapChain->getSwapChainImageCount();
 
 	setupRenderPass(vkInstance->device);
 	setupCommandPool(vkInstance->device);
 	setupCommandBuffers(vkInstance->device);
 	setupFramebuffers(vkInstance->device);
 	setupSyncs(vkInstance->device);
+
 	setupGlobalUniforms(vkInstance);
 	setupGlobalDescriptorLayout(vkInstance);
 	setupGlobalDescriptorPool(vkInstance);
@@ -102,12 +106,11 @@ void Renderer::setupCommandPool(const VulkanDevice* const device) {
 }
 
 void Renderer::setupCommandBuffers(const VulkanDevice* const device) {
-	uint32_t numCmdBuffers = swapChain->getSwapChainImageCount();
-	this->vkCommandBuffers = new VkCommandBuffer_T* [numCmdBuffers]{ nullptr };
+	this->vkCommandBuffers = new VkCommandBuffer_T* [numFrames] { nullptr };
 	
 	VkCommandBufferAllocateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	createInfo.commandBufferCount = numCmdBuffers;
+	createInfo.commandBufferCount = numFrames;
 	createInfo.commandPool = this->vkCommandPool;
 	createInfo.level = VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	
@@ -119,10 +122,9 @@ void Renderer::setupCommandBuffers(const VulkanDevice* const device) {
 void Renderer::setupFramebuffers(const VulkanDevice* const device) {
 	const VkExtent2D* extent = swapChain->getExtents();
 	
-	uint32_t numFramebuffers = swapChain->getSwapChainImageCount();
-	this->vkFramebuffers = new VkFramebuffer_T* [numFramebuffers] { nullptr };
+	this->vkFramebuffers = new VkFramebuffer_T* [numFrames] { nullptr };
 	
-	for (uint32_t i = 0; i < numFramebuffers; i++) {
+	for (uint32_t i = 0; i < numFrames; i++) {
 		VkImageView_T* imageView = swapChain->getImageView(i);
 		
 		VkFramebufferCreateInfo framebufferInfo = {};
@@ -154,12 +156,13 @@ void Renderer::setupGlobalUniforms(const VulkanInstance* const instance) {
 	VkDeviceSize bufferSize = sizeof(GPUCameraData);
 	VkBufferUsageFlags usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 	VkMemoryPropertyFlags memoryUsage = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-	uint32_t numBuffers = swapChain->getSwapChainImageCount();
+	
+	this->globalBuffers = new UniformBuffer* [numFrames];
+	this->mappedGlobalBuffers = new void* [numFrames] { nullptr };
 
-	this->globalBuffers = new UniformBuffer* [numBuffers];
-	for (uint32_t i = 0; i < numBuffers; i++) {
+	for (uint32_t i = 0; i < numFrames; i++) {
 		this->globalBuffers[i] = UniformBuffer::create(instance->device, bufferSize, usage, memoryUsage);
-		vkMapMemory(instance->device->logicalDevice, globalBuffers[i]->vkMemory, 0, bufferSize, 0, &mappedGlobalBuffer);
+		vkMapMemory(instance->device->logicalDevice, globalBuffers[i]->vkMemory, 0, bufferSize, 0, &mappedGlobalBuffers[i]);
 	}
 }
 
@@ -194,7 +197,7 @@ void Renderer::setupGlobalDescriptorPool(const VulkanInstance* const instance) {
 }
 
 void Renderer::setupGlobalDescriptorSets(const VulkanInstance* const instance) {
-	globalDescriptorSets = new VkDescriptorSet_T * [swapChain->getSwapChainImageCount()];
+	globalDescriptorSets = new VkDescriptorSet_T* [numFrames] { nullptr };
 
 	for (uint32_t i = 0; i < swapChain->getSwapChainImageCount(); i++) {
 		VkDescriptorSetAllocateInfo allocInfo = {};
@@ -203,7 +206,7 @@ void Renderer::setupGlobalDescriptorSets(const VulkanInstance* const instance) {
 		allocInfo.descriptorSetCount = 1;
 		allocInfo.pSetLayouts = &globalDescriptorLayout;
 
-		if (vkAllocateDescriptorSets(instance->device->logicalDevice, &allocInfo, &globalDescriptorSets[i]) != VK_SUCCESS) {
+		if (vkAllocateDescriptorSets(instance->device->logicalDevice, &allocInfo, &(globalDescriptorSets[i])) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to allocate descriptor set for global descriptor!");
 		}
 
@@ -215,7 +218,9 @@ void Renderer::setupGlobalDescriptorSets(const VulkanInstance* const instance) {
 		VkWriteDescriptorSet setWrite = {};
 		setWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		setWrite.dstBinding = 0;
-		setWrite.dstSet = globalDescriptorSets[i];
+		if (globalDescriptorSets) {
+			setWrite.dstSet = &(*globalDescriptorSets[i]);
+		}
 		setWrite.descriptorCount = 1;
 		setWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		setWrite.pBufferInfo = &bufferInfo;
@@ -261,7 +266,8 @@ void Renderer::render(VulkanInstance* instance, GLFWwindow* window) {
 
 	finalizeRenderPassForCurrentFrame();
 	finalizeCommandBufferForCurrentFrame();
-	
+	updateGlobalBuffer(instance->device);
+
 	submitRender(instance->device);
 	bool successfullyPresented = presentRender(instance->device, instance->surface, window);
 
@@ -305,6 +311,40 @@ void Renderer::beginCommandBufferForCurrentFrame() {
 	}
 }
 
+void Renderer::updateGlobalBuffer(const VulkanDevice* const device) {
+	static AppWindow* windowInstance = nullptr;
+	static float dt = 0;
+	
+	if (windowInstance == nullptr) {
+		windowInstance = AppWindow::getInstance();
+	}
+	
+	GPUCameraData cameraData = {};
+	cameraData.projection = shml::matrix4f::IDENTITY;
+	const float nearPlane = 0.03f, farPlane = 100.0f;
+
+	float aspect = windowInstance->Width / windowInstance->Height;
+	float fov = 60.0f;
+	float scale = tan(fov * 0.5f * shml::DEG2RAD);
+	cameraData.projection(0, 0) = 1.0f / (aspect * scale);
+	cameraData.projection(1, 1) = 1.0f / -scale;
+	cameraData.projection(2, 2) = farPlane / (farPlane - nearPlane);
+	cameraData.projection(2, 3) = (-(farPlane * nearPlane) / (farPlane - nearPlane));
+	cameraData.projection(3, 2) = 1;
+	cameraData.projection(3, 3) = 0;
+	cameraData.projection.transpose();
+	
+	cameraData.view = shml::matrix4f::IDENTITY;
+	cameraData.view.setPosition({ 0, 0.0f, 0 });
+	//cameraData.view.setRotation(shml::quat(0, dt, 0));
+	cameraData.view.invert();
+	cameraData.view.transpose();
+
+	memcpy(mappedGlobalBuffers[currentFrame], &cameraData, sizeof(GPUCameraData));
+
+	dt += 0.02f;
+}
+
 void Renderer::bindGlobalDescriptors(GraphicsPipeline* pipeline) {
 
 }
@@ -329,7 +369,7 @@ void Renderer::initViewportScissorForCurrentFrame() {
 	const VkExtent2D* extents = swapChain->getExtents();
 
 	vp.minDepth = 0;
-	vp.maxDepth = 1;
+	vp.maxDepth = 1.0f;
 	vp.x = 0;
 	vp.y = 0;
 	vp.height = extents->height;
@@ -344,6 +384,8 @@ void Renderer::initViewportScissorForCurrentFrame() {
 
 void Renderer::beginPipeline(GraphicsPipeline* pipeline) {
 	vkCmdBindPipeline(vkCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipeline());
+	std::vector<VkDescriptorSet> toBind = {};
+	
 	vkCmdBindDescriptorSets(vkCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getLayout(), 0, 1,
 		&globalDescriptorSets[currentFrame], 0, nullptr);
 }
@@ -464,5 +506,9 @@ void Renderer::teardown(VkDevice_T* logicalDevice) {
 	if (vkRenderPass != nullptr) {
 		vkDestroyRenderPass(logicalDevice, vkRenderPass, nullptr);
 		vkRenderPass = nullptr;
+	}
+	if (mappedGlobalBuffers != nullptr) {
+		delete[] mappedGlobalBuffers;
+		mappedGlobalBuffers = nullptr;
 	}
 }

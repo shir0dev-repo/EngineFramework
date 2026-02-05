@@ -4,7 +4,7 @@ typedef unsigned int uint32_t;
 
 /// <summary>A wrapper object for Vulkan's validation layer.</summary>
 struct VulkanValidator {
-#ifdef NDEBUG
+#ifdef SWOS
 	/// <summary>Boolean value for if the validator is currently enabled.</summary>
 	const bool isValidationLayerEnabled = false;
 #else

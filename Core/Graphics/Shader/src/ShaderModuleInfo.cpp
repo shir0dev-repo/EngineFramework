@@ -8,6 +8,8 @@
 #include "SPIRV-Reflect/spirv_reflect.h"
 #include <cstring>
 #include <iostream>
+#include <map>
+#include <algorithm>
 
 ShaderModuleInfo ShaderModuleInfo::createModuleInfo(const char* shaderCode, const uint32_t& codeLen) {
 	SpvReflectShaderModule reflectModule = {};
@@ -94,23 +96,30 @@ void ShaderModuleInfo::reflectVertexInputAttributeInfo(SpvReflectShaderModule& r
 
 	std::vector<SpvReflectInterfaceVariable*> inputs(inputCount);
 	spvReflectEnumerateInputVariables(&reflectModule, &inputCount, inputs.data());
+	std::sort(inputs.begin(), inputs.end(), [](SpvReflectInterfaceVariable* a, SpvReflectInterfaceVariable* b) {
+		if (a->location > b->location) return false;
+		else if (a->location == b->location) false;
+		else return true;
+	});
+
+	uint32_t currentOffset = 0;
 	std::vector<VertexAttributeInfo> attributeInfos = {};
-	uint32_t currOffset = 0;
 	for (auto* input : inputs) {
 		if (input->decoration_flags & SPV_REFLECT_DECORATION_BUILT_IN) {
 			continue;
 		}
-
+		
 		VertexAttributeInfo attribInfo = {};
 		attribInfo.location = input->location;
+		// input should be 109
 		attribInfo.format = static_cast<VkFormat>(input->format);
-		attribInfo.offset = currOffset;
-
+		attribInfo.offset = currentOffset;
 		attributeInfos.push_back(attribInfo);
-		currOffset += sizeof(float) * 3;
+		currentOffset += sizeof(float) * 4;
 	}
-
+	
 	if (attributeInfos.size() > 0) {
+
 		moduleInfo->numVertexInputAttributeInfos = attributeInfos.size();
 		moduleInfo->pVertexInputAttributeInfos = new VertexAttributeInfo[attributeInfos.size()];
 		memcpy(moduleInfo->pVertexInputAttributeInfos, attributeInfos.data(), sizeof(VertexAttributeInfo) * attributeInfos.size());

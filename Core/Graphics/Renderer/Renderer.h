@@ -44,8 +44,6 @@ struct Renderer {
 	void teardown(VkDevice_T* logicalDevice);
 
 private:
-	static Renderer* instance;
-
 	void setupRenderPass(const VulkanDevice* const device);
 	void setupCommandPool(const VulkanDevice* const device);
 	void setupCommandBuffers(const VulkanDevice* const device);
@@ -87,7 +85,8 @@ private:
 	VkDescriptorSetLayout_T* globalDescriptorLayout = nullptr;
 	VkDescriptorPool_T* globalDescriptorPool = nullptr;
 	VkDescriptorSet_T** globalDescriptorSets = nullptr;
-	void* mappedGlobalBuffer = nullptr;
+	void** mappedGlobalBuffers = nullptr;
 
+	uint32_t numFrames = 0;
 	uint32_t currentFrame = 0;
 };
