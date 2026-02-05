@@ -65,8 +65,8 @@ bool VulkanInstance::setup(GLFWwindow* window) {
 	}
 
 	setupInstance();
-	setupDebugMessenger();
 	setupSurface(window);
+
 	setupDevice(window);
 	setupSwapchain(window);
 	return true;
@@ -85,14 +85,19 @@ bool VulkanInstance::setupValidator() {
 }
 
 void VulkanInstance::setupInstance() {
-	VkApplicationInfo appInfo;
-	makeVkApplicationInfo(appInfo);
+	VkApplicationInfo appInfo = {};
+	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+	appInfo.pApplicationName = "Vulkan Framework";
+	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+	appInfo.pEngineName = "No Engine";
+	appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+	appInfo.apiVersion = VK_API_VERSION_1_0;
 
 	VkInstanceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	createInfo.pApplicationInfo = &appInfo;
 
-	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
+	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
 	if (validator->isValidationLayerEnabled) {
 		createInfo.enabledLayerCount = validator->numEnabledLayers;
 		createInfo.ppEnabledLayerNames = validator->getValidationLayerNames();
@@ -114,12 +119,11 @@ void VulkanInstance::setupInstance() {
 
 		throw;
 	}
+
+	setupDebugMessenger(debugCreateInfo);
 }
 
-void VulkanInstance::setupDebugMessenger() {
-	VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
-	makeVkDebugMessengerCreateInfo(createInfo);
-	
+void VulkanInstance::setupDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT createInfo) {
 	VkResult result = CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &this->debugMessenger);
 	if (result != VK_SUCCESS) {
 		std::cerr << "Failed to setup debug messenger! Result: " << result << '\n';

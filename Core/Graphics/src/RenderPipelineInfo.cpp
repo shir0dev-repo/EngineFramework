@@ -1,4 +1,5 @@
 #include "../RenderPipelineInfo.h"
+#include "../Shader/Vertex.h"
 
 #include <vulkan/vulkan.h>
 #include<vector>
@@ -35,10 +36,16 @@ void RenderPipelineInfo::makePipelineDynamicStateCreateInfo(VkPipelineDynamicSta
 void RenderPipelineInfo::makePipelineVertexInputStateCreateInfo(VkPipelineVertexInputStateCreateInfo& createInfo) {
 	createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	createInfo.vertexBindingDescriptionCount = 0;
-	createInfo.pVertexBindingDescriptions = nullptr;
-	createInfo.vertexAttributeDescriptionCount = 0;
-	createInfo.pVertexAttributeDescriptions = nullptr;
+	VkVertexInputBindingDescription* bindingDesc = nullptr;
+	Vertex::getBindingDescription(bindingDesc);
+	createInfo.vertexBindingDescriptionCount = 1;
+	createInfo.pVertexBindingDescriptions = bindingDesc;
+
+	uint32_t attribCount = 0;
+	VkVertexInputAttributeDescription* attribDescs = nullptr;
+	Vertex::getAttributeDescriptions(&attribCount, attribDescs);
+	createInfo.vertexAttributeDescriptionCount = attribCount;
+	createInfo.pVertexAttributeDescriptions = attribDescs;
 }
 
 void RenderPipelineInfo::makePipelineInputAssemblyStateCreateInfo(VkPipelineInputAssemblyStateCreateInfo& createInfo) {
@@ -90,10 +97,13 @@ void RenderPipelineInfo::makePipelineColorBlendStateCreateInfo(VkPipelineColorBl
 	createInfo.pAttachments = attachmentStates;
 }
 
-void RenderPipelineInfo::createPipelineLayout(VkDevice_T* logicalDevice, VkPipelineLayout_T** pipelineLayout) {
+void RenderPipelineInfo::createPipelineLayout(VkDevice_T* logicalDevice, VkDescriptorSetLayout_T** descriptorSetLayout,
+	VkPipelineLayout_T** pipelineLayout) {
+	
 	VkPipelineLayoutCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-
+	createInfo.setLayoutCount = 1;
+	createInfo.pSetLayouts = descriptorSetLayout;
 	if (vkCreatePipelineLayout(logicalDevice, &createInfo, nullptr, pipelineLayout) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create pipeline layout!");
 	}
@@ -116,7 +126,6 @@ GraphicsPipelineCreateParams RenderPipelineInfo::makeGraphicsPipelineCreateParam
 	params.blendState = blendState;
 	params.pipelineLayout = pipelineLayout;
 	params.renderPass = renderPass;
-
 	return params;
 }
 
