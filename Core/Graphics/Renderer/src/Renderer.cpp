@@ -1,6 +1,5 @@
 #include "../Renderer.h"
 #include "../../Pipeline/GraphicsPipeline.h"
-#include "../../Pipeline/RenderPass.h"
 #include "../../Frame.h"
 #include "../../GraphicsSyncObject.h"
 #include "../../Shader/PipelineShader.h"
@@ -391,6 +390,8 @@ void Renderer::beginPipeline(GraphicsPipeline* pipeline) {
 	
 	vkCmdBindDescriptorSets(vkCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getLayout(), 0, 1,
 		&globalDescriptorSets[currentFrame], 0, nullptr);
+
+	pipeline->bindDescriptorSets(vkCommandBuffers[currentFrame], currentFrame);
 }
 
 void Renderer::executePipeline(GraphicsPipeline* pipeline) {

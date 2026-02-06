@@ -5,7 +5,6 @@
 #include "../Vulkan/VulkanDevice.h"
 #include "../Vulkan/VulkanSwapChain.h"
 #include "../Graphics/Pipeline/GraphicsPipeline.h"
-#include "../Graphics/Pipeline/RenderPass.h"
 #include "../Graphics/Shader/Vertex.h"
 #include "../Graphics/Renderer/MeshRenderer.h"
 #include "../Graphics/Mesh/Mesh.h"

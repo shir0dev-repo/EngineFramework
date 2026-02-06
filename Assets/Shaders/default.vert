@@ -14,9 +14,11 @@ layout (location = 2) in vec4 normal;
 layout (location = 3) in vec4 inColor;
 
 layout(location = 0) out vec3 fragColor;
+layout(location = 1) out vec4 texCoord;
 
 void main() {
 	gl_Position = Matrices.proj * Matrices.view * 
 	vec4(inPosition.xyz, 1.0);
 	fragColor = inColor.xyz;
+	texCoord = uv;
 }

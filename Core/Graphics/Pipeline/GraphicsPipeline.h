@@ -29,8 +29,11 @@ typedef linkedList<RenderCommand*> RenderCommandList;
 struct GraphicsPipeline {
 	VkPipeline_T* const getPipeline();
 	VkPipelineLayout_T* const getLayout() const;
+	
 	void setup(const VulkanInstance* const instance, Renderer* renderer, ShaderModule* vertex, ShaderModule* fragment);
 	void teardown(VkDevice_T* logicalDevice);
+
+	void bindDescriptorSets(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame);
 
 	void addRenderCommand(const MeshRenderer* const meshRenderer);
 	void executeRenderCommands(VkCommandBuffer_T* commandBuffer);
@@ -40,7 +43,7 @@ private:
 	void createDescriptorPool(const VulkanInstance* const instance);
 	void createDescriptorSets(const VulkanInstance* const instance, VkDescriptorSetLayout_T** setLayouts, uint32_t layoutCount);
 	void createUniformBuffers(const VulkanInstance* const instance);
-
+	void createDescriptorWrites(const VulkanInstance* const instance);
 	void updateDescriptorSets(const VulkanInstance* const instance);
 
 	void cleanupRenderCommands();
@@ -49,13 +52,12 @@ private:
 	VkPipeline_T* vkPipeline = nullptr;
 	VkPipelineLayout_T* vkLayout = nullptr;
 
-	uint32_t numSetLayouts = 0;
 	uint32_t numDescriptorSets = 0;
+	uint32_t numDescriptorCopies = 0;
 
 	VkDescriptorSetLayout_T** vkDescriptorSetLayouts = nullptr;
 	VkDescriptorPool_T* vkDescriptorPool = nullptr;
 	VkDescriptorSet_T*** vkDescriptorSets = nullptr;
 
-	//UniformBuffer* uniformBuffers = nullptr;
 	RenderCommandList* commandList = nullptr;
 };

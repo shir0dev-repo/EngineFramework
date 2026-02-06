@@ -7,9 +7,12 @@ struct GPUBuffer;
 struct GraphicsPipeline;
 struct VulkanDevice;
 struct Renderer;
+struct Material;
 
 struct MeshRenderer {
 	Mesh* mesh;
+	Material* material;
+
 	GPUBuffer* const getVertexBuffer() const { return vertexBuffer; }
 	GPUBuffer* const getIndexBuffer() const { return indexBuffer; }
 
