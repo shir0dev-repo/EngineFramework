@@ -10,4 +10,5 @@ struct DescriptorBindingInfo {
 	VkDescriptorType type;
 	uint32_t count;
 	VkShaderStageFlags stages;
+	char name[32];
 };

@@ -1,5 +1,7 @@
 #include "../BufferUtils.h"
 #include "../../Vulkan/VulkanDevice.h"
+#include "../../Vulkan/VulkanInstance.h"
+#include "../Texture/GPUTexture.h"
 
 #include <vulkan/vulkan.h>
 #include <iostream>
@@ -35,9 +37,39 @@ void BufferUtils::createBuffer(const VulkanDevice* const device, VkDeviceSize si
 	allocInfo.allocationSize = memRequirements.size;
 	allocInfo.memoryTypeIndex = getMemoryType(device->physicalDevice, memRequirements.memoryTypeBits, memoryUsage);
 	
-	if (vkAllocateMemory(device->logicalDevice, &allocInfo, nullptr, memory) != VK_SUCCESS) {
+	VkResult result = vkAllocateMemory(device->logicalDevice, &allocInfo, nullptr, memory);
+	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate buffer memory!");
 	}
 	
 	vkBindBufferMemory(device->logicalDevice, *buffer, *memory, 0);
+}
+
+void BufferUtils::copyToImage(const VulkanInstance* const instance, VkBuffer_T* buffer, GPUTexture* texture) {
+	VkCommandBuffer commandBuffer;
+	instance->beginSingleUseCommandBuffer(&commandBuffer);
+	
+	VkBufferImageCopy region = {};
+	region.bufferOffset = 0;
+	region.bufferRowLength = 0;
+	region.bufferImageHeight = 0;
+
+	VkImageSubresourceRange subresourceRange = texture->imageViewInfo->subresourceRange;
+	region.imageSubresource.aspectMask = subresourceRange.aspectMask;
+	region.imageSubresource.mipLevel = subresourceRange.baseMipLevel;
+	region.imageSubresource.baseArrayLayer = subresourceRange.baseArrayLayer;
+	region.imageSubresource.layerCount = subresourceRange.layerCount;
+
+	region.imageOffset = { 0, 0, 0 };
+	region.imageExtent = { texture->width, texture->height, 1 };
+
+	vkCmdCopyBufferToImage(commandBuffer,
+		buffer,
+		texture->image,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		1,
+		&region
+	);
+
+	instance->endSingleUseCommandBuffer(commandBuffer);
 }

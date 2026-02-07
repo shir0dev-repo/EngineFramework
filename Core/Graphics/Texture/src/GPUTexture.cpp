@@ -78,13 +78,26 @@ GPUTexture* GPUTexture::createTexture(const char* filePath, const char* name) {
 
 	texture = new GPUTexture();
 	texture->name = nameBuffer;
-	stbi_uc* handle = stbi_load(filePath, &texture->width, &texture->height, &texture->channels, STBI_rgb_alpha);
-	texture->size = static_cast<VkDeviceSize>(texture->width) * texture->height * 4;
+	int32_t width, height, channels;
+	stbi_uc* handle = stbi_load(filePath, &width, &height, &channels, STBI_rgb_alpha);
+	
 
 	if (!handle) {
 		throw std::runtime_error("Failed to load texture asset!");
 	}
 
+	if (width >= 0) {
+		texture->width = static_cast<uint32_t>(width);
+	}
+	if (height >= 0) {
+		texture->height = static_cast<uint32_t>(height);
+	}
+	if (channels >= 0) {
+		texture->channels = static_cast<uint32_t>(channels);
+	}
+	texture->size = static_cast<VkDeviceSize>(texture->width) * texture->height * 4;
+
+	
 	filePathLookup.emplace(texture->name, filePath);
 	textureLookup.emplace(filePath, texture);
 	loadedTextures.emplace(texture, handle);
@@ -99,7 +112,8 @@ GPUTexture* GPUTexture::createTextureLoadImmediate(const VulkanInstance* const i
 	if (getCPUTextureHandle(texture, &handle)) {
 		loadGPU(instance, texture, handle);
 	}
-	return nullptr;
+	
+	return texture;
 }
 
 bool GPUTexture::getTexture(const char* name, GPUTexture** outTexture) {
@@ -160,8 +174,71 @@ void GPUTexture::loadGPU(const VulkanInstance* const instance, GPUTexture* textu
 	texture->createImageView(instance);
 	texture->createSampler(instance);
 
+	GPUTexture::transitionLayout(
+		instance,
+		texture,
+		instance->swapChain->getFormat()->format,
+		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+	);
+
+	BufferUtils::copyToImage(instance, stagingBuffer, texture);
+
+	GPUTexture::transitionLayout(
+		instance,
+		texture,
+		instance->swapChain->getFormat()->format,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+	);
+
 	vkDestroyBuffer(instance->device->logicalDevice, stagingBuffer, nullptr);
 	vkFreeMemory(instance->device->logicalDevice, stagingMemory, nullptr);
+}
+
+void GPUTexture::transitionLayout(const VulkanInstance* const instance, GPUTexture* texture, VkFormat imageFormat,
+	VkImageLayout oldLayout, VkImageLayout newLayout) {
+
+	VkCommandBuffer commandBuffer;
+	instance->beginSingleUseCommandBuffer(&commandBuffer);
+	VkImageMemoryBarrier barrier = {};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout = oldLayout;
+	barrier.newLayout = newLayout;
+	
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+	barrier.image = texture->image;
+	barrier.subresourceRange = texture->imageViewInfo->subresourceRange;
+	
+	VkPipelineStageFlags srcStage, dstStage;
+
+	switch (oldLayout, newLayout) {
+		case (VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL):
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			break;
+		case (VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL):
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			dstStage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+			break;
+		default:
+			throw std::runtime_error("Unsupported layout transition!");
+	}
+
+	vkCmdPipelineBarrier(commandBuffer,
+		srcStage, dstStage, /** TODO **/
+		0,
+		0, nullptr,
+		0, nullptr,
+		1, &barrier
+	);
+
+	instance->endSingleUseCommandBuffer(commandBuffer);
 }
 
 void GPUTexture::createImage(const VulkanInstance* const instance) {
@@ -174,7 +251,7 @@ void GPUTexture::createImage(const VulkanInstance* const instance) {
 	imageInfo.mipLevels = 1;
 	imageInfo.arrayLayers = 1;
 
-	imageInfo.format = instance->swapChain->getFormat()->format;
+	imageInfo.format= instance->swapChain->getFormat()->format;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -188,18 +265,18 @@ void GPUTexture::createImage(const VulkanInstance* const instance) {
 }
 
 void GPUTexture::createImageView(const VulkanInstance* const instance) {
-	VkImageViewCreateInfo createInfo = {};
-	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	createInfo.image = this->image;
-	createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	createInfo.format = instance->swapChain->getFormat()->format;
-	createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	createInfo.subresourceRange.baseMipLevel = 0;
-	createInfo.subresourceRange.levelCount = 1;
-	createInfo.subresourceRange.baseArrayLayer = 0;
-	createInfo.subresourceRange.layerCount = 1;
-
-	if (vkCreateImageView(instance->device->logicalDevice, &createInfo, nullptr, &this->imageView) != VK_SUCCESS) {
+	this->imageViewInfo = new VkImageViewCreateInfo();
+	imageViewInfo->sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	imageViewInfo->image = this->image;
+	imageViewInfo->viewType = VK_IMAGE_VIEW_TYPE_2D;
+	imageViewInfo->format = instance->swapChain->getFormat()->format;
+	imageViewInfo->subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	imageViewInfo->subresourceRange.baseMipLevel = 0;
+	imageViewInfo->subresourceRange.levelCount = 1;
+	imageViewInfo->subresourceRange.baseArrayLayer = 0;
+	imageViewInfo->subresourceRange.layerCount = 1;
+	
+	if (vkCreateImageView(instance->device->logicalDevice, this->imageViewInfo, nullptr, &this->imageView) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create image view!");
 	}
 }

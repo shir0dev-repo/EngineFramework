@@ -69,6 +69,8 @@ bool VulkanInstance::setup(GLFWwindow* window) {
 
 	setupDevice(window);
 	setupSwapchain(window);
+	setupGenericCommandPool();
+
 	return true;
 }
 
@@ -147,7 +149,22 @@ void VulkanInstance::setupSwapchain(GLFWwindow* window) {
 	this->swapChain->setup(device, this->surface, window);
 }
 
+void VulkanInstance::setupGenericCommandPool() {
+	VkCommandPoolCreateInfo poolInfo = {};
+	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	poolInfo.queueFamilyIndex = device->graphicsQueueFamilyIndex;
+
+	if (vkCreateCommandPool(device->logicalDevice, &poolInfo, nullptr, &this->vkGenericCommandPool) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create command pool!");
+	}
+}
+
 void VulkanInstance::teardown() {
+	if (vkGenericCommandPool != nullptr) {
+		vkDestroyCommandPool(device->logicalDevice, vkGenericCommandPool, nullptr);
+		vkGenericCommandPool = nullptr;
+	}
 	if (swapChain != nullptr) {
 		swapChain->teardown(device->logicalDevice);
 		delete swapChain;

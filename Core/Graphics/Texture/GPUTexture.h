@@ -1,7 +1,9 @@
 #pragma once
 
+typedef enum VkImageLayout;
+typedef enum VkFormat;
 typedef unsigned long long VkDeviceSize;
-typedef int int32_t;
+typedef unsigned int uint32_t;
 
 struct VkDevice_T;
 struct VkImage_T;
@@ -9,7 +11,7 @@ struct VkImageView_T;
 struct VkDeviceMemory_T;
 struct VkSampler_T;
 struct VkSamplerCreateInfo;
-
+struct VkImageViewCreateInfo;
 struct VulkanInstance;
 
 struct GPUTexture {
@@ -22,16 +24,23 @@ struct GPUTexture {
 	VkDeviceMemory_T* imageMemory = nullptr;
 	VkSampler_T* imageSampler = nullptr;
 
+	VkSamplerCreateInfo* samplerInfo = nullptr;
+	VkImageViewCreateInfo* imageViewInfo = nullptr;
+
 	VkDeviceSize size = 0l;
-	int32_t width = 0;
-	int32_t height = 0;
-	int32_t channels = 0;
+	uint32_t width = 0;
+	uint32_t height = 0;
+	uint32_t channels = 0;
 
 	static GPUTexture* createTexture(const char* filePath, const char* name = "");
 	static GPUTexture* createTextureLoadImmediate(const VulkanInstance* const instance, const char* filePath,
 		const char* name = "");
 
 	static bool getTexture(const char* name, GPUTexture** outTexture);
+
+	static void transitionLayout(const VulkanInstance* const instance, GPUTexture* texture, VkFormat imageFormat,
+		VkImageLayout oldLayout, VkImageLayout newLayout);
+
 	static void loadGPU(const VulkanInstance* const instance, GPUTexture* texture);
 	static void loadGPU(const VulkanInstance*const instance, GPUTexture* texture, unsigned char* handle);
 	static void cleanup(const VulkanInstance* const instance);

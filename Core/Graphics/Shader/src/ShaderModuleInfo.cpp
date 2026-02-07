@@ -44,7 +44,9 @@ void ShaderModuleInfo::reflectDescriptorBindings(SpvReflectShaderModule& reflect
 
 	std::vector<SpvReflectDescriptorSet*> descriptorSets(descriptorSetCount);
 	spvReflectEnumerateDescriptorSets(&reflectModule, &descriptorSetCount, descriptorSets.data());
-	std::vector<DescriptorBindingInfo> bindingInfos{};
+	std::vector<DescriptorBindingInfo> globalBindingInfos{};
+	std::vector<DescriptorBindingInfo> pipelineBindingInfos{};
+	std::vector<DescriptorBindingInfo> materialBindingInfos{};
 	for (auto* set : descriptorSets) {
 		for (uint32_t i = 0; i < set->binding_count; i++) {
 			const SpvReflectDescriptorBinding* binding = set->bindings[i];
@@ -55,15 +57,32 @@ void ShaderModuleInfo::reflectDescriptorBindings(SpvReflectShaderModule& reflect
 			info.count = binding->count;
 			info.type = static_cast<VkDescriptorType>(binding->descriptor_type);
 			info.stages = static_cast<VkShaderStageFlags>(reflectModule.shader_stage);
+			uint32_t nameLen = strnlen_s(binding->name, 32);
+			strcpy(info.name, binding->name);
 
-			bindingInfos.push_back(info);
+			switch (info.setIndex) {
+				case 0:
+					globalBindingInfos.push_back(info);
+					continue;
+				case 1:
+					pipelineBindingInfos.push_back(info);
+					continue;
+				case 2:
+					materialBindingInfos.push_back(info);
+					continue;
+			}
 		}
 	}
 
-	if (bindingInfos.size() > 0) {
-		moduleInfo->numDescriptorInfos = bindingInfos.size();
-		moduleInfo->pDescriptorInfos = new DescriptorBindingInfo[bindingInfos.size()];
-		memcpy(moduleInfo->pDescriptorInfos, bindingInfos.data(), sizeof(DescriptorBindingInfo) * bindingInfos.size());
+	if (globalBindingInfos.size() > 0) {
+		moduleInfo->globalDescriptors.count = globalBindingInfos.size();
+		moduleInfo->globalDescriptors.pDescriptorBindingInfos= new DescriptorBindingInfo[globalBindingInfos.size()];
+		memcpy(moduleInfo->globalDescriptors.pDescriptorBindingInfos, globalBindingInfos.data(), sizeof(DescriptorBindingInfo) * globalBindingInfos.size());
+	}
+	if (pipelineBindingInfos.size() > 0) {
+		moduleInfo->pipelineDescriptors.count = pipelineBindingInfos.size();
+		moduleInfo->pipelineDescriptors.pDescriptorBindingInfos = new DescriptorBindingInfo[pipelineBindingInfos.size()];
+		memcpy(moduleInfo->pipelineDescriptors.pDescriptorBindingInfos, pipelineBindingInfos.data(), sizeof(DescriptorBindingInfo) * pipelineBindingInfos.size());
 	}
 }
 

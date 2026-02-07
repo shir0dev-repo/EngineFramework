@@ -11,12 +11,25 @@ struct VertexAttributeInfo;
 struct FragmentOutputInfo;
 
 struct PipelineSummary {
-	uint32_t numDescriptorBindingInfos = 0;
+	struct GlobalInfo {
+		uint32_t count = 0;
+		DescriptorBindingInfo* pDescriptorBindingInfos = nullptr;
+	} globalDescriptors;
+
+	struct PipelineInfo {
+		uint32_t count = 0;
+		DescriptorBindingInfo* pDescriptorBindingInfos = nullptr;
+	} pipelineDescriptors;
+
+	struct MaterialInfo {
+		uint32_t count = 0;
+		DescriptorBindingInfo* pDescriptorBindingInfos = nullptr;
+	} materialDescriptors;
+
 	uint32_t numPushConstantInfos = 0;
 	uint32_t numVertexInputAttributeInfos = 0;
 	uint32_t numFragmentOutputInfos = 0;
 
-	DescriptorBindingInfo* pDescriptorBindingInfos = nullptr;
 	PushConstantInfo* pPushConstantInfos = nullptr;
 	VertexAttributeInfo* pVertexInputAttributeInfos = nullptr;
 	FragmentOutputInfo* pFragmentOutputInfos = nullptr;

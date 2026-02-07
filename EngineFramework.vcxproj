@@ -103,7 +103,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>E:\EngineFramework\lib;C:\VulkanSDK\1.4.335.0\Include;C:\Program Files\Microsoft Visual Studio\2022\Libraries\glfw-3.4.bin.WIN64\include;C:\Program Files\Microsoft Visual Studio\2022\Libraries\stb</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -132,6 +132,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Core\Graphics\Descriptor\src\Descriptors.cpp" />
     <ClCompile Include="Core\Graphics\Pipeline\src\GraphicsPipeline.cpp" />
     <ClCompile Include="Core\Graphics\Renderer\src\MeshRenderer.cpp" />
     <ClCompile Include="Core\Graphics\Renderer\src\Renderer.cpp" />
@@ -170,6 +171,9 @@
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Core\AppWindow.h" />
     <ClInclude Include="Core\Graphics\BufferUtils.h" />
+    <ClInclude Include="Core\Graphics\Descriptor\DescriptorHandle.h" />
+    <ClInclude Include="Core\Graphics\Descriptor\Descriptors.h" />
+    <ClInclude Include="Core\Graphics\Pipeline\PipelineMaterialLayout.h" />
     <ClInclude Include="Core\Graphics\Texture\GPUTexture.h" />
     <ClInclude Include="Core\Graphics\Uniform\GPUCameraData.h" />
     <ClInclude Include="Core\Graphics\Frame.h" />

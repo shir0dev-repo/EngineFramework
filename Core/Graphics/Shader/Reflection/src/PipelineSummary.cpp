@@ -10,15 +10,52 @@
 
 #include <vulkan/vulkan.h>
 #include <vector>
+#include <map>
 #include <unordered_map>
 #include <iostream>
 
+static uint64_t makeDescriptorMapKey(uint32_t setIndex, uint32_t bindingIndex) {
+	return (uint64_t(setIndex) << 32) | bindingIndex;
+}
+
 static uint32_t iterateDescriptorBindings(ShaderModuleInfo* stage, std::unordered_map<uint64_t, DescriptorBindingInfo>* bindingMap) {
-	static auto mapKey = [](uint32_t setIndex, uint32_t bindingIndex) { return (uint64_t(setIndex) << 32) | bindingIndex; };
+	
 	uint32_t numUnique = 0;
-	for (uint32_t i = 0; i < stage->numDescriptorInfos; i++) {
-		DescriptorBindingInfo info = stage->pDescriptorInfos[i];
-		uint64_t key = mapKey(info.setIndex, info.bindingIndex);
+	for (uint32_t i = 0; i < stage->globalDescriptors.count; i++) {
+		DescriptorBindingInfo info = stage->globalDescriptors.pDescriptorBindingInfos[i];
+		uint64_t key = makeDescriptorMapKey(info.setIndex, info.bindingIndex);
+
+		auto it = bindingMap->find(key);
+		if (it == bindingMap->end()) {
+			numUnique++;
+			(*bindingMap)[key] = info;
+		}
+		else if (it->second.type != info.type || it->second.count != info.count) {
+			throw std::runtime_error("Descriptor binding mismatch between stages!");
+		}
+		else {
+			it->second.stages |= info.stages;
+		}
+	}
+	for (uint32_t i = 0; i < stage->pipelineDescriptors.count; i++) {
+		DescriptorBindingInfo info = stage->pipelineDescriptors.pDescriptorBindingInfos[i];
+		uint64_t key = makeDescriptorMapKey(info.setIndex, info.bindingIndex);
+
+		auto it = bindingMap->find(key);
+		if (it == bindingMap->end()) {
+			numUnique++;
+			(*bindingMap)[key] = info;
+		}
+		else if (it->second.type != info.type || it->second.count != info.count) {
+			throw std::runtime_error("Descriptor binding mismatch between stages!");
+		}
+		else {
+			it->second.stages |= info.stages;
+		}
+	}
+	for (uint32_t i = 0; i < stage->materialDescriptors.count; i++) {
+		DescriptorBindingInfo info = stage->materialDescriptors.pDescriptorBindingInfos[i];
+		uint64_t key = makeDescriptorMapKey(info.setIndex, info.bindingIndex);
 
 		auto it = bindingMap->find(key);
 		if (it == bindingMap->end()) {
@@ -35,6 +72,7 @@ static uint32_t iterateDescriptorBindings(ShaderModuleInfo* stage, std::unordere
 
 	return numUnique;
 }
+
 static uint32_t iteratePushConstants(ShaderModuleInfo* stage, std::vector<PushConstantInfo>* ranges) {
 	uint32_t numUnique = 0;
 	for (uint32_t i = 0; i < stage->numPushConstantInfos; i++) {
@@ -97,12 +135,47 @@ PipelineSummary* PipelineSummary::createSummary(ShaderModule** const stages, uin
 		}
 	}
 
-	summary->numDescriptorBindingInfos = numDescs;
+	std::map<uint32_t, std::vector<DescriptorBindingInfo>> setBindings;
+	setBindings[0] = {};
+	setBindings[1] = {};
+	setBindings[2] = {};
+
 	if (numDescs > 0) {
-		summary->pDescriptorBindingInfos = new DescriptorBindingInfo[numDescs];
-		uint32_t currentIndex = 0;
-		for (auto& it : bindingMap) {
-			summary->pDescriptorBindingInfos[currentIndex++] = it.second;
+		for (auto& [setBindingMask, binding] : bindingMap) {
+			uint32_t set = static_cast<uint32_t>((setBindingMask & 0xFFFFFFFF00000000) >> 32);
+			uint32_t bindingIndex = static_cast<uint32_t>((setBindingMask & 0xFFFFFFFF));
+			switch (set) {
+				case 0:
+					summary->globalDescriptors.count++;
+					setBindings[0].push_back(binding);
+					break;
+				case 1:
+					summary->pipelineDescriptors.count++;
+					setBindings[1].push_back(binding);
+					break;
+				case 2:
+					summary->materialDescriptors.count++;
+					setBindings[2].push_back(binding);
+					break;
+				default:
+					throw std::runtime_error("Unsupported set found!");
+			}
+		}
+
+		if (setBindings[0].size() > 0) {
+			summary->globalDescriptors.count = setBindings[0].size();
+			summary->globalDescriptors.pDescriptorBindingInfos = new DescriptorBindingInfo[setBindings[0].size()];
+			memcpy(summary->globalDescriptors.pDescriptorBindingInfos, setBindings[0].data(), sizeof(DescriptorBindingInfo) * setBindings[0].size());
+		}
+		if (setBindings[1].size() > 0) {
+			summary->pipelineDescriptors.count = setBindings[1].size();
+			summary->pipelineDescriptors.pDescriptorBindingInfos = new DescriptorBindingInfo[setBindings[1].size()];
+			memcpy(summary->pipelineDescriptors.pDescriptorBindingInfos, setBindings[1].data(), sizeof(DescriptorBindingInfo) * setBindings[1].size());
+		}
+		if (setBindings[2].size() > 0) {
+			summary->materialDescriptors.count = setBindings[2].size();
+			summary->materialDescriptors.pDescriptorBindingInfos = new DescriptorBindingInfo[setBindings[2].size()];
+			memcpy(summary->materialDescriptors.pDescriptorBindingInfos, setBindings[2].data(), sizeof(DescriptorBindingInfo) * setBindings[2].size());
 		}
 	}
 	summary->numPushConstantInfos = numPCs;
