@@ -9,11 +9,12 @@
 
 #include <cstring>
 #include <vulkan/vulkan.h>
+#include <map>
 #include <unordered_map>
 #include <iostream>
 
-static std::unordered_map<const char*, const char*> filePathLookup;
-static std::unordered_map<const char*, GPUTexture*> textureLookup;
+std::map<std::string, std::string> filePathLookup;
+static std::unordered_map<std::string, GPUTexture*> textureLookup;
 static std::unordered_map<GPUTexture*, stbi_uc*> loadedTextures;
 
 void GPUTexture::cleanup(const VulkanInstance* const instance) {
@@ -26,20 +27,31 @@ void GPUTexture::cleanup(const VulkanInstance* const instance) {
 		vkDestroyImageView(instance->device->logicalDevice, texture->imageView, nullptr);
 		vkDestroyImage(instance->device->logicalDevice, texture->image, nullptr);
 		vkFreeMemory(instance->device->logicalDevice, texture->imageMemory, nullptr);
+		delete texture->imageViewInfo;
 		delete texture;
 	}
 }
 
-bool GPUTexture::getFilePath(const char* name, char** outFilePath) {
-	uint32_t len = strnlen_s(name, MAX_NAME_SIZE);
+static bool getFilePath(const char* name, std::string* outFilePath) {
+	uint32_t len = strnlen_s(name, GPUTexture::MAX_NAME_SIZE);
 	if (len <= 0) {
 		return false;
 	}
 
 	auto it = filePathLookup.find(name);
 	if (it != filePathLookup.end()) {
-		uint32_t fpLen = strnlen_s(it->second, MAX_NAME_SIZE);
-		strcpy_s(*outFilePath, fpLen, it->second);
+		outFilePath->assign(it->second);
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+static bool getTextureFromFilePath(std::string filePath, GPUTexture** outTexture) {
+	auto it = textureLookup.find(filePath);
+	if (it != textureLookup.end()) {
+		*outTexture = it->second;
 		return true;
 	}
 	else {
@@ -61,23 +73,24 @@ bool GPUTexture::getCPUTextureHandle(GPUTexture* texture, unsigned char** outHan
 
 GPUTexture* GPUTexture::createTexture(const char* filePath, const char* name) {
 	GPUTexture* texture = nullptr;
-	char* nameBuffer = nullptr;
+	std::string nameStr;
 	uint32_t nameLen = strnlen_s(name, MAX_NAME_SIZE);
 
 	if (getTextureFromFilePath(filePath, &texture)) {
 		return texture;
 	}
 	else if (strcmp(name, "") == 0) {
-		nameBuffer = new char[MAX_NAME_SIZE];
-		sprintf_s(nameBuffer, MAX_NAME_SIZE, "Unnamed Texture #%l", (textureLookup.size() - 1));
+		nameStr = "Unnamed Texture #";
+		nameStr.append(1, static_cast<char>(textureLookup.size() - 1));
 	}
 	else {
-		nameBuffer = new char[MAX_NAME_SIZE] {0};
-		strcpy_s(nameBuffer, MAX_NAME_SIZE, name);
+		nameStr = name;
 	}
 
 	texture = new GPUTexture();
-	texture->name = nameBuffer;
+	texture->name = new char[nameLen];
+	nameStr.copy(texture->name, nameLen);
+
 	int32_t width, height, channels;
 	stbi_uc* handle = stbi_load(filePath, &width, &height, &channels, STBI_rgb_alpha);
 	
@@ -98,7 +111,7 @@ GPUTexture* GPUTexture::createTexture(const char* filePath, const char* name) {
 	texture->size = static_cast<VkDeviceSize>(texture->width) * texture->height * 4;
 
 	
-	filePathLookup.emplace(texture->name, filePath);
+	filePathLookup.emplace(nameStr, filePath);
 	textureLookup.emplace(filePath, texture);
 	loadedTextures.emplace(texture, handle);
 	return texture;
@@ -117,26 +130,13 @@ GPUTexture* GPUTexture::createTextureLoadImmediate(const VulkanInstance* const i
 }
 
 bool GPUTexture::getTexture(const char* name, GPUTexture** outTexture) {
-	char* filePath = new char[MAX_NAME_SIZE];
+	std::string filePath;
 	if (getFilePath(name, &filePath)) {
-		bool found = getTextureFromFilePath(const_cast<const char*>(filePath), outTexture);
-		delete[] filePath;
+		bool found = getTextureFromFilePath(filePath.c_str(), outTexture);
 		return found;
 	}
 	else {
 		*outTexture = nullptr;
-		delete[] filePath;
-		return false;
-	}
-}
-
-bool GPUTexture::getTextureFromFilePath(const char* filePath, GPUTexture** outTexture) {
-	auto it = textureLookup.find(filePath);
-	if (it != textureLookup.end()) {
-		*outTexture = it->second;
-		return true;
-	}
-	else {
 		return false;
 	}
 }
@@ -251,7 +251,7 @@ void GPUTexture::createImage(const VulkanInstance* const instance) {
 	imageInfo.mipLevels = 1;
 	imageInfo.arrayLayers = 1;
 
-	imageInfo.format= instance->swapChain->getFormat()->format;
+	imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -269,7 +269,7 @@ void GPUTexture::createImageView(const VulkanInstance* const instance) {
 	imageViewInfo->sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	imageViewInfo->image = this->image;
 	imageViewInfo->viewType = VK_IMAGE_VIEW_TYPE_2D;
-	imageViewInfo->format = instance->swapChain->getFormat()->format;
+	imageViewInfo->format = VK_FORMAT_R8G8B8A8_SRGB;
 	imageViewInfo->subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	imageViewInfo->subresourceRange.baseMipLevel = 0;
 	imageViewInfo->subresourceRange.levelCount = 1;

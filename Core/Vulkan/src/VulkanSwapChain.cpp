@@ -2,7 +2,6 @@
 #include "../Util/QueueFamilyIndices.h"
 #include "../Util/SwapChainSupportDetails.h"
 #include "../VulkanDevice.h"
-#include "../../Graphics/Frame.h"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>

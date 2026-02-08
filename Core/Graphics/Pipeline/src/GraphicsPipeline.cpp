@@ -1,7 +1,7 @@
 #include "../GraphicsPipeline.h"
 #include "../../Descriptor/Descriptors.h"
 #include "../../Descriptor/DescriptorHandle.h"
-
+#include "../../Material/Material.h"
 #include "../../Renderer/Renderer.h"
 #include "../../RenderCommand.h"
 #include "../../Shader/ShaderModule.h"
@@ -29,7 +29,13 @@
 #include <unordered_map>
 #include <vector>
 
-static std::unordered_map<std::string, std::string> staticAssetFilePaths{ std::make_pair("white", "Assets/Textures/white.jpg") };
+static std::unordered_map<std::string, std::string> staticAssetFilePaths {
+	std::make_pair("white", "Assets/Textures/white.jpg"),
+	std::make_pair("noise", "Assets/Textures/noise.jpg"),
+	std::make_pair("normal", "Assets/Textures/flat-normal.png")
+};
+
+static std::unordered_map <GraphicsPipeline*, std::vector<Material*>> registeredMaterialLookup;
 
 static const char* getFilePathForTexture(const char* name) {
 	std::string str(name);
@@ -62,7 +68,7 @@ static BindingList mergeDescriptorSetLayouts(DescriptorBindingInfo* bindingInfos
 		vk.descriptorCount = b.count;
 		vk.stageFlags = b.stages;
 		vk.pImmutableSamplers = nullptr;
-
+		
 		bindingsPerSet.push_back(vk);
 	}
 
@@ -121,9 +127,9 @@ static void mergeVertexInputAttributes(VertexAttributeInfo* attribInfos, uint32_
 
 	#pragma region Create Pipeline Layout
 static void createPipelineLayout(const VulkanDevice* const device, Renderer* renderer, VkDescriptorSetLayout_T* pipelineSetLayout,
-	const PCRangeList& pcRanges, VkPipelineLayout_T** outLayout) {
+	VkDescriptorSetLayout_T* materialSetLayout, const PCRangeList& pcRanges, VkPipelineLayout_T** outLayout) {
 	
-	std::vector<VkDescriptorSetLayout> sets{ renderer->getGlobalDescriptorSetLayout(), pipelineSetLayout };
+	std::vector<VkDescriptorSetLayout> sets{ renderer->getGlobalDescriptorSetLayout(), pipelineSetLayout, materialSetLayout };
 
 	VkPipelineLayoutCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -164,10 +170,37 @@ VkPipelineLayout_T* const GraphicsPipeline::getLayout() const {
 	return vkLayout;
 }
 
+VkDescriptorSet_T* const GraphicsPipeline::getDescriptor(uint32_t copyIndex, uint32_t binding) {
+	return vkPipelineDescriptorSets[copyIndex];
+}
+
+uint32_t GraphicsPipeline::getDescriptorCopyCount() const { return numDescriptorCopies; }
+
+void GraphicsPipeline::getDescriptorsForEachFrame(uint32_t binding, uint32_t* count, VkDescriptorSet_T** outDescriptors) {
+	*count = numDescriptorCopies;
+	if (outDescriptors == nullptr) {
+		return;
+	}
+
+	for (uint32_t i = 0; i < *count; i++) {
+		outDescriptors[i] = getDescriptor(i, binding);
+	}
+}
+
+const PipelineMaterialLayout* const GraphicsPipeline::getMaterialLayout() const {
+	return &this->materialLayout;
+}
+
+const PipelineSummary* const GraphicsPipeline::getSummary() const {
+	return this->summary;
+}
+
 void GraphicsPipeline::setup(const VulkanInstance* const instance, Renderer* renderer, ShaderModule* vertex, ShaderModule* fragment) {
 	this->commandList = new linkedList<RenderCommand*>();
 
 	createPipelineSummary(instance, vertex, fragment);
+	createMaterialLayout(instance);
+
 	setupDescriptors(instance);
 	createPipeline(instance, renderer, vertex, fragment);
 }
@@ -177,13 +210,29 @@ void GraphicsPipeline::createPipelineSummary(const VulkanInstance* const instanc
 	this->summary = PipelineSummary::createSummary(shaders, 2);
 }
 
+void GraphicsPipeline::setupDescriptors(const VulkanInstance* const instance) {
+	this->numDescriptorCopies = instance->swapChain->getSwapChainImageCount();
+	this->numPipelineDescriptorSets = summary->pipelineDescriptors.count;
+	this->numMaterialDescriptorSets = summary->materialDescriptors.count;
+
+	BindingList pipelineBindings = mergeDescriptorSetLayouts(summary->pipelineDescriptors.pDescriptorBindingInfos, summary->pipelineDescriptors.count);
+	createPipelineDescriptorPool(instance);
+	createPipelineDescriptorSetLayout(instance, pipelineBindings.data(), pipelineBindings.size());
+	createPipelineDescriptorSets(instance);
+	updatePipelineDescriptorWrites(instance);
+
+	BindingList materialBindings = mergeDescriptorSetLayouts(summary->materialDescriptors.pDescriptorBindingInfos, summary->materialDescriptors.count);
+	createMaterialDescriptorPool(instance);
+	createMaterialDescriptorSetLayout(instance, materialBindings.data(), materialBindings.size());
+}
+
 void GraphicsPipeline::createPipeline(const VulkanInstance* const instance, Renderer* renderer, ShaderModule* vertex, ShaderModule* fragment) {
 	#pragma region Push Constants
 	std::vector<VkPushConstantRange> pcRanges;
 	mergePushConstantRanges(summary->pPushConstantInfos, summary->numPushConstantInfos, &pcRanges);
 	#pragma endregion
 
-	createPipelineLayout(instance->device, renderer, this->vkDescriptorLayout, pcRanges, &this->vkLayout);
+	createPipelineLayout(instance->device, renderer, this->vkPipelineDescriptorLayout, this->vkMaterialDescriptorLayout, pcRanges, &this->vkLayout);
 
 	#pragma region ShaderInfo
 	VertexAttributeList vertexAttributes;
@@ -288,80 +337,122 @@ void GraphicsPipeline::createPipeline(const VulkanInstance* const instance, Rend
 }
 
 void GraphicsPipeline::createMaterialLayout(const VulkanInstance* const instance) {
-	
+	if (summary->materialDescriptors.count <= 0) {
+		this->materialLayout.numBindings = 0;
+		this->materialLayout.pBindings = nullptr;
+	}
+
+	this->materialLayout.numBindings = summary->materialDescriptors.count;
+	this->materialLayout.pBindings = new MaterialBinding[materialLayout.numBindings];
+	for (uint32_t i = 0; i < materialLayout.numBindings; i++) {
+		DescriptorBindingInfo info = summary->materialDescriptors.pDescriptorBindingInfos[i];
+		MaterialBinding* binding = &this->materialLayout.pBindings[i];
+		binding->name = info.name;
+		binding->type = info.type;
+		binding->binding = info.bindingIndex;
+	}
 }
 
-void GraphicsPipeline::setupDescriptors(const VulkanInstance* const instance) {
-	this->numDescriptorCopies = instance->swapChain->getSwapChainImageCount();
-	this->numDescriptorSets = summary->pipelineDescriptors.count;
-
-	BindingList pipelineBindings = mergeDescriptorSetLayouts(summary->pipelineDescriptors.pDescriptorBindingInfos, summary->pipelineDescriptors.count);
-	this->descriptorHandles = new DescriptorHandle* [numDescriptorCopies];
-	
-	createDescriptorPool(instance);
-	createDescriptorSetLayout(instance, pipelineBindings.data(), pipelineBindings.size());
-	createDescriptorSets(instance);
-	updateDescriptorWrites(instance);
-}
-
-void GraphicsPipeline::createDescriptorPool(const VulkanInstance* const instance) {
+void GraphicsPipeline::createPipelineDescriptorPool(const VulkanInstance* const instance) {
 	VkDescriptorPoolSize poolSizes[2] = { {}, {} };
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = numDescriptorCopies;
+	poolSizes[0].descriptorCount = numPipelineDescriptorSets * numDescriptorCopies;
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[1].descriptorCount = numDescriptorCopies;
+	poolSizes[1].descriptorCount = numPipelineDescriptorSets * numDescriptorCopies;
 	VkDescriptorPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	poolInfo.poolSizeCount = 2;
 	poolInfo.pPoolSizes = &poolSizes[0];
-	poolInfo.maxSets = numDescriptorCopies;
+	poolInfo.maxSets = numDescriptorCopies * numPipelineDescriptorSets * 2;
 
-	if (vkCreateDescriptorPool(instance->device->logicalDevice, &poolInfo, nullptr, &this->vkDescriptorPool) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create descriptor pool!");
+	if (vkCreateDescriptorPool(instance->device->logicalDevice, &poolInfo, nullptr, &this->vkPipelineDescriptorPool) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create pipeline descriptor pool!");
 	}
 }
 
-void GraphicsPipeline::createDescriptorSetLayout(const VulkanInstance* const instance, VkDescriptorSetLayoutBinding* layoutBindings, uint32_t count) {
+void GraphicsPipeline::createMaterialDescriptorPool(const VulkanInstance* const instance) {
+	VkDescriptorPoolSize poolSizes[2] = { {}, {} };
+	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	poolSizes[0].descriptorCount = numDescriptorCopies * MAX_MATERIAL_COUNT;
+	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	poolSizes[1].descriptorCount = numDescriptorCopies * MAX_MATERIAL_COUNT;
+	VkDescriptorPoolCreateInfo poolInfo = {};
+	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	poolInfo.poolSizeCount = 2;
+	poolInfo.pPoolSizes = &poolSizes[0];
+	poolInfo.maxSets = numDescriptorCopies * 2 * MAX_MATERIAL_COUNT;
+
+	if (vkCreateDescriptorPool(instance->device->logicalDevice, &poolInfo, nullptr, &this->vkMaterialDescriptorPool) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create material descriptor pool!");
+	}
+}
+
+void GraphicsPipeline::createPipelineDescriptorSetLayout(const VulkanInstance* const instance, VkDescriptorSetLayoutBinding* layoutBindings, uint32_t count) {
 	VkDescriptorSetLayoutCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	createInfo.bindingCount = count;
 	createInfo.pBindings = layoutBindings;
 
-	if (vkCreateDescriptorSetLayout(instance->device->logicalDevice, &createInfo, nullptr, &this->vkDescriptorLayout) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create descriptor set layout!");
+	if (vkCreateDescriptorSetLayout(instance->device->logicalDevice, &createInfo, nullptr, &this->vkPipelineDescriptorLayout) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create pipeline descriptor set layout!");
 	}
 }
 
-void GraphicsPipeline::createDescriptorSets(const VulkanInstance* const instance) {
-	if (numDescriptorSets <= 0) {
+void GraphicsPipeline::createMaterialDescriptorSetLayout(const VulkanInstance* const instance, VkDescriptorSetLayoutBinding* setLayoutBindings, uint32_t layoutCount) {
+	VkDescriptorSetLayoutCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	createInfo.bindingCount = layoutCount;
+	createInfo.pBindings = setLayoutBindings;
+	
+	if (vkCreateDescriptorSetLayout(instance->device->logicalDevice, &createInfo, nullptr, &this->vkMaterialDescriptorLayout) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create material descriptor set layout!");
+	}
+}
+
+void GraphicsPipeline::createPipelineDescriptorSets(const VulkanInstance* const instance) {
+	if (numPipelineDescriptorSets <= 0) {
 		return;
 	}
 
 	// one for each frame
-	this->vkDescriptorSets = new VkDescriptorSet_T** [numDescriptorCopies] { nullptr };
+	this->vkPipelineDescriptorSets = new VkDescriptorSet_T* [numDescriptorCopies] { nullptr };
 	for (uint32_t i = 0; i < numDescriptorCopies; i++) {
-		std::vector<VkDescriptorSetLayout_T*> layouts(this->numDescriptorSets, this->vkDescriptorLayout);
+		std::vector<VkDescriptorSetLayout_T*> layouts(this->numPipelineDescriptorSets, this->vkPipelineDescriptorLayout);
 
 		VkDescriptorSetAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = this->vkDescriptorPool;
-		allocInfo.descriptorSetCount = layouts.size();
+		allocInfo.descriptorPool = this->vkPipelineDescriptorPool;
+		allocInfo.descriptorSetCount = 1;
 		allocInfo.pSetLayouts = layouts.data();
-
-		this->vkDescriptorSets[i] = new VkDescriptorSet_T* [numDescriptorSets];
-		VkResult allocResult = vkAllocateDescriptorSets(instance->device->logicalDevice, &allocInfo, this->vkDescriptorSets[i]);
+		
+		VkResult allocResult = vkAllocateDescriptorSets(instance->device->logicalDevice, &allocInfo, &this->vkPipelineDescriptorSets[i]);
 		if (allocResult != VK_SUCCESS) {
 			throw std::runtime_error("Failed to allocate descriptor sets!");
 		}
 	}
 }
 
-void GraphicsPipeline::updateDescriptorWrites(const VulkanInstance* const instance) {
+void GraphicsPipeline::generateMaterialDescriptorSets(const VulkanInstance* const instance, VkDescriptorSet_T** outSets) {
+	std::vector<VkDescriptorSetLayout_T*> layouts(this->numDescriptorCopies, this->vkMaterialDescriptorLayout);
+	VkDescriptorSetAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = vkMaterialDescriptorPool;
+	allocInfo.descriptorSetCount = layouts.size();
+	allocInfo.pSetLayouts = layouts.data();
+
+	if (vkAllocateDescriptorSets(instance->device->logicalDevice, &allocInfo, outSets) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate material descriptor sets!");
+	}
+}
+
+void GraphicsPipeline::updatePipelineDescriptorWrites(const VulkanInstance* const instance) {
 	uint32_t numDescriptors = summary->pipelineDescriptors.count;
-	std::vector<VkWriteDescriptorSet> descriptorWrites = {};
 	std::vector<VkDescriptorImageInfo> imageInfos = {};
 	std::vector<VkDescriptorBufferInfo> bufferInfos = {};
+	
 	for (uint32_t copyIndex = 0; copyIndex < numDescriptorCopies; copyIndex++) {
+		std::vector<VkWriteDescriptorSet> descriptorWrites = {};
+		
 		for (uint32_t i = 0; i < numDescriptors; i++) {
 			DescriptorBindingInfo b = summary->pipelineDescriptors.pDescriptorBindingInfos[i];
 
@@ -373,30 +464,68 @@ void GraphicsPipeline::updateDescriptorWrites(const VulkanInstance* const instan
 				imageInfo.imageView = texture->imageView;
 				imageInfo.sampler = texture->imageSampler;
 				imageInfos.push_back(imageInfo);
-				descriptorWrites.push_back(Descriptors::makeImageSamplerDescriptorWrite(vkDescriptorSets[copyIndex][i], b.bindingIndex, &imageInfo));
+
+				VkWriteDescriptorSet write = Descriptors::makeImageSamplerDescriptorWrite(vkPipelineDescriptorSets[copyIndex], b.bindingIndex, &imageInfo);
+				vkUpdateDescriptorSets(instance->device->logicalDevice, 1, &write, 0, nullptr);
 			}
 		}
-		vkUpdateDescriptorSets(instance->device->logicalDevice, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 	}
 }
 
 void GraphicsPipeline::bindDescriptorSets(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame) {
-	for (uint32_t i = 0; i < numDescriptorSets; i++) {
-		VkDescriptorSet_T** boundSets = vkDescriptorSets[currentFrame];
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkLayout, 1, numDescriptorSets, boundSets, 0, nullptr);
+	VkDescriptorSet_T* boundSets = vkPipelineDescriptorSets[currentFrame];
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkLayout, Renderer::PIPELINE_DESCRIPTOR_SET, 1, &boundSets, 0, nullptr);
+}
+
+void GraphicsPipeline::registerMaterial(Material* material) {
+	auto it = registeredMaterialLookup.find(this);
+	if (it == registeredMaterialLookup.end()) {
+		registeredMaterialLookup[this] = {};
+	}
+	std::vector<Material*>* materials = &registeredMaterialLookup[this];
+	for (auto* registered : *materials) {
+		if (registered == material) {
+			return;
+		}
+	}
+
+	materials->push_back(material);
+}
+
+void GraphicsPipeline::getRegisteredMaterials(uint32_t* count, Material** outMaterials) {
+	*count = 0;
+	auto it = registeredMaterialLookup.find(this);
+	if (it != registeredMaterialLookup.end()) {
+		*count = it->second.size();
+	}
+
+	if (*count == 0 || outMaterials == nullptr) {
+		return;
+	}
+
+	for (uint32_t i = 0; i < it->second.size(); i++) {
+		outMaterials[i] = it->second.at(i);
 	}
 }
 
 void GraphicsPipeline::addRenderCommand(const MeshRenderer* const meshRenderer) {
 	RenderCommand* rc = RenderCommand::create(
+		meshRenderer->material,
 		meshRenderer->getVertexBuffer(), meshRenderer->getIndexBuffer(),
 		meshRenderer->mesh->vertexCount, meshRenderer->mesh->indexCount);
 
 	commandList->add(rc);
 }
 
-void GraphicsPipeline::executeRenderCommands(VkCommandBuffer_T* commandBuffer) {
+void GraphicsPipeline::executeRenderCommands(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame) {
+	Material* currentMaterial = nullptr;
+
 	for (uint32_t i = 0; i < commandList->size(); i++) {
+		if (currentMaterial != (*commandList)[i]->material) {
+			currentMaterial = (*commandList)[i]->material;
+			currentMaterial->bind(commandBuffer, currentFrame);
+		}
+
 		(*commandList)[i]->execute(commandBuffer);
 	}
 
@@ -410,21 +539,29 @@ void GraphicsPipeline::teardown(VkDevice_T* logicalDevice) {
 		vkDestroyPipeline(logicalDevice, vkPipeline, nullptr);
 		vkPipeline = nullptr;
 	}
-	if (vkDescriptorLayout != nullptr) {
-		vkDestroyDescriptorSetLayout(logicalDevice, vkDescriptorLayout, nullptr);
-		vkDescriptorLayout = nullptr;
-		numDescriptorSets = 0;
+	if (vkPipelineDescriptorLayout != nullptr) {
+		vkDestroyDescriptorSetLayout(logicalDevice, vkPipelineDescriptorLayout, nullptr);
+		vkPipelineDescriptorLayout = nullptr;
+		numPipelineDescriptorSets = 0;
 	}
-	if (vkDescriptorPool != nullptr) {
-		vkDestroyDescriptorPool(logicalDevice, vkDescriptorPool, nullptr);
-		vkDescriptorPool = nullptr;
+	if (vkMaterialDescriptorLayout != nullptr) {
+		vkDestroyDescriptorSetLayout(logicalDevice, vkMaterialDescriptorLayout, nullptr);
+		vkMaterialDescriptorLayout = nullptr;
+	}
+	if (vkPipelineDescriptorPool != nullptr) {
+		vkDestroyDescriptorPool(logicalDevice, vkPipelineDescriptorPool, nullptr);
+		vkPipelineDescriptorPool = nullptr;
+	}
+	if (vkMaterialDescriptorPool != nullptr) {
+		vkDestroyDescriptorPool(logicalDevice, vkMaterialDescriptorPool, nullptr);
+		vkMaterialDescriptorPool = nullptr;
 	}
 	if (vkLayout != nullptr) {
 		vkDestroyPipelineLayout(logicalDevice, vkLayout, nullptr);
 		vkLayout = nullptr;
 	}
 
-	numDescriptorSets = 0;
+	numPipelineDescriptorSets = 0;
 }
 
 void GraphicsPipeline::cleanupRenderCommands() {

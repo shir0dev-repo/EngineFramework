@@ -3,8 +3,11 @@
 
 #include <vulkan/vulkan.h>
 
-RenderCommand* RenderCommand::create(GPUBuffer* vertexBuffer, GPUBuffer* indexBuffer, uint32_t vertexCount, uint32_t indexCount) {
+RenderCommand* RenderCommand::create(Material* material, GPUBuffer* vertexBuffer, GPUBuffer* indexBuffer, uint32_t vertexCount, uint32_t indexCount) {
 	RenderCommand* cmd = new RenderCommand();
+	
+	cmd->material = material;
+
 	cmd->vertexBuffer = vertexBuffer;
 	cmd->vertexCount = vertexCount;
 

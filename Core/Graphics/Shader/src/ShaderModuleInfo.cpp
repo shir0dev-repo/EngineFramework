@@ -57,9 +57,9 @@ void ShaderModuleInfo::reflectDescriptorBindings(SpvReflectShaderModule& reflect
 			info.count = binding->count;
 			info.type = static_cast<VkDescriptorType>(binding->descriptor_type);
 			info.stages = static_cast<VkShaderStageFlags>(reflectModule.shader_stage);
+			info.size = binding->block.padded_size;
 			uint32_t nameLen = strnlen_s(binding->name, 32);
 			strcpy(info.name, binding->name);
-
 			switch (info.setIndex) {
 				case 0:
 					globalBindingInfos.push_back(info);
@@ -83,6 +83,11 @@ void ShaderModuleInfo::reflectDescriptorBindings(SpvReflectShaderModule& reflect
 		moduleInfo->pipelineDescriptors.count = pipelineBindingInfos.size();
 		moduleInfo->pipelineDescriptors.pDescriptorBindingInfos = new DescriptorBindingInfo[pipelineBindingInfos.size()];
 		memcpy(moduleInfo->pipelineDescriptors.pDescriptorBindingInfos, pipelineBindingInfos.data(), sizeof(DescriptorBindingInfo) * pipelineBindingInfos.size());
+	}
+	if (materialBindingInfos.size() > 0) {
+		moduleInfo->materialDescriptors.count = materialBindingInfos.size();
+		moduleInfo->materialDescriptors.pDescriptorBindingInfos = new DescriptorBindingInfo[materialBindingInfos.size()];
+		memcpy(moduleInfo->materialDescriptors.pDescriptorBindingInfos, materialBindingInfos.data(), sizeof(DescriptorBindingInfo) * materialBindingInfos.size());
 	}
 }
 

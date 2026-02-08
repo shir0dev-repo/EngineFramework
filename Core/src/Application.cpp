@@ -8,6 +8,7 @@
 #include "../Graphics/Shader/Vertex.h"
 #include "../Graphics/Renderer/MeshRenderer.h"
 #include "../Graphics/Mesh/Mesh.h"
+#include "../Graphics/Material/Material.h"
 #include "../Graphics/Shader/ShaderModule.h"
 #include "../Graphics/Shader/PipelineShader.h"
 #include "../Graphics/Renderer/Renderer.h"
@@ -19,9 +20,9 @@
 #include <vector>
 
 static std::vector<Vertex> vertices = {
-	{{ -0.5f,  -0.5f, 1.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }},
-	{{  0.5f,  -0.5f, 1.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }},
-	{{  0.5f,   0.5f, 1.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f, 0.0f }},
+	{{ -0.5f,  -0.5f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }},
+	{{  0.5f,  -0.5f, 1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }},
+	{{  0.5f,   0.5f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f, 0.0f }},
 	{{ -0.5f,   0.5f, 1.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 0.0f }}
 };
 
@@ -103,9 +104,9 @@ void Application::mainLoop() {
 	mesh->vertexCount = vertices.size();
 	mesh->indexData = indices.data();
 	mesh->indexCount = indices.size();
-
+	Material* material = Material::create(vkInstance, renderer->getPipeline(nullptr), "default");
 	MeshRenderer* meshRenderer = new MeshRenderer();
-	meshRenderer->setup(vkInstance->device, mesh, renderer);
+	meshRenderer->setup(vkInstance, mesh, material, renderer);
 
 	while (!glfwWindowShouldClose(window->GetWindow())) {
 		glfwPollEvents();

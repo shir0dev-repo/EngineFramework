@@ -1,7 +1,7 @@
 #include "../Renderer.h"
 #include "../../Pipeline/GraphicsPipeline.h"
-#include "../../Frame.h"
 #include "../../GraphicsSyncObject.h"
+#include "../../Material/Material.h"
 #include "../../Shader/PipelineShader.h"
 #include "../../Uniform/GPUCameraData.h"
 #include "../../Uniform/UniformBuffer.h"
@@ -255,12 +255,14 @@ void Renderer::render(VulkanInstance* instance, GLFWwindow* window) {
 	initViewportScissorForCurrentFrame();
 
 	GraphicsPipeline* currentPipeline = nullptr;
+	Material* currentMaterial = nullptr;
+
 	for (uint32_t i = 0; i < graphicsPipelines->size(); i++) {
 		auto pipeline = (*graphicsPipelines)[i];
 		if (currentPipeline != pipeline) {
 			beginPipeline(pipeline);
 		}
-
+		
 		executePipeline(pipeline);
 		finalizePipeline(pipeline);
 	}
@@ -395,7 +397,7 @@ void Renderer::beginPipeline(GraphicsPipeline* pipeline) {
 }
 
 void Renderer::executePipeline(GraphicsPipeline* pipeline) {
-	pipeline->executeRenderCommands(vkCommandBuffers[currentFrame]);
+	pipeline->executeRenderCommands(vkCommandBuffers[currentFrame], currentFrame);
 }
 
 void Renderer::finalizePipeline(GraphicsPipeline* pipeline) {

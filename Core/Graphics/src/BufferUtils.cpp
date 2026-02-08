@@ -45,6 +45,20 @@ void BufferUtils::createBuffer(const VulkanDevice* const device, VkDeviceSize si
 	vkBindBufferMemory(device->logicalDevice, *buffer, *memory, 0);
 }
 
+void BufferUtils::copyBuffer(const VulkanInstance* const instance, VkBuffer_T* src, VkBuffer_T* dst, VkDeviceSize size, uint32_t dstOffset) {
+	VkCommandBuffer commandBuffer;
+	instance->beginSingleUseCommandBuffer(&commandBuffer);
+
+	VkBufferCopy copyRegion{};
+	copyRegion.size = size;
+	copyRegion.srcOffset = 0;
+	copyRegion.dstOffset = dstOffset;
+
+	vkCmdCopyBuffer(commandBuffer, src, dst, 1, &copyRegion);
+
+	instance->endSingleUseCommandBuffer(commandBuffer);
+}
+
 void BufferUtils::copyToImage(const VulkanInstance* const instance, VkBuffer_T* buffer, GPUTexture* texture) {
 	VkCommandBuffer commandBuffer;
 	instance->beginSingleUseCommandBuffer(&commandBuffer);

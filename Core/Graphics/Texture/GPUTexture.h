@@ -45,8 +45,6 @@ struct GPUTexture {
 	static void loadGPU(const VulkanInstance*const instance, GPUTexture* texture, unsigned char* handle);
 	static void cleanup(const VulkanInstance* const instance);
 private:
-	static bool getFilePath(const char* name, char** outFilePath);
-	static bool getTextureFromFilePath(const char* filePath, GPUTexture** outTexture);
 	static bool getCPUTextureHandle(GPUTexture* texture, unsigned char** outHandle);
 
 	void createImage(const VulkanInstance* const instance);

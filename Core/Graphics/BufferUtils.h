@@ -17,6 +17,8 @@ struct BufferUtils {
 	static uint32_t getMemoryType(VkPhysicalDevice_T* physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	static void createBuffer(const VulkanDevice* const device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryUsage,
 		VkBuffer_T** buffer, VkDeviceMemory_T** memory);
+	static void copyBuffer(const VulkanInstance* const instance, VkBuffer_T* src, VkBuffer_T* dst, VkDeviceSize size, uint32_t dstOffset);
+
 
 	static void copyToImage(const VulkanInstance* const instance, VkBuffer_T* buffer, GPUTexture* texture);
 };

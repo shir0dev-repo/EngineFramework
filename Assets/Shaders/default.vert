@@ -1,8 +1,6 @@
 #version 450
 #extension GL_KHR_vulkan_glsl : enable
 
-//#include "core.glsl"
-
 layout(set = 0, binding = 0) uniform MatrixBufferObject {
 mat4x4 view;
 mat4x4 proj;
@@ -14,11 +12,11 @@ layout (location = 2) in vec4 normal;
 layout (location = 3) in vec4 inColor;
 
 layout(location = 0) out vec3 fragColor;
-layout(location = 1) out vec4 texCoord;
+layout(location = 1) out vec2 texCoord;
 
 void main() {
 	gl_Position = Matrices.proj * Matrices.view * 
 	vec4(inPosition.xyz, 1.0);
 	fragColor = inColor.xyz;
-	texCoord = uv;
+	texCoord = uv.xy;
 }

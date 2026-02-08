@@ -11,5 +11,5 @@ struct MaterialBinding {
 
 struct PipelineMaterialLayout {
 	uint32_t numBindings;
-	MaterialBinding bindings[];
+	MaterialBinding* pBindings = nullptr;
 };

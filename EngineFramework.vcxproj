@@ -133,6 +133,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Core\Graphics\Descriptor\src\Descriptors.cpp" />
+    <ClCompile Include="Core\Graphics\Material\src\Material.cpp" />
     <ClCompile Include="Core\Graphics\Pipeline\src\GraphicsPipeline.cpp" />
     <ClCompile Include="Core\Graphics\Renderer\src\MeshRenderer.cpp" />
     <ClCompile Include="Core\Graphics\Renderer\src\Renderer.cpp" />
@@ -142,7 +143,6 @@
     <ClCompile Include="Core\Graphics\Shader\src\ShaderModule.cpp" />
     <ClCompile Include="Core\Graphics\Shader\src\Vertex.cpp" />
     <ClCompile Include="Core\Graphics\src\BufferUtils.cpp" />
-    <ClCompile Include="Core\Graphics\src\Frame.cpp" />
     <ClCompile Include="Core\Graphics\src\GraphicsSyncObject.cpp" />
     <ClCompile Include="Core\Graphics\src\GraphicsUtils.cpp" />
     <ClCompile Include="Core\Graphics\src\RenderCommand.cpp" />
@@ -173,10 +173,11 @@
     <ClInclude Include="Core\Graphics\BufferUtils.h" />
     <ClInclude Include="Core\Graphics\Descriptor\DescriptorHandle.h" />
     <ClInclude Include="Core\Graphics\Descriptor\Descriptors.h" />
+    <ClInclude Include="Core\Graphics\Material\Material.h" />
     <ClInclude Include="Core\Graphics\Pipeline\PipelineMaterialLayout.h" />
+    <ClInclude Include="Core\Graphics\Shader\Reflection.h" />
     <ClInclude Include="Core\Graphics\Texture\GPUTexture.h" />
     <ClInclude Include="Core\Graphics\Uniform\GPUCameraData.h" />
-    <ClInclude Include="Core\Graphics\Frame.h" />
     <ClInclude Include="Core\Graphics\GraphicsSyncObject.h" />
     <ClInclude Include="Core\Graphics\GraphicsUtils.h" />
     <ClInclude Include="Core\Graphics\Mesh\Mesh.h" />
