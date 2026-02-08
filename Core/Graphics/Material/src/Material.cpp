@@ -93,7 +93,7 @@ Material* const Material::create(const VulkanInstance* const instance, GraphicsP
 			bufferInfo.offset = 0;
 			bufferInfo.range = material->pBuffers[i].handle->bufferSize;
 			bufferInfo.buffer = material->pBuffers[i].handle->vkBuffer;
-
+			
 			bufferInfos.push_back(bufferInfo);
 
 			VkWriteDescriptorSet write = {};
@@ -109,13 +109,12 @@ Material* const Material::create(const VulkanInstance* const instance, GraphicsP
 
 		vkUpdateDescriptorSets(instance->device->logicalDevice, writes.size(), writes.data(), 0, nullptr);
 	}
+
 	materialLookup.emplace(name, material);
 	pipeline->registerMaterial(material);
 	
 	return material;
 }
-
-
 
 bool Material::find(const char* name, Material** outMaterial) {
 	auto it = materialLookup.find(name);
@@ -148,30 +147,6 @@ void Material::createTextureHandles(const VulkanInstance* const instance, Graphi
 		GPUTexture::getTexture("white", &entry->defaultHandle);
 		entry->customHandle = nullptr;
 	}
-
-	/*for (uint32_t copyIndex = 0; copyIndex < pipeline->getDescriptorCopyCount(); copyIndex++) {
-		std::vector<VkDescriptorImageInfo> imageInfos = {};
-		std::vector<VkWriteDescriptorSet> writes = {};
-
-		for (uint32_t i = 0; i < this->numTextureHandles; i++) {
-			VkDescriptorImageInfo imageInfo = {};
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = pTextures[i].defaultHandle->imageView;
-			imageInfo.sampler = pTextures[i].defaultHandle->imageSampler;
-			imageInfos.push_back(imageInfo);
-
-			VkWriteDescriptorSet write = {};
-			write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			write.descriptorCount = 1;
-			write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			write.dstBinding = pTextures[i].binding;
-			write.dstSet = vkDescriptorSets[copyIndex];
-			write.pImageInfo = &imageInfo;
-			writes.push_back(write);
-		}
-
-		vkUpdateDescriptorSets(instance->device->logicalDevice, writes.size(), writes.data(), 0, nullptr);
-	}*/
 }
 
 void Material::createBufferHandles(const VulkanInstance* const instance, GraphicsPipeline* const pipeline, const PipelineSummary* const summary,
@@ -189,33 +164,8 @@ void Material::createBufferHandles(const VulkanInstance* const instance, Graphic
 		MaterialBinding bindingInfo = bindings[i];
 
 		DescriptorBindingInfo descInfo = summary->materialDescriptors.pDescriptorBindingInfos[bindingInfo.binding];
-		entry->handle = GPUBuffer::create(instance, descInfo.size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+		entry->handle = GPUBuffer::create(instance, descInfo.size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	}
-	/*for (uint32_t copyIndex = 0; copyIndex < pipeline->getDescriptorCopyCount(); copyIndex++) {
-		std::vector<VkDescriptorBufferInfo> bufferInfos = {};
-		std::vector<VkWriteDescriptorSet> writes = {};
-
-		for (uint32_t i = 0; i < this->numBufferHandles; i++) {
-			VkDescriptorBufferInfo bufferInfo = {};
-			bufferInfo.offset = 0;
-			bufferInfo.range = pBuffers->handle->bufferSize;
-			bufferInfo.buffer = pBuffers->handle->vkBuffer;
-			
-			bufferInfos.push_back(bufferInfo);
-
-			VkWriteDescriptorSet write = {};
-			write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			write.descriptorCount = 1;
-			write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			write.dstBinding = pBuffers[i].binding;
-			write.dstSet = vkDescriptorSets[copyIndex];
-			write.pBufferInfo = &bufferInfo;
-
-			writes.push_back(write);
-		}
-
-		vkUpdateDescriptorSets(instance->device->logicalDevice, writes.size(), writes.data(), 0, nullptr);
-	}*/
 }
 
 void Material::bind(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame) const {
@@ -224,4 +174,12 @@ void Material::bind(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame) con
 
 void Material::unbind(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame) const {
 	
+}
+
+void Material::setFloat(const VulkanInstance* const instance, uint32_t binding, float value) const {
+	for (uint32_t i = 0; i < numBufferHandles; i++) {
+		GPUBuffer* handle = this->pBuffers[i].handle;
+		void* data = &value;
+		handle->bufferData(instance, data, sizeof(float), 0);
+	}
 }

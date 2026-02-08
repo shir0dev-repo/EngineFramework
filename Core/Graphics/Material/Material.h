@@ -40,6 +40,8 @@ struct Material {
 
 	void bind(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame) const;
 	void unbind(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame) const;
+
+	void setFloat(const VulkanInstance* const instance, uint32_t binding, float value) const;
 private:
 	void createTextureHandles(const VulkanInstance* const instance, GraphicsPipeline* const pipeline, const PipelineSummary* const summary,
 		MaterialBinding* bindings, uint32_t bindingCount);

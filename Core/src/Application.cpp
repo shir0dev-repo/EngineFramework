@@ -107,10 +107,12 @@ void Application::mainLoop() {
 	Material* material = Material::create(vkInstance, renderer->getPipeline(nullptr), "default");
 	MeshRenderer* meshRenderer = new MeshRenderer();
 	meshRenderer->setup(vkInstance, mesh, material, renderer);
+	float time = 0;
 
 	while (!glfwWindowShouldClose(window->GetWindow())) {
+		time += 0.01f;
 		glfwPollEvents();
-		
+		material->setFloat(vkInstance, 0, (sinf(time) + 1) * 0.5f);
 		meshRenderer->draw(renderer->getPipeline(nullptr));
 		renderer->render(vkInstance, window->GetWindow());
 	}
@@ -123,6 +125,7 @@ void Application::mainLoop() {
 }
 
 void Application::cleanup() {
+	Material::cleanup(vkInstance);
 	GPUTexture::cleanup(vkInstance);
 	ShaderModule::teardown(vkInstance->device->logicalDevice);
 	renderer->teardown(vkInstance->device->logicalDevice);

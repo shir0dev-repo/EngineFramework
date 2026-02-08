@@ -257,5 +257,8 @@
     <ClInclude Include="Core\Graphics\Shader\Reflection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Graphics\Material\MaterialPropertyBlock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

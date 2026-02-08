@@ -8,6 +8,7 @@
 #include <iostream>
 
 GPUBuffer* GPUBuffer::create(const VulkanInstance* const instance, uint32_t sizeInBytes, VkBufferUsageFlags usage, const void* data) {
+	
 	if (sizeInBytes <= 0) {
 		return nullptr;
 	}
@@ -61,10 +62,20 @@ void GPUBuffer::bufferData(const VulkanInstance* const instance, const void* dat
 		throw std::runtime_error("Cannot buffer data! Size + Offset would result in buffer overrun.");
 	}
 
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingMemory;
+
+	VkMemoryPropertyFlags stagingProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	BufferUtils::createBuffer(instance->device, sizeInBytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, stagingProperties, &stagingBuffer, &stagingMemory);
+
 	void* mappedData;
-	vkMapMemory(instance->device->logicalDevice, this->vkMemory, offset, sizeInBytes, 0, &mappedData);
+	vkMapMemory(instance->device->logicalDevice, stagingMemory, 0, sizeInBytes, 0, &mappedData);
 	memcpy(mappedData, data, sizeInBytes);
-	vkUnmapMemory(instance->device->logicalDevice, this->vkMemory);
+	vkUnmapMemory(instance->device->logicalDevice, stagingMemory);
+	
+	BufferUtils::copyBuffer(instance, stagingBuffer, this->vkBuffer, sizeInBytes, offset);
+	vkDestroyBuffer(instance->device->logicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(instance->device->logicalDevice, stagingMemory, nullptr);
 }
 
 void GPUBuffer::bind(VkCommandBuffer_T* commandBuffer) {
