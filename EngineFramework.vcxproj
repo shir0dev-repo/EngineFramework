@@ -105,7 +105,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>E:\EngineFramework\lib;C:\VulkanSDK\1.4.335.0\Include;C:\Program Files\Microsoft Visual Studio\2022\Libraries\glfw-3.4.bin.WIN64\include;C:\Program Files\Microsoft Visual Studio\2022\Libraries\stb</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);E:\EngineFramework\lib;C:\VulkanSDK\1.4.335.0\Include;C:\Program Files\Microsoft Visual Studio\2022\Libraries\glfw-3.4.bin.WIN64\include;C:\Program Files\Microsoft Visual Studio\2022\Libraries\stb</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
@@ -134,6 +134,7 @@
   <ItemGroup>
     <ClCompile Include="Core\Graphics\Descriptor\src\Descriptors.cpp" />
     <ClCompile Include="Core\Graphics\Material\src\Material.cpp" />
+    <ClCompile Include="Core\Graphics\Mesh\Util\src\MeshLoader.cpp" />
     <ClCompile Include="Core\Graphics\Pipeline\src\GraphicsPipeline.cpp" />
     <ClCompile Include="Core\Graphics\Renderer\src\MeshRenderer.cpp" />
     <ClCompile Include="Core\Graphics\Renderer\src\Renderer.cpp" />
@@ -154,6 +155,7 @@
     <ClCompile Include="Core\src\AppWindow.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanInstance.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanSwapChain.cpp" />
+    <ClCompile Include="Core\Vulkan\src\VulkanUtils.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanValidator.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanDevice.cpp" />
     <ClCompile Include="Core\Vulkan\Util\src\QueueFamilyIndices.cpp" />
@@ -171,10 +173,12 @@
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Core\AppWindow.h" />
     <ClInclude Include="Core\Graphics\BufferUtils.h" />
+    <ClInclude Include="Core\Graphics\DepthBuffer.h" />
     <ClInclude Include="Core\Graphics\Descriptor\DescriptorHandle.h" />
     <ClInclude Include="Core\Graphics\Descriptor\Descriptors.h" />
     <ClInclude Include="Core\Graphics\Material\Material.h" />
     <ClInclude Include="Core\Graphics\Material\MaterialPropertyBlock.h" />
+    <ClInclude Include="Core\Graphics\Mesh\Util\MeshLoader.h" />
     <ClInclude Include="Core\Graphics\Pipeline\PipelineMaterialLayout.h" />
     <ClInclude Include="Core\Graphics\Shader\Reflection.h" />
     <ClInclude Include="Core\Graphics\Texture\GPUTexture.h" />
@@ -201,11 +205,13 @@
     <ClInclude Include="Core\Graphics\Shader\Vertex.h" />
     <ClInclude Include="Core\Graphics\Uniform\UniformBuffer.h" />
     <ClInclude Include="Core\Graphics\Util\RenderUtils.h" />
+    <ClInclude Include="Core\Structure\IDVector.h" />
     <ClInclude Include="Core\Structure\linkedList.h" />
     <ClInclude Include="Core\Vulkan\Util\QueueFamilyIndices.h" />
     <ClInclude Include="Core\Vulkan\Util\SwapChainSupportDetails.h" />
     <ClInclude Include="Core\Vulkan\VulkanInstance.h" />
     <ClInclude Include="Core\Vulkan\VulkanSwapChain.h" />
+    <ClInclude Include="Core\Vulkan\VulkanUtils.h" />
     <ClInclude Include="Core\Vulkan\VulkanValidator.h" />
     <ClInclude Include="Core\Vulkan\VulkanDevice.h" />
     <ClInclude Include="lib\shml\mathutil.hpp" />

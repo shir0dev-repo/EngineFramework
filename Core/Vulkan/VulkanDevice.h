@@ -1,6 +1,10 @@
 #pragma once
 
 typedef unsigned int uint32_t;
+typedef enum VkImageTiling;
+typedef enum VkFormat;
+typedef uint32_t VkFormatFeatureFlags;
+
 struct VkPhysicalDevice_T;
 struct VkDevice_T;
 struct VkInstance_T;
@@ -41,6 +45,8 @@ struct VulkanDevice {
 	void teardown();
 
 	bool deviceSupportsSamplingAnisotropy() const { return anisotropicSamplingSupported; }
+
+	VkFormat querySupportedFormats(VkFormat* candidates, uint32_t candidateCount, VkImageTiling tiling, VkFormatFeatureFlags features) const;
 private:
 	/// <summary>Selects the best physical device on this machine.</summary>
 	/// <param name="instance">The current Vulkan instance.</param>

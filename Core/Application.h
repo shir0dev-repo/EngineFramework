@@ -45,6 +45,11 @@ private:
 	/// Initializes the application's graphics pipeline.
 	/// </summary>
 	void initRenderer();
+
+	/// <summary>
+	/// Initializes render materials.
+	/// </summary>
+	void initMaterials();
 	/// <summary>
 	/// Runs every frame.
 	/// </summary>

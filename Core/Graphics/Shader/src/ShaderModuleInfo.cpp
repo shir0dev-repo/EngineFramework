@@ -16,7 +16,7 @@ ShaderModuleInfo ShaderModuleInfo::createModuleInfo(const char* shaderCode, cons
 	spvReflectCreateShaderModule(codeLen, shaderCode, &reflectModule);
 
 	ShaderModuleInfo moduleInfo = {};
-	uint32_t nameLen = strnlen_s(reflectModule.entry_point_name, 17);
+	uint32_t nameLen = strnlen_s(reflectModule.entry_point_name, 29);
 	moduleInfo.stage = static_cast<VkShaderStageFlagBits>(reflectModule.shader_stage);
 	if (nameLen > 16) {
 		throw std::runtime_error("Buffer overrun at shader module entry point name!");
@@ -135,11 +135,12 @@ void ShaderModuleInfo::reflectVertexInputAttributeInfo(SpvReflectShaderModule& r
 		
 		VertexAttributeInfo attribInfo = {};
 		attribInfo.location = input->location;
-		// input should be 109
+		
 		attribInfo.format = static_cast<VkFormat>(input->format);
 		attribInfo.offset = currentOffset;
-		attributeInfos.push_back(attribInfo);
 		currentOffset += sizeof(float) * 4;
+
+		attributeInfos.push_back(attribInfo);
 	}
 	
 	if (attributeInfos.size() > 0) {

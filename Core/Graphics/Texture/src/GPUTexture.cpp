@@ -108,7 +108,7 @@ GPUTexture* GPUTexture::createTexture(const char* filePath, const char* name) {
 	if (channels >= 0) {
 		texture->channels = static_cast<uint32_t>(channels);
 	}
-	texture->size = static_cast<VkDeviceSize>(texture->width) * texture->height * 4;
+	texture->size = static_cast<VkDeviceSize>(texture->width * texture->height * sizeof(float));
 
 	
 	filePathLookup.emplace(nameStr, filePath);
@@ -231,7 +231,7 @@ void GPUTexture::transitionLayout(const VulkanInstance* const instance, GPUTextu
 	}
 
 	vkCmdPipelineBarrier(commandBuffer,
-		srcStage, dstStage, /** TODO **/
+		srcStage, dstStage,
 		0,
 		0, nullptr,
 		0, nullptr,
@@ -305,13 +305,13 @@ void GPUTexture::createSampler(const VulkanInstance* const instance) {
 	sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-
+	
 	if (instance->device->deviceSupportsSamplingAnisotropy()) {
 		VkPhysicalDeviceProperties deviceProps = {};
 		vkGetPhysicalDeviceProperties(instance->device->physicalDevice, &deviceProps);
 
-		sampler.anisotropyEnable = VK_TRUE;
-		sampler.maxAnisotropy = deviceProps.limits.maxSamplerAnisotropy;
+		//sampler.anisotropyEnable = VK_TRUE;
+		//sampler.maxAnisotropy = deviceProps.limits.maxSamplerAnisotropy;
 	}
 	else {
 		sampler.anisotropyEnable = VK_FALSE;

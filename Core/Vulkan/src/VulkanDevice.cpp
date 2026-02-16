@@ -111,6 +111,21 @@ void VulkanDevice::createLogicalDevice(const VulkanValidator& validator, VkSurfa
 	vkGetDeviceQueue(logicalDevice, presentQueueFamilyIndex, 0, &this->presentQueue);
 }
 
+VkFormat VulkanDevice::querySupportedFormats(VkFormat* candidates, uint32_t candidateCount, VkImageTiling tiling, VkFormatFeatureFlags features) const {
+	for (uint32_t i = 0; i < candidateCount; i++) {
+		VkFormatProperties props;
+		vkGetPhysicalDeviceFormatProperties(physicalDevice, candidates[i], &props);
+		if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
+			return candidates[i];
+		}
+		else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+			return candidates[i];
+		}
+	}
+
+	throw std::runtime_error("Failed to find supported format!");
+}
+
 bool checkDeviceExtensionSupport(VkPhysicalDevice_T* device) {
 	uint32_t extensionCount;
 	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);

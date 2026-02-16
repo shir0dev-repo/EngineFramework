@@ -163,8 +163,9 @@ void Material::createBufferHandles(const VulkanInstance* const instance, Graphic
 		BufferHandleEntry* entry = &this->pBuffers[i];
 		MaterialBinding bindingInfo = bindings[i];
 
-		DescriptorBindingInfo descInfo = summary->materialDescriptors.pDescriptorBindingInfos[bindingInfo.binding];
-		entry->handle = GPUBuffer::create(instance, descInfo.size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+		DescriptorBindingInfo descInfo = summary->materialDescriptors.pDescriptorBindingInfos[i];
+		this->pBuffers[i].binding = bindingInfo.binding;
+		this->pBuffers[i].handle = GPUBuffer::create(instance, descInfo.size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	}
 }
 
@@ -174,6 +175,27 @@ void Material::bind(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame) con
 
 void Material::unbind(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame) const {
 	
+}
+
+void Material::setTexture(const VulkanInstance* const instance, GPUTexture* texture, uint32_t binding) {
+	VkDescriptorImageInfo imageInfo = {};
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfo.imageView = texture->imageView;
+	imageInfo.sampler = texture->imageSampler;
+
+	for (uint32_t i = 0; i < 3; i++) {
+		VkWriteDescriptorSet write = {};
+		write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		write.descriptorCount = 1;
+		write.dstSet = vkDescriptorSets[i];
+		write.dstBinding = binding;
+		write.pImageInfo = &imageInfo;
+
+		vkUpdateDescriptorSets(instance->device->logicalDevice, 1, &write, 0, nullptr);
+	}
+
+	pTextures[binding].customHandle = texture;
 }
 
 void Material::setFloat(const VulkanInstance* const instance, uint32_t binding, float value) const {

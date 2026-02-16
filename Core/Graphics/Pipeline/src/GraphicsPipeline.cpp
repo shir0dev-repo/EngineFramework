@@ -297,6 +297,9 @@ void GraphicsPipeline::createPipeline(const VulkanInstance* const instance, Rend
 	VkPipelineMultisampleStateCreateInfo ms = {};
 	ms.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 	ms.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+	#pragma endregion
+
+	#pragma region Blending
 	VkPipelineColorBlendAttachmentState blend = {};
 	blend.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	blend.blendEnable = VK_FALSE; // transparency 
@@ -312,6 +315,12 @@ void GraphicsPipeline::createPipeline(const VulkanInstance* const instance, Rend
 	ds.depthTestEnable = VK_TRUE;
 	ds.depthWriteEnable = VK_TRUE;
 	ds.depthCompareOp = VK_COMPARE_OP_LESS;
+	ds.depthBoundsTestEnable = VK_FALSE;
+	ds.minDepthBounds = 0.0f;
+	ds.maxDepthBounds = 1.0f;
+	ds.stencilTestEnable = VK_FALSE;
+	ds.front = {};
+	ds.back = {};
 	#pragma endregion
 
 	#pragma region Pipeline Creation

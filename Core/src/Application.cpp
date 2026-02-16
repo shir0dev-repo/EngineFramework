@@ -1,3 +1,4 @@
+#include "Core/Structure/IDVector.h"
 #include "../Application.h"
 #include "../AppWindow.h"
 #include "../Vulkan/VulkanInstance.h"
@@ -14,23 +15,11 @@
 #include "../Graphics/Renderer/Renderer.h"
 #include "../Component/Camera.h"
 #include "../Graphics/Texture/GPUTexture.h"
+#include "Core/Graphics/Mesh/Util/MeshLoader.h"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 #include <vector>
-
-static std::vector<Vertex> vertices = {
-	{{ -0.5f,  -0.5f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }},
-	{{  0.5f,  -0.5f, 1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }},
-	{{  0.5f,   0.5f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f, 0.0f }},
-	{{ -0.5f,   0.5f, 1.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 0.0f }}
-};
-
-static std::vector<uint32_t> indices = {
-	0, 1, 2,
-	2, 3, 0
-};
-static GPUTexture* defaultTexture; 
 
 Application* const Application::getInstance() {
 	static Application* instance = nullptr;
@@ -56,7 +45,11 @@ int Application::run() {
 }
 
 void Application::onWindowResized(GLFWwindow* window, int width, int height) {
-	getInstance()->renderer->notifyFramebufferResized();
+	static Application* instance = getInstance();
+	
+	instance->renderer->notifyFramebufferResized();
+	instance->window->Width = width;
+	instance->window->Height = height;
 }
 
 bool Application::initWindow() {
@@ -65,7 +58,7 @@ bool Application::initWindow() {
 		return 0;
 	}
 
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // don't make an openGL context
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 	
 	this->window = AppWindow::getInstance();
@@ -75,7 +68,8 @@ bool Application::initWindow() {
 }
 
 void Application::initAssets() {
-	defaultTexture = GPUTexture::createTexture("Assets/Textures/texture.jpg", "default");
+	GPUTexture::createTexture("Assets/Textures/texture.jpg", "default");
+	GPUTexture::createTexture("Assets/Textures/uv-checker.png", "shipTexture");
 }
 
 void Application::initVulkan() {
@@ -83,28 +77,38 @@ void Application::initVulkan() {
 	this->vkInstance->setup(this->window->GetWindow());
 }
 
+static void uploadTextures(VulkanInstance* vkInstance);
+
 void Application::initRenderer() {
 	this->renderer = Renderer::getInstance();
 	renderer->setup(vkInstance);
+	int vertexID = ShaderModule::createNew(vkInstance->device->logicalDevice, "Assets/Shaders/vert.spv", "default-v");
+	int fragmentID = ShaderModule::createNew(vkInstance->device->logicalDevice, "Assets/Shaders/frag.spv", "default-f");
 
-	ShaderModule* vertex = ShaderModule::createNew(vkInstance->device->logicalDevice, "Assets/Shaders/vert.spv", "default-v");
-	ShaderModule* fragment = ShaderModule::createNew(vkInstance->device->logicalDevice, "Assets/Shaders/frag.spv", "default-f");
+	ShaderModule* vertex = nullptr; 
+	ShaderModule::find(vertexID, &vertex);
+	ShaderModule* fragment = nullptr;
+	ShaderModule::find(fragmentID, &fragment);
+	
 	PipelineShader shader = {};
 	shader.vertexModule = vertex;
 	shader.fragmentModule = fragment;
 
 	renderer->addPipeline(&shader);
 
-	GPUTexture::loadGPU(vkInstance, defaultTexture);
+	uploadTextures(vkInstance);
 }
 
 void Application::mainLoop() {
-	Mesh* mesh = new Mesh();
-	mesh->vertexData = vertices.data();
-	mesh->vertexCount = vertices.size();
-	mesh->indexData = indices.data();
-	mesh->indexCount = indices.size();
+	Mesh* mesh = nullptr;
+	MeshLoader::loadOBJ("Assets/OBJ/ship.obj", &mesh);
+	
 	Material* material = Material::create(vkInstance, renderer->getPipeline(nullptr), "default");
+
+	GPUTexture* shipTexture = nullptr;
+	GPUTexture::getTexture("shipTexture", &shipTexture);
+	material->setTexture(vkInstance, shipTexture, 0);
+	
 	MeshRenderer* meshRenderer = new MeshRenderer();
 	meshRenderer->setup(vkInstance, mesh, material, renderer);
 	float time = 0;
@@ -112,7 +116,7 @@ void Application::mainLoop() {
 	while (!glfwWindowShouldClose(window->GetWindow())) {
 		time += 0.01f;
 		glfwPollEvents();
-		material->setFloat(vkInstance, 0, (sinf(time) + 1) * 0.5f);
+
 		meshRenderer->draw(renderer->getPipeline(nullptr));
 		renderer->render(vkInstance, window->GetWindow());
 	}
@@ -135,4 +139,12 @@ void Application::cleanup() {
 	window->teardown();
 	
 	glfwTerminate();
+}
+
+void uploadTextures(VulkanInstance* vkInstance) {
+	GPUTexture* texture;
+	GPUTexture::getTexture("default", &texture);
+	GPUTexture::loadGPU(vkInstance, texture);
+	GPUTexture::getTexture("shipTexture", &texture);
+	GPUTexture::loadGPU(vkInstance, texture);
 }

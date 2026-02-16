@@ -1,3 +1,4 @@
+#include "Core/Structure/IDVector.h"
 #include "../ShaderModule.h"
 #include "../Reflection/DescriptorBindingInfo.h"
 #include "../Reflection/VertexAttributeInfo.h"
@@ -17,6 +18,8 @@
 static std::map<const char*, const char*> nameToFilePathMap;
 static std::map<const char*, ShaderModule*> filePathShaders;
 static std::map<const char*, ShaderModuleInfo> shaderInfos;
+static IDVector<ShaderModule*> shaders;
+static IDVector<ShaderModuleInfo> shaderInfo;
 
 void ShaderModule::readShader(const char* filePath, char*& outFileContents, uint32_t* fileSize) {
 	std::ifstream file(filePath, std::ios::ate | std::ios::binary);
@@ -59,6 +62,10 @@ bool ShaderModule::find(const char* name, ShaderModule** pShader) {
 	return *pShader != nullptr;
 }
 
+bool ShaderModule::find(int32_t ID, ShaderModule** pShader) {
+	return shaders.get(ID, pShader);
+}
+
 bool ShaderModule::getInfo(const ShaderModule& shader, ShaderModuleInfo** pInfo) {
 	auto it = nameToFilePathMap.find(shader.name);
 	if (it != nameToFilePathMap.end()) {
@@ -70,14 +77,14 @@ bool ShaderModule::getInfo(const ShaderModule& shader, ShaderModuleInfo** pInfo)
 	return pInfo != nullptr;
 }
 
-ShaderModule* const ShaderModule::createNew(VkDevice_T* logicalDevice, const char* filePath, const char* name) {
+int32_t ShaderModule::createNew(VkDevice_T* logicalDevice, const char* filePath, const char* name) {
 	ShaderModule* shader = nullptr;
 
 	uint32_t len = strlen(name);
 	char* nameBuffer = nullptr;
 	
 	if (find(filePath, &shader)) {
-		return shader;
+		return -1;
 	}
 	else if (strcmp(name, "") == 0) {
 		nameBuffer = new char[32];
@@ -102,7 +109,9 @@ ShaderModule* const ShaderModule::createNew(VkDevice_T* logicalDevice, const cha
 	filePathShaders.emplace(filePath, shader);
 	shaderInfos.emplace(filePath, moduleInfo);
 	
-	return shader;
+	int32_t id = shaders.add(shader);
+	shaderInfo.add(moduleInfo);
+	return id;
 }
 
 void ShaderModule::createModule(VkDevice_T* logicalDevice, const char* byteCode, const uint32_t& byteLen, VkShaderModule_T** outModule) {

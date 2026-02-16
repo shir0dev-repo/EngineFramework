@@ -12,8 +12,7 @@ struct SpecializationConstantInfo;
 
 struct ShaderModuleInfo {
 	VkShaderStageFlagBits stage;
-	uint32_t numSpecializationConstantInfos = 0;
-	char entry[16] = {0};
+	char entry[28] = {0};
 
 	struct GlobalInfo {
 		uint32_t count = 0;
@@ -33,7 +32,7 @@ struct ShaderModuleInfo {
 	uint32_t numPushConstantInfos = 0;
 	uint32_t numVertexInputAttributeInfos = 0;
 	uint32_t numFragmentOutputInfos = 0;
-	
+	uint32_t numSpecializationConstantInfos = 0;
 
 	PushConstantInfo* pPushConstantInfos = nullptr;
 	VertexAttributeInfo* pVertexInputAttributeInfos = nullptr;

@@ -1,6 +1,7 @@
 #pragma once
 
 typedef unsigned int uint32_t;
+typedef enum VkFormat;
 
 struct VkDescriptorSetLayout_T;
 struct VkDescriptorPool_T;
@@ -53,6 +54,7 @@ private:
 	void setupRenderPass(const VulkanDevice* const device);
 	void setupCommandPool(const VulkanDevice* const device);
 	void setupCommandBuffers(const VulkanDevice* const device);
+	void setupDepthBuffer(const VulkanInstance* const instance);
 	void setupFramebuffers(const VulkanDevice* const device);
 	void setupSyncs(const VulkanDevice* const device);
 	void setupGlobalUniforms(const VulkanInstance* const instance);
@@ -95,7 +97,11 @@ private:
 	VkDescriptorSet_T** globalDescriptorSets = nullptr;
 	void** mappedGlobalBuffers = nullptr;
 
+	struct DepthBuffer* depthBuffer;
+
 	uint32_t numFrames = 0;
 	uint32_t currentFrame = 0;
 	bool frameBufferResized = false;
+
+	static VkFormat findDepthFormat(const VulkanDevice* const device);
 };

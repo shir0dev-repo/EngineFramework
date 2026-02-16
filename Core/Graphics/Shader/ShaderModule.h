@@ -1,5 +1,6 @@
 #pragma once
 
+typedef int int32_t;
 typedef unsigned int uint32_t;
 
 struct VkDevice_T;
@@ -10,7 +11,8 @@ struct SpvReflectShaderModule;
 struct ShaderModuleInfo;
 
 struct ShaderModule {
-	static ShaderModule* const createNew(VkDevice_T* logicalDevice, const char* filePath, const char* name = "");
+	static int createNew(VkDevice_T* logicalDevice, const char* filePath, const char* name = "");
+	static bool find(int32_t ID, ShaderModule** pShader);
 	static bool find(const char* name, ShaderModule** pShader);
 	static bool getInfo(const ShaderModule& shader, ShaderModuleInfo** pInfo);
 	static void teardown(VkDevice_T* logicalDevice);

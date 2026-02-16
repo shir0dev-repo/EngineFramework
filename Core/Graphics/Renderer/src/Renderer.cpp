@@ -10,6 +10,8 @@
 #include "../../../Vulkan/VulkanSwapChain.h"
 #include "../../../Structure/linkedList.h"
 #include "../../../AppWindow.h"
+#include "Core/Graphics/DepthBuffer.h"
+#include "Core/Vulkan/VulkanUtils.h"
 
 #include <shml/quat.hpp>
 #include <shml/mathutil.hpp>
@@ -42,6 +44,7 @@ void Renderer::setup(VulkanInstance* vkInstance) {
 	setupRenderPass(vkInstance->device);
 	setupCommandPool(vkInstance->device);
 	setupCommandBuffers(vkInstance->device);
+	setupDepthBuffer(vkInstance);
 	setupFramebuffers(vkInstance->device);
 	setupSyncs(vkInstance->device);
 
@@ -64,27 +67,43 @@ void Renderer::setupRenderPass(const VulkanDevice* const device) {
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+	VkAttachmentDescription depthAttachment = {};
+	depthAttachment.format = findDepthFormat(device);
+	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 	VkAttachmentReference colorAttachmentRef = {};
 	colorAttachmentRef.attachment = 0;
 	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkAttachmentReference depthAttachmentRef = {};
+	depthAttachmentRef.attachment = 1;
+	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	VkSubpassDescription subpass = {};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentRef;
+	subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
 	VkSubpassDependency dependency = {};
 	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 	dependency.dstSubpass = 0;
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+	dependency.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
+	VkAttachmentDescription attachments[] = { colorAttachment, depthAttachment };
 	VkRenderPassCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	createInfo.attachmentCount = 1;
-	createInfo.pAttachments = &colorAttachment;
+	createInfo.attachmentCount = 2;
+	createInfo.pAttachments = &attachments[0];
 	createInfo.subpassCount = 1;
 	createInfo.pSubpasses = &subpass;
 	createInfo.dependencyCount = 1;
@@ -120,19 +139,38 @@ void Renderer::setupCommandBuffers(const VulkanDevice* const device) {
 	}
 }
 
+void Renderer::setupDepthBuffer(const VulkanInstance* const instance) {
+	VkFormat targetFormats[] = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
+	const VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
+	const VkFormatFeatureFlags features = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	VkFormat dsFormat = instance->device->querySupportedFormats(&targetFormats[0], 3, tiling, features);
+	const VkExtent2D* extents = instance->swapChain->getExtents();
+	this->depthBuffer = new DepthBuffer();
+	createVkImage(instance, extents->width, extents->height,
+		dsFormat,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		depthBuffer->depthImage,
+		depthBuffer->depthMemory
+	);
+	createVkImageView(instance, depthBuffer->depthImage, dsFormat, VK_IMAGE_ASPECT_DEPTH_BIT, depthBuffer->depthImageView);
+	
+}
+
 void Renderer::setupFramebuffers(const VulkanDevice* const device) {
 	const VkExtent2D* extent = swapChain->getExtents();
 	
 	this->vkFramebuffers = new VkFramebuffer_T* [numFrames] { nullptr };
 	
 	for (uint32_t i = 0; i < numFrames; i++) {
-		VkImageView_T* imageView = swapChain->getImageView(i);
+		VkImageView_T* attachments[] = { swapChain->getImageView(i), depthBuffer->depthImageView };
 		
 		VkFramebufferCreateInfo framebufferInfo = {};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebufferInfo.renderPass = vkRenderPass;
-		framebufferInfo.attachmentCount = 1;
-		framebufferInfo.pAttachments = &imageView;
+		framebufferInfo.attachmentCount = 2;
+		framebufferInfo.pAttachments = &attachments[0];
 		framebufferInfo.width = extent->width;
 		framebufferInfo.height = extent->height;
 		framebufferInfo.layers = 1;
@@ -318,32 +356,53 @@ void Renderer::beginCommandBufferForCurrentFrame() {
 void Renderer::updateGlobalBuffer(const VulkanDevice* const device) {
 	static AppWindow* windowInstance = nullptr;
 	static float dt = 0;
-	
+	static float moveSpeed = 0.005f;
+	static shml::vec3f camPos{0, 0, -5};
+
 	if (windowInstance == nullptr) {
 		windowInstance = AppWindow::getInstance();
 	}
 	
+	
+	if (glfwGetKey(windowInstance->GetWindow(), GLFW_KEY_A) == GLFW_PRESS) {
+		camPos.x -= moveSpeed;
+	}
+	if (glfwGetKey(windowInstance->GetWindow(), GLFW_KEY_D) == GLFW_PRESS) {
+		camPos.x += moveSpeed;
+	}
+	
+	if (glfwGetKey(windowInstance->GetWindow(), GLFW_KEY_Q) == GLFW_PRESS) {
+		camPos.y -= moveSpeed;
+	}
+	if (glfwGetKey(windowInstance->GetWindow(), GLFW_KEY_E) == GLFW_PRESS) {
+		camPos.y += moveSpeed;
+	}
+
+	if (glfwGetKey(windowInstance->GetWindow(), GLFW_KEY_S) == GLFW_PRESS) {
+		camPos.z += moveSpeed;
+	}
+	if (glfwGetKey(windowInstance->GetWindow(), GLFW_KEY_W) == GLFW_PRESS) {
+		camPos.z -= moveSpeed;
+	}
 	GPUCameraData cameraData = {};
 	cameraData.projection = shml::matrix4f::IDENTITY;
 	const float nearPlane = 0.03f, farPlane = 100.0f;
 
-	float aspect = windowInstance->Width / windowInstance->Height;
+	float aspect = windowInstance->Width / (float) windowInstance->Height;
 	float fov = 60.0f;
 	float scale = tan(fov * 0.5f * shml::DEG2RAD);
 	cameraData.projection(0, 0) = 1.0f / (aspect * scale);
-	cameraData.projection(1, 1) = 1.0f / -scale;
-	cameraData.projection(2, 2) = farPlane / (farPlane - nearPlane);
-	cameraData.projection(2, 3) = (-(farPlane * nearPlane) / (farPlane - nearPlane));
-	cameraData.projection(3, 2) = 1;
+	cameraData.projection(1, 1) = -1.0f / scale;
+	cameraData.projection(2, 2) = -(farPlane / (farPlane - nearPlane));
+	cameraData.projection(2, 3) = -(2.0 * (farPlane * nearPlane) / (farPlane - nearPlane));
+	cameraData.projection(3, 2) = -1;
 	cameraData.projection(3, 3) = 0;
 	cameraData.projection.transpose();
-	
-	cameraData.view = shml::matrix4f::IDENTITY;
-	cameraData.view.setPosition({ 0, 0.0f, 0 });
-	//cameraData.view.setRotation(shml::quat(0, dt, 0));
-	cameraData.view.invert();
-	cameraData.view.transpose();
 
+	cameraData.view = shml::matrix4f::IDENTITY;
+	cameraData.view.setPosition(camPos);
+	cameraData.view.invert();
+	cameraData.projectionParams = { fov, aspect, nearPlane, farPlane };
 	memcpy(mappedGlobalBuffers[currentFrame], &cameraData, sizeof(GPUCameraData));
 
 	dt += 0.02f;
@@ -361,9 +420,11 @@ void Renderer::beginRenderPassForCurrentFrame() {
 	renderPassInfo.renderArea.offset = { 0, 0 };
 	renderPassInfo.renderArea.extent = *swapChain->getExtents();
 
-	VkClearValue clearColor = { {{ 0.0f, 0.0f, 0.0f, 1.0f }} };
-	renderPassInfo.clearValueCount = 1;
-	renderPassInfo.pClearValues = &clearColor;
+	VkClearValue clearColors[2];
+	clearColors[0].color = { {1.0f, 0.5f, 0.75f, 1.0f} };
+	clearColors[1].depthStencil = { 1.0f, 0 };
+	renderPassInfo.clearValueCount = 2;
+	renderPassInfo.pClearValues = &clearColors[0];
 
 	vkCmdBeginRenderPass(vkCommandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
@@ -466,14 +527,23 @@ bool Renderer::presentRender(const VulkanDevice* const device) {
 void Renderer::handleInvalidSwapchain(const VulkanInstance* const instance, GLFWwindow* window) {
 	this->swapChain->recreate(instance->device, vkRenderPass, instance->surface, window);
 
+	vkDestroyImageView(instance->device->logicalDevice, depthBuffer->depthImageView, nullptr);
+	vkDestroyImage(instance->device->logicalDevice, depthBuffer->depthImage, nullptr);
+	vkFreeMemory(instance->device->logicalDevice, depthBuffer->depthMemory, nullptr);
+	delete depthBuffer;
+	depthBuffer = nullptr;
+
 	for (uint32_t i = 0; i < numFrames; i++) {
 		vkDestroyFramebuffer(instance->device->logicalDevice, vkFramebuffers[i], nullptr);
 	}
+	
 	delete[] vkFramebuffers;
 	vkFramebuffers = nullptr;
 
 	numFrames = swapChain->getSwapChainImageCount();
 	currentFrame = 0;
+
+	setupDepthBuffer(instance);
 	setupFramebuffers(instance->device);
 }
 
@@ -484,6 +554,12 @@ void Renderer::teardown(VkDevice_T* logicalDevice) {
 		}
 		delete[] globalBuffers;
 		globalBuffers = nullptr;
+	}
+	if (depthBuffer != nullptr) {
+		vkDestroyImageView(logicalDevice, depthBuffer->depthImageView, nullptr);
+		vkDestroyImage(logicalDevice, depthBuffer->depthImage, nullptr);
+		vkFreeMemory(logicalDevice, depthBuffer->depthMemory, nullptr);
+		delete depthBuffer;
 	}
 	if (globalDescriptorLayout != nullptr) {
 		vkDestroyDescriptorSetLayout(logicalDevice, globalDescriptorLayout, nullptr);
@@ -531,4 +607,12 @@ void Renderer::teardown(VkDevice_T* logicalDevice) {
 		delete[] mappedGlobalBuffers;
 		mappedGlobalBuffers = nullptr;
 	}
+}
+
+VkFormat Renderer::findDepthFormat(const VulkanDevice* const device) {
+	VkFormat targetFormats[] = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
+	const VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
+	const VkFormatFeatureFlags features = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	VkFormat dsFormat = device->querySupportedFormats(&targetFormats[0], 3, tiling, features);
+	return dsFormat;
 }
