@@ -610,6 +610,7 @@ void GraphicsPipeline::teardown(VkDevice_T* logicalDevice) {
 		vkDestroyPipeline(logicalDevice, vkPipeline, nullptr);
 		vkPipeline = nullptr;
 	}
+
 	if (vkPipelineDescriptorLayout != nullptr) {
 		vkDestroyDescriptorSetLayout(logicalDevice, vkPipelineDescriptorLayout, nullptr);
 		vkPipelineDescriptorLayout = nullptr;
@@ -619,6 +620,11 @@ void GraphicsPipeline::teardown(VkDevice_T* logicalDevice) {
 		vkDestroyDescriptorSetLayout(logicalDevice, vkMaterialDescriptorLayout, nullptr);
 		vkMaterialDescriptorLayout = nullptr;
 	}
+	if (vkInstanceDescriptorLayout != nullptr) {
+		vkDestroyDescriptorSetLayout(logicalDevice, vkInstanceDescriptorLayout, nullptr);
+		vkInstanceDescriptorLayout = nullptr;
+	}
+
 	if (vkPipelineDescriptorPool != nullptr) {
 		vkDestroyDescriptorPool(logicalDevice, vkPipelineDescriptorPool, nullptr);
 		vkPipelineDescriptorPool = nullptr;
@@ -627,6 +633,11 @@ void GraphicsPipeline::teardown(VkDevice_T* logicalDevice) {
 		vkDestroyDescriptorPool(logicalDevice, vkMaterialDescriptorPool, nullptr);
 		vkMaterialDescriptorPool = nullptr;
 	}
+	if (vkInstanceDescriptorPool != nullptr) {
+		vkDestroyDescriptorPool(logicalDevice, vkInstanceDescriptorPool, nullptr);
+		vkInstanceDescriptorPool = nullptr;
+	}
+
 	if (vkLayout != nullptr) {
 		vkDestroyPipelineLayout(logicalDevice, vkLayout, nullptr);
 		vkLayout = nullptr;

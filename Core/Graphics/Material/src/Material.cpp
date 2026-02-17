@@ -24,6 +24,13 @@ void Material::cleanup(const VulkanInstance* const instance) {
 			}
 			delete[] material->pBuffers;
 		}
+		if (material->pInstanceBuffers != nullptr) {
+			for (uint32_t i = 0; i < material->numInstanceBufferHandles; i++) {
+				material->pInstanceBuffers[i].handle->dispose(instance->device->logicalDevice);
+				delete material->pInstanceBuffers[i].handle;
+			}
+			delete[] material->pInstanceBuffers;
+		}
 
 		delete material;
 	}
