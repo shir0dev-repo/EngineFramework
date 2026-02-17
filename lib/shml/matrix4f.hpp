@@ -314,6 +314,7 @@ namespace shml {
 
 		// Sets this matrix's position.
 		inline void setPosition(const vec3f& position) {
+			this;
 			vec4f pos(position);
 			setColumn(3, pos);
 		}

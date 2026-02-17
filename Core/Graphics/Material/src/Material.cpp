@@ -41,12 +41,18 @@ Material* const Material::create(const VulkanInstance* const instance, GraphicsP
 	const PipelineMaterialLayout* layout = pipeline->getMaterialLayout();
 	std::vector<MaterialBinding> textureBindings = {};
 	std::vector<MaterialBinding> bufferBindings = {};
+	std::vector<MaterialBinding> instanceBindings = {};
 	std::vector<MaterialBinding> allBindings = {};
 
 	for (uint32_t i = 0; i < layout->numBindings; i++) {
 		MaterialBinding binding = layout->pBindings[i];
 		if (binding.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
-			bufferBindings.push_back(binding);
+			if (binding.set == Renderer::MATERIAL_DESCRIPTOR_SET) {
+				bufferBindings.push_back(binding);
+			}
+			else if (binding.set == Renderer::INSTANCE_DESCRIPTOR_SET) {
+				instanceBindings.push_back(binding);
+			}
 		}
 		else if (binding.type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
 			textureBindings.push_back(binding);
@@ -57,10 +63,13 @@ Material* const Material::create(const VulkanInstance* const instance, GraphicsP
 
 	const PipelineSummary* summary = pipeline->getSummary();
 	material->vkDescriptorSets = new VkDescriptorSet_T* [pipeline->getDescriptorCopyCount()];
+	material->vkInstanceDescriptorSets = new VkDescriptorSet_T* [pipeline->getDescriptorCopyCount()];
 	pipeline->generateMaterialDescriptorSets(instance, material->vkDescriptorSets);
+	pipeline->generateInstanceDescriptorSets(instance, material->vkInstanceDescriptorSets);
 
 	material->createTextureHandles(instance, pipeline, summary, textureBindings.data(), textureBindings.size());
 	material->createBufferHandles(instance, pipeline, summary, bufferBindings.data(), bufferBindings.size());
+	material->createInstanceBufferHandles(instance, pipeline, summary, instanceBindings.data(), instanceBindings.size());
 
 	for (uint32_t copyIndex = 0; copyIndex < pipeline->getDescriptorCopyCount(); copyIndex++) {
 		std::vector<VkDescriptorImageInfo> imageInfos = {};
@@ -106,7 +115,26 @@ Material* const Material::create(const VulkanInstance* const instance, GraphicsP
 
 			writes.push_back(write);
 		}
+		for (uint32_t i = 0; i < instanceBindings.size(); i++) {
+			MaterialBinding binding = instanceBindings.at(i);
 
+			VkDescriptorBufferInfo bufferInfo = {};
+			bufferInfo.offset = 0;
+			bufferInfo.range = material->pInstanceBuffers[i].handle->bufferSize;
+			bufferInfo.buffer = material->pInstanceBuffers[i].handle->vkBuffer;
+
+			bufferInfos.push_back(bufferInfo);
+
+			VkWriteDescriptorSet write = {};
+			write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			write.descriptorCount = 1;
+			write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			write.dstBinding = binding.binding;
+			write.dstSet = material->vkInstanceDescriptorSets[copyIndex];
+			write.pBufferInfo = &bufferInfo;
+
+			writes.push_back(write);
+		}
 		vkUpdateDescriptorSets(instance->device->logicalDevice, writes.size(), writes.data(), 0, nullptr);
 	}
 
@@ -169,8 +197,32 @@ void Material::createBufferHandles(const VulkanInstance* const instance, Graphic
 	}
 }
 
+void Material::createInstanceBufferHandles(const VulkanInstance* const instance, GraphicsPipeline* const pipeline, const PipelineSummary* const summary,
+	MaterialBinding* bindings, uint32_t bindingCount) {
+
+	this->numInstanceBufferHandles = bindingCount;
+	if (bindingCount <= 0) {
+		this->pInstanceBuffers = nullptr;
+		return;
+	}
+
+	this->pInstanceBuffers = new BufferHandleEntry[numInstanceBufferHandles]{ {} };
+	for (uint32_t i = 0; i < bindingCount; i++) {
+		BufferHandleEntry* entry = &this->pInstanceBuffers[i];
+		MaterialBinding bindingInfo = bindings[i];
+
+		DescriptorBindingInfo descInfo = summary->instanceDescriptors.pDescriptorBindingInfos[i];
+		this->pInstanceBuffers[i].binding = bindingInfo.binding;
+		this->pInstanceBuffers[i].handle = GPUBuffer::create(instance, descInfo.size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	}
+}
+
 void Material::bind(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame) const {
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getLayout(), 2, 1, &this->vkDescriptorSets[currentFrame], 0, nullptr);
+	bindInstance(commandBuffer, currentFrame);
+}
+void Material::bindInstance(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame) const {
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getLayout(), 3, 1, &this->vkInstanceDescriptorSets[currentFrame], 0, nullptr);
 }
 
 void Material::unbind(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame) const {
@@ -203,5 +255,18 @@ void Material::setFloat(const VulkanInstance* const instance, uint32_t binding, 
 		GPUBuffer* handle = this->pBuffers[i].handle;
 		void* data = &value;
 		handle->bufferData(instance, data, sizeof(float), 0);
+	}
+}
+
+void Material::setBuffer(const VulkanInstance* const instance, uint32_t set, uint32_t binding, const void* data, uint32_t size) const {
+	uint32_t count = set == 2 ? numBufferHandles : numInstanceBufferHandles;
+	BufferHandleEntry* targetBuffers = set == 2 ? pBuffers : pInstanceBuffers;
+	for (uint32_t i = 0; i < count; i++) {
+		BufferHandleEntry* handle = &targetBuffers[i];
+		if (handle->binding != binding) {
+			continue;
+		}
+
+		handle->handle->bufferData(instance, data, size);
 	}
 }

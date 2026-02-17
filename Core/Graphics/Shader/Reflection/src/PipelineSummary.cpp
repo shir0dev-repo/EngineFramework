@@ -69,7 +69,22 @@ static uint32_t iterateDescriptorBindings(ShaderModuleInfo* stage, std::unordere
 			it->second.stages |= info.stages;
 		}
 	}
+	for (uint32_t i = 0; i < stage->instanceDescriptors.count; i++) {
+		DescriptorBindingInfo info = stage->instanceDescriptors.pDescriptorBindingInfos[i];
+		uint64_t key = makeDescriptorMapKey(info.setIndex, info.bindingIndex);
 
+		auto it = bindingMap->find(key);
+		if (it == bindingMap->end()) {
+			numUnique++;
+			(*bindingMap)[key] = info;
+		}
+		else if (it->second.type != info.type || it->second.count != info.count) {
+			throw std::runtime_error("Descriptor binding mismatch between stages!");
+		}
+		else {
+			it->second.stages |= info.stages;
+		}
+	}
 	return numUnique;
 }
 
@@ -139,6 +154,7 @@ PipelineSummary* PipelineSummary::createSummary(ShaderModule** const stages, uin
 	setBindings[0] = {};
 	setBindings[1] = {};
 	setBindings[2] = {};
+	setBindings[3] = {};
 
 	if (numDescs > 0) {
 		for (auto& [setBindingMask, binding] : bindingMap) {
@@ -156,6 +172,10 @@ PipelineSummary* PipelineSummary::createSummary(ShaderModule** const stages, uin
 				case 2:
 					summary->materialDescriptors.count++;
 					setBindings[2].push_back(binding);
+					break;
+				case 3:
+					summary->instanceDescriptors.count++;
+					setBindings[3].push_back(binding);
 					break;
 				default:
 					throw std::runtime_error("Unsupported set found!");
@@ -176,6 +196,11 @@ PipelineSummary* PipelineSummary::createSummary(ShaderModule** const stages, uin
 			summary->materialDescriptors.count = setBindings[2].size();
 			summary->materialDescriptors.pDescriptorBindingInfos = new DescriptorBindingInfo[setBindings[2].size()];
 			memcpy(summary->materialDescriptors.pDescriptorBindingInfos, setBindings[2].data(), sizeof(DescriptorBindingInfo) * setBindings[2].size());
+		}
+		if (setBindings[3].size() > 0) {
+			summary->instanceDescriptors.count = setBindings[3].size();
+			summary->instanceDescriptors.pDescriptorBindingInfos = new DescriptorBindingInfo[setBindings[3].size()];
+			memcpy(summary->instanceDescriptors.pDescriptorBindingInfos, setBindings[3].data(), sizeof(DescriptorBindingInfo) * setBindings[3].size());
 		}
 	}
 	summary->numPushConstantInfos = numPCs;

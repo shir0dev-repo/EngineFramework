@@ -62,8 +62,33 @@ namespace shml {
 			return v;
 		}
 
+		inline vec3f normalized_safe(float accuracy = 0.003f) const {
+			vec3f v(*this);
+			float l = length();
+			if (abs(l - accuracy) <= accuracy) {
+				return v;
+			}
+
+			float inv_l = 1.0f / l;
+			v.x *= inv_l;
+			v.y *= inv_l;
+			v.z *= inv_l;
+		}
+
 		inline void normalize() {
 			float inv_l = 1.0f / length();
+			x *= inv_l;
+			y *= inv_l;
+			z *= inv_l;
+		}
+
+		inline void normalize_safe(float accuracy = 0.003f) {
+			float l = length();
+			if (abs(l - accuracy) <= accuracy) {
+				return;
+			}
+
+			float inv_l = 1.0f / l;
 			x *= inv_l;
 			y *= inv_l;
 			z *= inv_l;

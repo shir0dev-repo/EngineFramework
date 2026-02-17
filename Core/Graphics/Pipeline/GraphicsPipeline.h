@@ -51,6 +51,7 @@ struct GraphicsPipeline {
 	void executeRenderCommands(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame);
 
 	void generateMaterialDescriptorSets(const VulkanInstance* const instance, VkDescriptorSet_T** outSets);
+	void generateInstanceDescriptorSets(const VulkanInstance* const instance, VkDescriptorSet_T** outSets);
 	void registerMaterial(Material* material);
 	void getRegisteredMaterials(uint32_t* count, Material** outMaterials);
 private:
@@ -68,6 +69,8 @@ private:
 	void createMaterialDescriptorPool(const VulkanInstance* const instance);
 	void createMaterialDescriptorSetLayout(const VulkanInstance* const instance, VkDescriptorSetLayoutBinding* setLayoutBindings, uint32_t layoutCount);
 	
+	void createInstanceDescriptorPool(const VulkanInstance* const instance);
+	void createInstanceDescriptorSetLayout(const VulkanInstance* const instance, VkDescriptorSetLayoutBinding* setLayoutBindings, uint32_t layoutCount);
 
 	void cleanupRenderCommands();
 	
@@ -81,6 +84,9 @@ private:
 
 	VkDescriptorPool_T* vkMaterialDescriptorPool = nullptr;
 	VkDescriptorSetLayout_T* vkMaterialDescriptorLayout = nullptr;
+	
+	VkDescriptorPool_T* vkInstanceDescriptorPool = nullptr;
+	VkDescriptorSetLayout_T* vkInstanceDescriptorLayout = nullptr;
 
 	RenderCommandList* commandList = nullptr;
 
@@ -89,4 +95,5 @@ private:
 	uint32_t numDescriptorCopies = 0;
 	uint32_t numPipelineDescriptorSets = 0;
 	uint32_t numMaterialDescriptorSets = 0;
+	uint32_t numInstanceDescriptorSets = 0;
 };

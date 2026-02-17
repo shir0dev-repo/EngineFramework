@@ -21,6 +21,7 @@
 #include "../../Texture/GPUTexture.h"
 #include "../../Renderer/MeshRenderer.h"
 #include "../../Mesh/Mesh.h"
+#include "Runtime/Scene/Entity.h"
 
 #include <string>
 #include <vulkan/vulkan.h>
@@ -127,9 +128,9 @@ static void mergeVertexInputAttributes(VertexAttributeInfo* attribInfos, uint32_
 
 	#pragma region Create Pipeline Layout
 static void createPipelineLayout(const VulkanDevice* const device, Renderer* renderer, VkDescriptorSetLayout_T* pipelineSetLayout,
-	VkDescriptorSetLayout_T* materialSetLayout, const PCRangeList& pcRanges, VkPipelineLayout_T** outLayout) {
+	VkDescriptorSetLayout_T* materialSetLayout, VkDescriptorSetLayout_T* instanceSetLayout, const PCRangeList& pcRanges, VkPipelineLayout_T** outLayout) {
 	
-	std::vector<VkDescriptorSetLayout> sets{ renderer->getGlobalDescriptorSetLayout(), pipelineSetLayout, materialSetLayout };
+	std::vector<VkDescriptorSetLayout> sets{ renderer->getGlobalDescriptorSetLayout(), pipelineSetLayout, materialSetLayout, instanceSetLayout };
 
 	VkPipelineLayoutCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -200,7 +201,7 @@ void GraphicsPipeline::setup(const VulkanInstance* const instance, Renderer* ren
 
 	createPipelineSummary(instance, vertex, fragment);
 	createMaterialLayout(instance);
-
+	
 	setupDescriptors(instance);
 	createPipeline(instance, renderer, vertex, fragment);
 }
@@ -214,6 +215,7 @@ void GraphicsPipeline::setupDescriptors(const VulkanInstance* const instance) {
 	this->numDescriptorCopies = instance->swapChain->getSwapChainImageCount();
 	this->numPipelineDescriptorSets = summary->pipelineDescriptors.count;
 	this->numMaterialDescriptorSets = summary->materialDescriptors.count;
+	this->numInstanceDescriptorSets = summary->instanceDescriptors.count;
 
 	BindingList pipelineBindings = mergeDescriptorSetLayouts(summary->pipelineDescriptors.pDescriptorBindingInfos, summary->pipelineDescriptors.count);
 	createPipelineDescriptorPool(instance);
@@ -224,6 +226,10 @@ void GraphicsPipeline::setupDescriptors(const VulkanInstance* const instance) {
 	BindingList materialBindings = mergeDescriptorSetLayouts(summary->materialDescriptors.pDescriptorBindingInfos, summary->materialDescriptors.count);
 	createMaterialDescriptorPool(instance);
 	createMaterialDescriptorSetLayout(instance, materialBindings.data(), materialBindings.size());
+
+	BindingList instanceBindings = mergeDescriptorSetLayouts(summary->instanceDescriptors.pDescriptorBindingInfos, summary->instanceDescriptors.count);
+	createInstanceDescriptorPool(instance);
+	createInstanceDescriptorSetLayout(instance, instanceBindings.data(), instanceBindings.size());
 }
 
 void GraphicsPipeline::createPipeline(const VulkanInstance* const instance, Renderer* renderer, ShaderModule* vertex, ShaderModule* fragment) {
@@ -232,7 +238,9 @@ void GraphicsPipeline::createPipeline(const VulkanInstance* const instance, Rend
 	mergePushConstantRanges(summary->pPushConstantInfos, summary->numPushConstantInfos, &pcRanges);
 	#pragma endregion
 
-	createPipelineLayout(instance->device, renderer, this->vkPipelineDescriptorLayout, this->vkMaterialDescriptorLayout, pcRanges, &this->vkLayout);
+	createPipelineLayout(instance->device, renderer, 
+		this->vkPipelineDescriptorLayout, this->vkMaterialDescriptorLayout, this->vkInstanceDescriptorLayout,
+		pcRanges, &this->vkLayout);
 
 	#pragma region ShaderInfo
 	VertexAttributeList vertexAttributes;
@@ -346,19 +354,32 @@ void GraphicsPipeline::createPipeline(const VulkanInstance* const instance, Rend
 }
 
 void GraphicsPipeline::createMaterialLayout(const VulkanInstance* const instance) {
-	if (summary->materialDescriptors.count <= 0) {
+	if (summary->materialDescriptors.count + summary->instanceDescriptors.count <= 0) {
 		this->materialLayout.numBindings = 0;
 		this->materialLayout.pBindings = nullptr;
 	}
 
-	this->materialLayout.numBindings = summary->materialDescriptors.count;
+	this->materialLayout.numBindings = summary->materialDescriptors.count + summary->instanceDescriptors.count;
 	this->materialLayout.pBindings = new MaterialBinding[materialLayout.numBindings];
-	for (uint32_t i = 0; i < materialLayout.numBindings; i++) {
+	
+	for (uint32_t i = 0; i < summary->materialDescriptors.count; i++) {
 		DescriptorBindingInfo info = summary->materialDescriptors.pDescriptorBindingInfos[i];
 		MaterialBinding* binding = &this->materialLayout.pBindings[i];
+
 		binding->name = info.name;
 		binding->type = info.type;
 		binding->binding = info.bindingIndex;
+		binding->set = info.setIndex;
+	}
+
+	for (uint32_t j = summary->materialDescriptors.count, i = 0; i < summary->instanceDescriptors.count; i++) {
+		DescriptorBindingInfo info = summary->instanceDescriptors.pDescriptorBindingInfos[i];
+		MaterialBinding* binding = &this->materialLayout.pBindings[j++];
+
+		binding->name = info.name;
+		binding->type = info.type;
+		binding->binding = info.bindingIndex;
+		binding->set = info.setIndex;
 	}
 }
 
@@ -395,6 +416,21 @@ void GraphicsPipeline::createMaterialDescriptorPool(const VulkanInstance* const 
 		throw std::runtime_error("Failed to create material descriptor pool!");
 	}
 }
+void GraphicsPipeline::createInstanceDescriptorPool(const VulkanInstance* const instance) {
+	VkDescriptorPoolSize poolSizes[1] = { {} };
+	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	poolSizes[0].descriptorCount = numDescriptorCopies * MAX_MATERIAL_COUNT;
+
+	VkDescriptorPoolCreateInfo poolInfo = {};
+	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	poolInfo.poolSizeCount = 1;
+	poolInfo.pPoolSizes = &poolSizes[0];
+	poolInfo.maxSets = numDescriptorCopies * 2 * MAX_MATERIAL_COUNT;
+
+	if (vkCreateDescriptorPool(instance->device->logicalDevice, &poolInfo, nullptr, &this->vkInstanceDescriptorPool) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create instance descriptor pool!");
+	}
+}
 
 void GraphicsPipeline::createPipelineDescriptorSetLayout(const VulkanInstance* const instance, VkDescriptorSetLayoutBinding* layoutBindings, uint32_t count) {
 	VkDescriptorSetLayoutCreateInfo createInfo = {};
@@ -414,6 +450,18 @@ void GraphicsPipeline::createMaterialDescriptorSetLayout(const VulkanInstance* c
 	createInfo.pBindings = setLayoutBindings;
 	
 	if (vkCreateDescriptorSetLayout(instance->device->logicalDevice, &createInfo, nullptr, &this->vkMaterialDescriptorLayout) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create material descriptor set layout!");
+	}
+}
+
+
+void GraphicsPipeline::createInstanceDescriptorSetLayout(const VulkanInstance* const instance, VkDescriptorSetLayoutBinding* setLayoutBindings, uint32_t layoutCount) {
+	VkDescriptorSetLayoutCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	createInfo.bindingCount = layoutCount;
+	createInfo.pBindings = setLayoutBindings;
+
+	if (vkCreateDescriptorSetLayout(instance->device->logicalDevice, &createInfo, nullptr, &this->vkInstanceDescriptorLayout) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create material descriptor set layout!");
 	}
 }
@@ -446,6 +494,19 @@ void GraphicsPipeline::generateMaterialDescriptorSets(const VulkanInstance* cons
 	VkDescriptorSetAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = vkMaterialDescriptorPool;
+	allocInfo.descriptorSetCount = layouts.size();
+	allocInfo.pSetLayouts = layouts.data();
+
+	if (vkAllocateDescriptorSets(instance->device->logicalDevice, &allocInfo, outSets) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate material descriptor sets!");
+	}
+}
+
+void GraphicsPipeline::generateInstanceDescriptorSets(const VulkanInstance* const instance, VkDescriptorSet_T** outSets) {
+	std::vector<VkDescriptorSetLayout_T*> layouts(this->numDescriptorCopies, this->vkInstanceDescriptorLayout);
+	VkDescriptorSetAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = vkInstanceDescriptorPool;
 	allocInfo.descriptorSetCount = layouts.size();
 	allocInfo.pSetLayouts = layouts.data();
 
@@ -521,7 +582,8 @@ void GraphicsPipeline::addRenderCommand(const MeshRenderer* const meshRenderer) 
 	RenderCommand* rc = RenderCommand::create(
 		meshRenderer->material,
 		meshRenderer->getVertexBuffer(), meshRenderer->getIndexBuffer(),
-		meshRenderer->mesh->vertexCount, meshRenderer->mesh->indexCount);
+		meshRenderer->mesh->vertexCount, meshRenderer->mesh->indexCount,
+		meshRenderer->getTransformBuffer());
 
 	commandList->add(rc);
 }

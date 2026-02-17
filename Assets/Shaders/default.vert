@@ -20,8 +20,13 @@ layout(set = 2, binding = 1) uniform MaterialData {
 	float metallic;
 } materialData;
 
+layout(set = 3, binding = 0) uniform TransformData {
+	mat4x4 localToWorldMatrix;
+
+} transformData;
+
 void main() {
-	vec4 position = vec4(inPosition.xyz, 1.0);
+	vec4 position = transformData.localToWorldMatrix * vec4(inPosition.xyz, 1.0);
 	position.xy += materialData.specular;
 	gl_Position = Matrices.proj * Matrices.view * position;
 	texCoord = uv.xy;

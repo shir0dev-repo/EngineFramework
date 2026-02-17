@@ -364,7 +364,7 @@ void Renderer::updateGlobalBuffer(const VulkanDevice* const device) {
 	}
 	
 	
-	if (glfwGetKey(windowInstance->GetWindow(), GLFW_KEY_A) == GLFW_PRESS) {
+	/*if (glfwGetKey(windowInstance->GetWindow(), GLFW_KEY_A) == GLFW_PRESS) {
 		camPos.x -= moveSpeed;
 	}
 	if (glfwGetKey(windowInstance->GetWindow(), GLFW_KEY_D) == GLFW_PRESS) {
@@ -383,7 +383,7 @@ void Renderer::updateGlobalBuffer(const VulkanDevice* const device) {
 	}
 	if (glfwGetKey(windowInstance->GetWindow(), GLFW_KEY_W) == GLFW_PRESS) {
 		camPos.z -= moveSpeed;
-	}
+	}*/
 	GPUCameraData cameraData = {};
 	cameraData.projection = shml::matrix4f::IDENTITY;
 	const float nearPlane = 0.03f, farPlane = 100.0f;

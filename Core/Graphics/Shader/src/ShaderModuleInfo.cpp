@@ -47,6 +47,8 @@ void ShaderModuleInfo::reflectDescriptorBindings(SpvReflectShaderModule& reflect
 	std::vector<DescriptorBindingInfo> globalBindingInfos{};
 	std::vector<DescriptorBindingInfo> pipelineBindingInfos{};
 	std::vector<DescriptorBindingInfo> materialBindingInfos{};
+	std::vector<DescriptorBindingInfo> instanceBindingInfos{};
+
 	for (auto* set : descriptorSets) {
 		for (uint32_t i = 0; i < set->binding_count; i++) {
 			const SpvReflectDescriptorBinding* binding = set->bindings[i];
@@ -70,6 +72,9 @@ void ShaderModuleInfo::reflectDescriptorBindings(SpvReflectShaderModule& reflect
 				case 2:
 					materialBindingInfos.push_back(info);
 					continue;
+				case 3:
+					instanceBindingInfos.push_back(info);
+					continue;
 			}
 		}
 	}
@@ -88,6 +93,11 @@ void ShaderModuleInfo::reflectDescriptorBindings(SpvReflectShaderModule& reflect
 		moduleInfo->materialDescriptors.count = materialBindingInfos.size();
 		moduleInfo->materialDescriptors.pDescriptorBindingInfos = new DescriptorBindingInfo[materialBindingInfos.size()];
 		memcpy(moduleInfo->materialDescriptors.pDescriptorBindingInfos, materialBindingInfos.data(), sizeof(DescriptorBindingInfo) * materialBindingInfos.size());
+	}
+	if (instanceBindingInfos.size() > 0) {
+		moduleInfo->instanceDescriptors.count = instanceBindingInfos.size();
+		moduleInfo->instanceDescriptors.pDescriptorBindingInfos = new DescriptorBindingInfo[instanceBindingInfos.size()];
+		memcpy(moduleInfo->instanceDescriptors.pDescriptorBindingInfos, instanceBindingInfos.data(), sizeof(DescriptorBindingInfo) * instanceBindingInfos.size());
 	}
 }
 

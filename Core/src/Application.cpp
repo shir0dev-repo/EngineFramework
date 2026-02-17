@@ -16,6 +16,8 @@
 #include "../Component/Camera.h"
 #include "../Graphics/Texture/GPUTexture.h"
 #include "Core/Graphics/Mesh/Util/MeshLoader.h"
+#include "Runtime/Scene/Entity.h"
+#include "Runtime/Scene/SceneNode.h"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -110,13 +112,32 @@ void Application::mainLoop() {
 	material->setTexture(vkInstance, shipTexture, 0);
 	
 	MeshRenderer* meshRenderer = new MeshRenderer();
-	meshRenderer->setup(vkInstance, mesh, material, renderer);
+	Entity* entity = new Entity();
+	entity->setPosition({ 0, 0, 5 });
+	meshRenderer->setup(vkInstance, entity, mesh, material, renderer);
 	float time = 0;
 
 	while (!glfwWindowShouldClose(window->GetWindow())) {
 		time += 0.01f;
 		glfwPollEvents();
+		shml::vec3f inputDir{};
+		if (glfwGetKey(window->GetWindow(), GLFW_KEY_A) == GLFW_PRESS) {
+			inputDir.x = -1;
+		}
+		else if (glfwGetKey(window->GetWindow(), GLFW_KEY_D) == GLFW_PRESS) {
+			inputDir.x = 1;
+		}
+		if (glfwGetKey(window->GetWindow(), GLFW_KEY_S) == GLFW_PRESS) {
+			inputDir.z = -1;
+		}
+		else if (glfwGetKey(window->GetWindow(), GLFW_KEY_W) == GLFW_PRESS) {
+			inputDir.z = 1;
+		}
 
+		inputDir = inputDir.normalized_safe() * 0.02f;
+		meshRenderer->entity->setPosition(entity->getPosition() + inputDir);
+		const float* transform = entity->getTransform().getPointer();
+		material->setBuffer(vkInstance, 3, 0, transform, sizeof(shml::matrix4f));
 		meshRenderer->draw(renderer->getPipeline(nullptr));
 		renderer->render(vkInstance, window->GetWindow());
 	}
@@ -125,6 +146,7 @@ void Application::mainLoop() {
 
 	meshRenderer->teardown(vkInstance->device->logicalDevice);
 	delete meshRenderer;
+	delete entity;
 	delete mesh;
 }
 

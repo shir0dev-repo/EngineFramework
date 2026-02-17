@@ -5,12 +5,15 @@
 #include "../../Shader/GPUBuffer.h"
 #include "../../Pipeline/GraphicsPipeline.h"
 #include "../../../Vulkan/VulkanInstance.h"
+#include "Runtime/Scene/Entity.h"
 
+#include <shml/matrix4f.hpp>
 #include <vulkan/vulkan.h>
 
-void MeshRenderer::setup(const VulkanInstance* const instance, Mesh* meshRef, Material* materialRef, Renderer* renderer) {
+void MeshRenderer::setup(const VulkanInstance* const instance, Entity* const entity, Mesh* meshRef, Material* materialRef, Renderer* renderer) {
 	this->mesh = meshRef;
 	this->material = materialRef;
+	this->entity = entity;
 
 	VkBufferUsageFlags vertexFlags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 	VkMemoryPropertyFlags memProps = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
@@ -18,6 +21,14 @@ void MeshRenderer::setup(const VulkanInstance* const instance, Mesh* meshRef, Ma
 	
 	VkBufferUsageFlags indexFlags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 	this->indexBuffer = GPUBuffer::create(instance, meshRef->indexCount * sizeof(uint32_t), indexFlags, meshRef->indexData);
+	
+	VkBufferUsageFlags transformFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	if (entity == nullptr) {
+		this->transformBuffer = GPUBuffer::create(instance, sizeof(shml::matrix4f), transformFlags);
+	}
+	else {
+		this->transformBuffer = GPUBuffer::create(instance, sizeof(shml::matrix4f), transformFlags, entity->getTransform().getPointer());
+	}
 }
 
 void MeshRenderer::teardown(VkDevice_T* logicalDevice) {
@@ -31,7 +42,11 @@ void MeshRenderer::teardown(VkDevice_T* logicalDevice) {
 		delete indexBuffer;
 		indexBuffer = nullptr;
 	}
-
+	if (transformBuffer != nullptr) {
+		transformBuffer->dispose(logicalDevice);
+		delete transformBuffer;
+		transformBuffer = nullptr;
+	}
 	mesh = nullptr;
 }
 

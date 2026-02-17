@@ -3,7 +3,8 @@
 
 #include <vulkan/vulkan.h>
 
-RenderCommand* RenderCommand::create(Material* material, GPUBuffer* vertexBuffer, GPUBuffer* indexBuffer, uint32_t vertexCount, uint32_t indexCount) {
+RenderCommand* RenderCommand::create(Material* material, GPUBuffer* vertexBuffer, GPUBuffer* indexBuffer, uint32_t vertexCount, uint32_t indexCount,
+	GPUBuffer* transformBuffer) {
 	RenderCommand* cmd = new RenderCommand();
 	
 	cmd->material = material;
@@ -13,6 +14,8 @@ RenderCommand* RenderCommand::create(Material* material, GPUBuffer* vertexBuffer
 
 	cmd->indexBuffer = indexBuffer;
 	cmd->indexCount = indexCount;
+
+	cmd->transformBuffer = transformBuffer;
 
 	return cmd;
 }

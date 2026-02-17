@@ -167,6 +167,7 @@
     <ClCompile Include="main.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\Microsoft Visual Studio\2022\Libraries\stb;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <ClCompile Include="Runtime\Scene\src\Entity.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Component\Camera.h" />
@@ -223,6 +224,8 @@
     <ClInclude Include="lib\shml\vec3i.hpp" />
     <ClInclude Include="lib\shml\vec4f.hpp" />
     <ClInclude Include="lib\SPIRV-Reflect\spirv_reflect.h" />
+    <ClInclude Include="Runtime\Scene\Entity.h" />
+    <ClInclude Include="Runtime\Scene\SceneNode.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

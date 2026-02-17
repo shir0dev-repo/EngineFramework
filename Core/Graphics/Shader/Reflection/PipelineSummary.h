@@ -26,6 +26,11 @@ struct PipelineSummary {
 		DescriptorBindingInfo* pDescriptorBindingInfos = nullptr;
 	} materialDescriptors;
 
+	struct InstanceInfo {
+		uint32_t count = 0;
+		DescriptorBindingInfo* pDescriptorBindingInfos = nullptr;
+	} instanceDescriptors;
+
 	uint32_t numPushConstantInfos = 0;
 	uint32_t numVertexInputAttributeInfos = 0;
 	uint32_t numFragmentOutputInfos = 0;

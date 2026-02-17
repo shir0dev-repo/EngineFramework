@@ -4,6 +4,7 @@ typedef unsigned int uint32_t;
 typedef enum VkDescriptorType;
 
 struct MaterialBinding {
+	uint32_t set;
 	uint32_t binding;
 	VkDescriptorType type;
 	const char* name;

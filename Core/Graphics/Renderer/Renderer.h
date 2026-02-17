@@ -32,6 +32,7 @@ struct Renderer {
 	static const int GLOBAL_DESCRIPTOR_SET = 0;
 	static const int PIPELINE_DESCRIPTOR_SET = 1;
 	static const int MATERIAL_DESCRIPTOR_SET = 2;
+	static const int INSTANCE_DESCRIPTOR_SET = 3;
 
 	VkCommandPool_T* const getCurrentCommandPool() const;
 	VkRenderPass_T* const getRenderPass() const;
