@@ -5,7 +5,7 @@
 #include "../../../Vulkan/VulkanDevice.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "STB/stb_image.h"
+#include "stb_image.h"
 
 #include <cstring>
 #include <vulkan/vulkan.h>
