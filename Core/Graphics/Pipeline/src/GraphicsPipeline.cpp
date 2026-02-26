@@ -1,27 +1,30 @@
-#include "../GraphicsPipeline.h"
-#include "../../Descriptor/Descriptors.h"
-#include "../../Descriptor/DescriptorHandle.h"
-#include "../../Material/Material.h"
-#include "../../Renderer/Renderer.h"
-#include "../../RenderCommand.h"
-#include "../../Shader/ShaderModule.h"
-#include "../../Shader/ShaderModuleInfo.h"
-#include "../../Shader/Reflection/PipelineSummary.h"
-#include "../../Shader/Reflection/DescriptorBindingInfo.h"
-#include "../../Shader/Reflection/PushConstantInfo.h"
-#include "../../Shader/Reflection/VertexAttributeInfo.h"
-#include "../../Shader/Reflection/FragmentOutputInfo.h"
-#include "../../Shader/Vertex.h"
-#include "../../Uniform/UniformBuffer.h"
-#include "../../RenderPipelineInfo.h"
-#include "../../../Vulkan/VulkanInstance.h"
-#include "../../../Vulkan/VulkanDevice.h"
-#include "../../../Vulkan/VulkanSwapChain.h"
-#include "../../../Structure/linkedList.h"
-#include "../../Texture/GPUTexture.h"
-#include "../../Renderer/MeshRenderer.h"
-#include "../../Mesh/Mesh.h"
-#include "Runtime/Scene/Entity.h"
+#include "Core/Graphics/Pipeline/GraphicsPipeline.h"
+
+#include "Core/Vulkan/VulkanInstance.h"
+#include "Core/Vulkan/VulkanDevice.h"
+#include "Core/Vulkan/VulkanSwapChain.h"
+
+#include "Core/Structure/linkedList.h"
+
+#include "Core/Graphics/Descriptor/Descriptors.h"
+#include "Core/Graphics/Descriptor/DescriptorHandle.h"
+#include "Core/Graphics/Material/Material.h"
+#include "Core/Graphics/Renderer/Renderer.h"
+#include "Core/Graphics/RenderCommand.h"
+#include "Core/Graphics/Shader/ShaderModule.h"
+#include "Core/Graphics/Shader/ShaderModuleInfo.h"
+#include "Core/Graphics/Shader/Reflection/PipelineSummary.h"
+#include "Core/Graphics/Shader/Reflection/DescriptorBindingInfo.h"
+#include "Core/Graphics/Shader/Reflection/PushConstantInfo.h"
+#include "Core/Graphics/Shader/Reflection/VertexAttributeInfo.h"
+#include "Core/Graphics/Shader/Reflection/FragmentOutputInfo.h"
+#include "Core/Graphics/Uniform/UniformBuffer.h"
+#include "Core/Graphics/RenderPipelineInfo.h"
+#include "Core/Graphics/Texture/GPUTexture.h"
+#include "Core/Graphics/Mesh/Mesh.h"
+
+#include "Core/Entity/Entity.h"
+#include "Core/Entity/Component/MeshRenderer.h"
 
 #include <string>
 #include <vulkan/vulkan.h>
@@ -582,7 +585,7 @@ void GraphicsPipeline::addRenderCommand(const MeshRenderer* const meshRenderer) 
 	RenderCommand* rc = RenderCommand::create(
 		meshRenderer->material,
 		meshRenderer->getVertexBuffer(), meshRenderer->getIndexBuffer(),
-		meshRenderer->mesh->vertexCount, meshRenderer->mesh->indexCount,
+		meshRenderer->getVertexCount(), meshRenderer->getIndexCount(),
 		meshRenderer->getTransformBuffer());
 
 	commandList->add(rc);

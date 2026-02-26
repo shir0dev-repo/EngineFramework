@@ -1,4 +1,4 @@
-#include "../Vertex.h"
+#include "Core/Graphics/Mesh/Mesh.h"
 
 #include <vulkan/vulkan.h>
 

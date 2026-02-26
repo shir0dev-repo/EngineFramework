@@ -1,5 +1,5 @@
-#include "../RenderPipelineInfo.h"
-#include "../Shader/Vertex.h"
+#include "Core/Graphics/RenderPipelineInfo.h"
+#include "Core/Graphics/Mesh/Mesh.h"
 
 #include <vulkan/vulkan.h>
 #include<vector>

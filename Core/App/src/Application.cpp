@@ -1,22 +1,22 @@
 #include "Core/Structure/IDVector.h"
 #include "../Application.h"
 #include "../AppWindow.h"
-#include "../Vulkan/VulkanInstance.h"
-#include "../Vulkan/VulkanValidator.h"
-#include "../Vulkan/VulkanDevice.h"
-#include "../Vulkan/VulkanSwapChain.h"
-#include "../Graphics/Pipeline/GraphicsPipeline.h"
-#include "../Graphics/Shader/Vertex.h"
-#include "../Graphics/Renderer/MeshRenderer.h"
-#include "../Graphics/Mesh/Mesh.h"
-#include "../Graphics/Material/Material.h"
-#include "../Graphics/Shader/ShaderModule.h"
-#include "../Graphics/Shader/PipelineShader.h"
-#include "../Graphics/Renderer/Renderer.h"
-#include "../Component/Camera.h"
-#include "../Graphics/Texture/GPUTexture.h"
+#include "Core/Vulkan/VulkanInstance.h"
+#include "Core/Vulkan/VulkanValidator.h"
+#include "Core/Vulkan/VulkanDevice.h"
+#include "Core/Vulkan/VulkanSwapChain.h"
+#include "Core/Graphics/Pipeline/GraphicsPipeline.h"
+#include "Core/Graphics/Mesh/Mesh.h"
+#include "Core/Entity/Component/MeshRenderer.h"
+#include "Core/Graphics/Mesh/Mesh.h"
+#include "Core/Graphics/Material/Material.h"
+#include "Core/Graphics/Shader/ShaderModule.h"
+#include "Core/Graphics/Shader/PipelineShader.h"
+#include "Core/Graphics/Renderer/Renderer.h"
+#include "Core/Entity/Component/Camera.h"
+#include "Core/Graphics/Texture/GPUTexture.h"
 #include "Core/Graphics/Mesh/Util/MeshLoader.h"
-#include "Runtime/Scene/Entity.h"
+#include "Core/Entity/Entity.h"
 #include "Runtime/Scene/SceneNode.h"
 
 #include <vulkan/vulkan.h>
@@ -111,10 +111,10 @@ void Application::mainLoop() {
 	GPUTexture::getTexture("shipTexture", &shipTexture);
 	material->setTexture(vkInstance, shipTexture, 0);
 	
-	MeshRenderer* meshRenderer = new MeshRenderer();
 	Entity* entity = new Entity();
 	entity->setPosition({ 0, 0, 5 });
-	meshRenderer->setup(vkInstance, entity, mesh, material, renderer);
+
+	MeshRenderer* meshRenderer = new MeshRenderer(vkInstance, renderer, entity, mesh, material);
 	float time = 0;
 
 	while (!glfwWindowShouldClose(window->GetWindow())) {
@@ -135,7 +135,7 @@ void Application::mainLoop() {
 		}
 
 		inputDir = inputDir.normalized_safe() * 0.02f;
-		meshRenderer->entity->setPosition(entity->getPosition() + inputDir);
+		meshRenderer->getEntity()->setPosition(entity->getPosition() + inputDir);
 		const float* transform = entity->getTransform().getPointer();
 		material->setBuffer(vkInstance, 3, 0, transform, sizeof(shml::matrix4f));
 		meshRenderer->draw(renderer->getPipeline(nullptr));
@@ -144,7 +144,7 @@ void Application::mainLoop() {
 	
 	vkDeviceWaitIdle(vkInstance->device->logicalDevice);
 
-	meshRenderer->teardown(vkInstance->device->logicalDevice);
+	meshRenderer->teardown(vkInstance);
 	delete meshRenderer;
 	delete entity;
 	delete mesh;

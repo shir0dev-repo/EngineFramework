@@ -1,5 +1,5 @@
 #include "../RenderCommand.h"
-#include "../Shader/GPUBuffer.h"
+#include "Core/Graphics/Buffer/GPUBuffer.h"
 
 #include <vulkan/vulkan.h>
 

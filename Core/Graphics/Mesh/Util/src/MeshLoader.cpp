@@ -1,7 +1,6 @@
-#include "../MeshLoader.h"
-#include "../../Mesh.h"
+#include "Core/Graphics/Mesh/Util/MeshLoader.h"
+#include "Core/Graphics/Mesh/Mesh.h"
 #include <shml/vec3f.hpp>
-#include "Core/Graphics/Shader/Vertex.h"
 
 #include <vector>
 #include <string>

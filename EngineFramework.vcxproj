@@ -134,16 +134,17 @@
   <ItemGroup>
     <ClCompile Include="Core\Graphics\Descriptor\src\Descriptors.cpp" />
     <ClCompile Include="Core\Graphics\Material\src\Material.cpp" />
+    <ClCompile Include="Core\Graphics\Buffer\src\MeshBuffer.cpp" />
     <ClCompile Include="Core\Graphics\Mesh\Util\src\MeshLoader.cpp" />
     <ClCompile Include="Core\Graphics\Pipeline\src\GraphicsPipeline.cpp" />
-    <ClCompile Include="Core\Graphics\Renderer\src\MeshRenderer.cpp" />
+    <ClCompile Include="Core\Entity\Component\src\MeshRenderer.cpp" />
     <ClCompile Include="Core\Graphics\Renderer\src\Renderer.cpp" />
     <ClCompile Include="Core\Graphics\Shader\Reflection\src\PipelineSummary.cpp" />
     <ClCompile Include="Core\Graphics\Shader\src\ShaderModuleInfo.cpp" />
-    <ClCompile Include="Core\Graphics\Shader\src\GPUBuffer.cpp" />
+    <ClCompile Include="Core\Graphics\Buffer\src\GPUBuffer.cpp" />
     <ClCompile Include="Core\Graphics\Shader\src\ShaderModule.cpp" />
-    <ClCompile Include="Core\Graphics\Shader\src\Vertex.cpp" />
-    <ClCompile Include="Core\Graphics\src\BufferUtils.cpp" />
+    <ClCompile Include="Core\Graphics\Mesh\src\Vertex.cpp" />
+    <ClCompile Include="Core\Graphics\Buffer\src\BufferUtils.cpp" />
     <ClCompile Include="Core\Graphics\src\GraphicsSyncObject.cpp" />
     <ClCompile Include="Core\Graphics\src\GraphicsUtils.cpp" />
     <ClCompile Include="Core\Graphics\src\RenderCommand.cpp" />
@@ -151,8 +152,8 @@
     <ClCompile Include="Core\Graphics\Texture\src\GPUTexture.cpp" />
     <ClCompile Include="Core\Graphics\Uniform\src\UniformBuffer.cpp" />
     <ClCompile Include="Core\Graphics\Util\src\RenderUtils.cpp" />
-    <ClCompile Include="Core\src\Application.cpp" />
-    <ClCompile Include="Core\src\AppWindow.cpp" />
+    <ClCompile Include="Core\App\src\Application.cpp" />
+    <ClCompile Include="Core\App\src\AppWindow.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanInstance.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanSwapChain.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanUtils.cpp" />
@@ -167,18 +168,20 @@
     <ClCompile Include="main.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\Microsoft Visual Studio\2022\Libraries\stb;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
-    <ClCompile Include="Runtime\Scene\src\Entity.cpp" />
+    <ClCompile Include="Core\Entity\src\Entity.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Component\Camera.h" />
-    <ClInclude Include="Core\Application.h" />
-    <ClInclude Include="Core\AppWindow.h" />
-    <ClInclude Include="Core\Graphics\BufferUtils.h" />
+    <ClInclude Include="Core\Entity\Component\Camera.h" />
+    <ClInclude Include="Core\Entity\Component\IEntityComponent.h" />
+    <ClInclude Include="Core\App\Application.h" />
+    <ClInclude Include="Core\App\AppWindow.h" />
+    <ClInclude Include="Core\Graphics\Buffer\BufferUtils.h" />
     <ClInclude Include="Core\Graphics\DepthBuffer.h" />
     <ClInclude Include="Core\Graphics\Descriptor\DescriptorHandle.h" />
     <ClInclude Include="Core\Graphics\Descriptor\Descriptors.h" />
     <ClInclude Include="Core\Graphics\Material\Material.h" />
     <ClInclude Include="Core\Graphics\Material\MaterialPropertyBlock.h" />
+    <ClInclude Include="Core\Graphics\Buffer\MeshBuffer.h" />
     <ClInclude Include="Core\Graphics\Mesh\Util\MeshLoader.h" />
     <ClInclude Include="Core\Graphics\Pipeline\PipelineMaterialLayout.h" />
     <ClInclude Include="Core\Graphics\Shader\Reflection.h" />
@@ -189,10 +192,10 @@
     <ClInclude Include="Core\Graphics\Mesh\Mesh.h" />
     <ClInclude Include="Core\Graphics\Pipeline\GraphicsPipeline.h" />
     <ClInclude Include="Core\Graphics\RenderCommand.h" />
-    <ClInclude Include="Core\Graphics\Renderer\MeshRenderer.h" />
+    <ClInclude Include="Core\Entity\Component\MeshRenderer.h" />
     <ClInclude Include="Core\Graphics\Renderer\Renderer.h" />
     <ClInclude Include="Core\Graphics\RenderPipelineInfo.h" />
-    <ClInclude Include="Core\Graphics\Shader\GPUBuffer.h" />
+    <ClInclude Include="Core\Graphics\Buffer\GPUBuffer.h" />
     <ClInclude Include="Core\Graphics\Shader\MatrixBufferObject.h" />
     <ClInclude Include="Core\Graphics\Shader\PipelineShader.h" />
     <ClInclude Include="Core\Graphics\Shader\Reflection\DescriptorBindingInfo.h" />
@@ -203,7 +206,6 @@
     <ClInclude Include="Core\Graphics\Shader\Reflection\VertexAttributeInfo.h" />
     <ClInclude Include="Core\Graphics\Shader\ShaderModule.h" />
     <ClInclude Include="Core\Graphics\Shader\ShaderModuleInfo.h" />
-    <ClInclude Include="Core\Graphics\Shader\Vertex.h" />
     <ClInclude Include="Core\Graphics\Uniform\UniformBuffer.h" />
     <ClInclude Include="Core\Graphics\Util\RenderUtils.h" />
     <ClInclude Include="Core\Structure\IDVector.h" />
@@ -224,7 +226,7 @@
     <ClInclude Include="lib\shml\vec3i.hpp" />
     <ClInclude Include="lib\shml\vec4f.hpp" />
     <ClInclude Include="lib\SPIRV-Reflect\spirv_reflect.h" />
-    <ClInclude Include="Runtime\Scene\Entity.h" />
+    <ClInclude Include="Core\Entity\Entity.h" />
     <ClInclude Include="Runtime\Scene\SceneNode.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

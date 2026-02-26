@@ -1,7 +1,8 @@
-#include "../BufferUtils.h"
-#include "../../Vulkan/VulkanDevice.h"
-#include "../../Vulkan/VulkanInstance.h"
-#include "../Texture/GPUTexture.h"
+#include "Core/Graphics/Buffer/BufferUtils.h"
+
+#include "Core/Vulkan/VulkanDevice.h"
+#include "Core/Vulkan/VulkanInstance.h"
+#include "Core/Graphics/Texture/GPUTexture.h"
 
 #include <vulkan/vulkan.h>
 #include <iostream>

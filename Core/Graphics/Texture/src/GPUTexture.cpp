@@ -1,8 +1,9 @@
-#include "../GPUTexture.h"
-#include "../../BufferUtils.h"
-#include "../../../Vulkan/VulkanInstance.h"
-#include "../../../Vulkan/VulkanSwapChain.h"
-#include "../../../Vulkan/VulkanDevice.h"
+#include "Core/Graphics/Texture/GPUTexture.h"
+
+#include "Core/Graphics/Buffer/BufferUtils.h"
+#include "Core/Vulkan/VulkanInstance.h"
+#include "Core/Vulkan/VulkanSwapChain.h"
+#include "Core/Vulkan/VulkanDevice.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
