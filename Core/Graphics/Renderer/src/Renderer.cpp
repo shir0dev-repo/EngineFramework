@@ -12,6 +12,7 @@
 #include "Core/App/AppWindow.h"
 #include "Core/Graphics/DepthBuffer.h"
 #include "Core/Vulkan/VulkanUtils.h"
+#include "Core/Entity/Component/Camera.h"
 
 #include <shml/quat.hpp>
 #include <shml/mathutil.hpp>
@@ -275,13 +276,11 @@ void Renderer::addPipeline(PipelineShader* pipelineShader) {
 	graphicsPipelines->add(pipeline);
 }
 
-GraphicsPipeline* const Renderer::getPipeline(const PipelineShader* pipelineShader) {
-	if (pipelineShader == nullptr) {
-		return (*graphicsPipelines)[0];
-	}
+GraphicsPipeline* const Renderer::getPipeline(uint32_t index) {
+	return (*graphicsPipelines)[index];
 }
 
-void Renderer::render(VulkanInstance* instance, GLFWwindow* window) {
+void Renderer::render(VulkanInstance* instance, GLFWwindow* window, Camera* camera) {
 	bool shouldRender = beginFrame(instance->device);
 	if (!shouldRender) {
 		handleInvalidSwapchain(instance, window);
@@ -307,7 +306,7 @@ void Renderer::render(VulkanInstance* instance, GLFWwindow* window) {
 
 	finalizeRenderPassForCurrentFrame();
 	finalizeCommandBufferForCurrentFrame();
-	updateGlobalBuffer(instance->device);
+	updateGlobalBuffer(instance->device, camera);
 
 	submitRender(instance->device);
 	bool successfullyPresented = presentRender(instance->device);
@@ -353,10 +352,13 @@ void Renderer::beginCommandBufferForCurrentFrame() {
 	}
 }
 
-void Renderer::updateGlobalBuffer(const VulkanDevice* const device) {
+void Renderer::updateGlobalBuffer(const VulkanDevice* const device, Camera* camera) {
 	static AppWindow* windowInstance = nullptr;
 	static float dt = 0;
 	static float moveSpeed = 0.005f;
+	static shml::quat rotation{};
+	static shml::vec3f cursorPos{400, 400, 0};
+
 	static shml::vec3f camPos{0, 0, -5};
 
 	if (windowInstance == nullptr) {
@@ -384,26 +386,20 @@ void Renderer::updateGlobalBuffer(const VulkanDevice* const device) {
 	if (glfwGetKey(windowInstance->GetWindow(), GLFW_KEY_W) == GLFW_PRESS) {
 		camPos.z -= moveSpeed;
 	}*/
-	GPUCameraData cameraData = {};
-	cameraData.projection = shml::matrix4f::IDENTITY;
-	const float nearPlane = 0.03f, farPlane = 100.0f;
+	
+	float lastPosX = cursorPos.x, lastPosY = cursorPos.y;
+	double posX, posY;
+	glfwGetCursorPos(windowInstance->GetWindow(), &posX, &posY);
+	cursorPos.x = (float)posX;
+	cursorPos.y = (float)posY;
+	shml::vec3f mouseDir = { lastPosX - cursorPos.x, lastPosY - cursorPos.y, 0.0f };
+	mouseDir.normalize_safe();
+	static float lookSpeed = 0.07f;
+	camera->regenerateProjectionMatrix(windowInstance->Width, windowInstance->Height);
+	camera->transform.rotate(shml::quat(mouseDir.y * lookSpeed, mouseDir.x * lookSpeed, 0.0f));
+	camera->updateViewMatrix();
 
-	float aspect = windowInstance->Width / (float) windowInstance->Height;
-	float fov = 60.0f;
-	float scale = tan(fov * 0.5f * shml::DEG2RAD);
-	cameraData.projection(0, 0) = 1.0f / (aspect * scale);
-	cameraData.projection(1, 1) = -1.0f / scale;
-	cameraData.projection(2, 2) = -(farPlane / (farPlane - nearPlane));
-	cameraData.projection(2, 3) = -(2.0 * (farPlane * nearPlane) / (farPlane - nearPlane));
-	cameraData.projection(3, 2) = -1;
-	cameraData.projection(3, 3) = 0;
-	cameraData.projection.transpose();
-
-	cameraData.view = shml::matrix4f::IDENTITY;
-	cameraData.view.setPosition(camPos);
-	cameraData.view.invert();
-	cameraData.projectionParams = { fov, aspect, nearPlane, farPlane };
-	memcpy(mappedGlobalBuffers[currentFrame], &cameraData, sizeof(GPUCameraData));
+	memcpy(mappedGlobalBuffers[currentFrame], camera, sizeof(GPUCameraData));
 
 	dt += 0.02f;
 }

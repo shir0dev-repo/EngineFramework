@@ -132,6 +132,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Core\Entity\CommandBuffer\src\EntityCommandBuffer.cpp" />
+    <ClCompile Include="Core\Entity\Component\src\Camera.cpp" />
     <ClCompile Include="Core\Graphics\Descriptor\src\Descriptors.cpp" />
     <ClCompile Include="Core\Graphics\Material\src\Material.cpp" />
     <ClCompile Include="Core\Graphics\Buffer\src\MeshBuffer.cpp" />
@@ -154,6 +156,7 @@
     <ClCompile Include="Core\Graphics\Util\src\RenderUtils.cpp" />
     <ClCompile Include="Core\App\src\Application.cpp" />
     <ClCompile Include="Core\App\src\AppWindow.cpp" />
+    <ClCompile Include="Core\Scene\src\World.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanInstance.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanSwapChain.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanUtils.cpp" />
@@ -171,6 +174,9 @@
     <ClCompile Include="Core\Entity\src\Entity.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Core\Scene\SceneNode.h" />
+    <ClInclude Include="Core\Scene\World.h" />
+    <ClInclude Include="Core\Entity\CommandBuffer\EntityCommandBuffer.h" />
     <ClInclude Include="Core\Entity\Component\Camera.h" />
     <ClInclude Include="Core\Entity\Component\IEntityComponent.h" />
     <ClInclude Include="Core\App\Application.h" />
@@ -208,6 +214,7 @@
     <ClInclude Include="Core\Graphics\Shader\ShaderModuleInfo.h" />
     <ClInclude Include="Core\Graphics\Uniform\UniformBuffer.h" />
     <ClInclude Include="Core\Graphics\Util\RenderUtils.h" />
+    <ClInclude Include="Core\Structure\DataPtr.h" />
     <ClInclude Include="Core\Structure\IDVector.h" />
     <ClInclude Include="Core\Structure\linkedList.h" />
     <ClInclude Include="Core\Vulkan\Util\QueueFamilyIndices.h" />
@@ -227,7 +234,6 @@
     <ClInclude Include="lib\shml\vec4f.hpp" />
     <ClInclude Include="lib\SPIRV-Reflect\spirv_reflect.h" />
     <ClInclude Include="Core\Entity\Entity.h" />
-    <ClInclude Include="Runtime\Scene\SceneNode.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -19,8 +19,12 @@ MeshRenderer::MeshRenderer(const VulkanInstance* const instance, Renderer* rende
 	
 	this->meshBuffer = new MeshBuffer();
 	meshBuffer->setup(instance, renderer, meshRef);
-
-	this->transformBuffer = GPUBuffer::create(instance, sizeof(shml::matrix4f), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, entity->getTransform().getPointer());
+	if (entity) {
+		this->transformBuffer = GPUBuffer::create(instance, sizeof(shml::matrix4f), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, entity->getTransform().getPointer());
+	}
+	else {
+		transformBuffer = nullptr;
+	}
 }
 
 void MeshRenderer::teardown(const VulkanInstance* const instance) {

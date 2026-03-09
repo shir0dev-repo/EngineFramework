@@ -17,7 +17,9 @@
 #include "Core/Graphics/Texture/GPUTexture.h"
 #include "Core/Graphics/Mesh/Util/MeshLoader.h"
 #include "Core/Entity/Entity.h"
-#include "Runtime/Scene/SceneNode.h"
+#include "Core/Scene/SceneNode.h"
+#include "Core/Entity/CommandBuffer/EntityCommandBuffer.h"
+#include "Core/Scene/World.h"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -72,6 +74,13 @@ bool Application::initWindow() {
 void Application::initAssets() {
 	GPUTexture::createTexture("Assets/Textures/texture.jpg", "default");
 	GPUTexture::createTexture("Assets/Textures/uv-checker.png", "shipTexture");
+
+	GPUTexture::createTexture("Assets/Textures/Skybox/skybox-top.png", "skybox-top");
+	GPUTexture::createTexture("Assets/Textures/Skybox/skybox-front.png", "skybox-front");
+	GPUTexture::createTexture("Assets/Textures/Skybox/skybox-right.png", "skybox-right");
+	GPUTexture::createTexture("Assets/Textures/Skybox/skybox-back.png", "skybox-back");
+	GPUTexture::createTexture("Assets/Textures/Skybox/skybox-left.png", "skybox-left");
+	GPUTexture::createTexture("Assets/Textures/Skybox/skybox-bottom.png", "skybox-bottom");
 }
 
 void Application::initVulkan() {
@@ -98,28 +107,99 @@ void Application::initRenderer() {
 
 	renderer->addPipeline(&shader);
 
+	int skyboxVertexID = ShaderModule::createNew(vkInstance->device->logicalDevice, "Assets/Shaders/skybox-vert.spv", "skybox-v");
+	int skyboxFragmentID = ShaderModule::createNew(vkInstance->device->logicalDevice, "Assets/Shaders/skybox-frag.spv", "skybox-f");
+
+	ShaderModule::find(skyboxVertexID, &vertex);
+	ShaderModule::find(skyboxFragmentID, &fragment);
+	PipelineShader skyboxShader = {};
+	skyboxShader.vertexModule = vertex;
+	skyboxShader.fragmentModule = fragment;
+	renderer->addPipeline(&skyboxShader);
+
 	uploadTextures(vkInstance);
+}
+
+void moveEntity(Entity* e) {
+	shml::vec3f inputDir{};
+	static GLFWwindow* window = nullptr;
+	if (window == nullptr) {
+		window = AppWindow::getInstance()->GetWindow();
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+		inputDir.x = -1;
+	}
+	else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+		inputDir.x = 1;
+	}
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+		inputDir.z = -1;
+	}
+	else if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+		inputDir.z = 1;
+	}
 }
 
 void Application::mainLoop() {
 	Mesh* mesh = nullptr;
+	Mesh* cube = nullptr;
 	MeshLoader::loadOBJ("Assets/OBJ/ship.obj", &mesh);
-	
-	Material* material = Material::create(vkInstance, renderer->getPipeline(nullptr), "default");
+	MeshLoader::loadOBJ("Assets/OBJ/cube.obj", &cube);
 
+
+	Material* material = Material::create(vkInstance, renderer->getPipeline(0), "default");
+	Material* skyboxMaterial = Material::create(vkInstance, renderer->getPipeline(1), "skybox");
 	GPUTexture* shipTexture = nullptr;
 	GPUTexture::getTexture("shipTexture", &shipTexture);
 	material->setTexture(vkInstance, shipTexture, 0);
+
+	/*layout (set = 2, binding = 0) uniform sampler2D top;
+layout (set = 2, binding = 1) uniform sampler2D front;
+layout (set = 2, binding = 2) uniform sampler2D right;
+layout (set = 2, binding = 3) uniform sampler2D back;
+layout (set = 2, binding = 4) uniform sampler2D left;
+layout (set = 2, binding = 5) uniform sampler2D bottom;*/
+
+	GPUTexture* skyboxTexture = nullptr;
+	GPUTexture::getTexture("skybox-top", &skyboxTexture);
+	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 0);
+	GPUTexture::getTexture("skybox-front", &skyboxTexture);
+	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 1);
+	GPUTexture::getTexture("skybox-right", &skyboxTexture);
+	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 2);
+	GPUTexture::getTexture("skybox-back", &skyboxTexture);
+	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 3);
+	GPUTexture::getTexture("skybox-left", &skyboxTexture);
+	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 4);
+	GPUTexture::getTexture("skybox-bottom", &skyboxTexture);
+	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 5);
 	
 	Entity* entity = new Entity();
-	entity->setPosition({ 0, 0, 5 });
+	entity->setPosition({ 0, 0, -5 });
 
 	MeshRenderer* meshRenderer = new MeshRenderer(vkInstance, renderer, entity, mesh, material);
+	MeshRenderer* skyboxRenderer = new MeshRenderer(vkInstance, renderer, nullptr, cube, skyboxMaterial);
 	float time = 0;
+
+	Camera mainCamera{};
+	mainCamera.setup(window->Width, window->Height);
+	glfwSetInputMode(window->GetWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	bool cursorLocked = true;
 
 	while (!glfwWindowShouldClose(window->GetWindow())) {
 		time += 0.01f;
 		glfwPollEvents();
+		if (glfwGetKey(window->GetWindow(), GLFW_KEY_LEFT_ALT) == GLFW_PRESS) {
+			cursorLocked = !cursorLocked;
+			if (cursorLocked) {
+				glfwSetInputMode(window->GetWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			}
+			else {
+				glfwSetInputMode(window->GetWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			}
+		}
+
 		shml::vec3f inputDir{};
 		if (glfwGetKey(window->GetWindow(), GLFW_KEY_A) == GLFW_PRESS) {
 			inputDir.x = -1;
@@ -135,19 +215,26 @@ void Application::mainLoop() {
 		}
 
 		inputDir = inputDir.normalized_safe() * 0.02f;
-		meshRenderer->getEntity()->setPosition(entity->getPosition() + inputDir);
+		//meshRenderer->getEntity()->setPosition(entity->getPosition() + inputDir);
+		World::getWorld()->moveEntity(meshRenderer->getEntity(), entity->getPosition() + inputDir);
+		World::getWorld()->executeCommands();
+		
 		const float* transform = entity->getTransform().getPointer();
 		material->setBuffer(vkInstance, 3, 0, transform, sizeof(shml::matrix4f));
-		meshRenderer->draw(renderer->getPipeline(nullptr));
-		renderer->render(vkInstance, window->GetWindow());
+		skyboxRenderer->draw(renderer->getPipeline(1));
+		meshRenderer->draw(renderer->getPipeline(0));
+		renderer->render(vkInstance, window->GetWindow(), &mainCamera);
 	}
 	
 	vkDeviceWaitIdle(vkInstance->device->logicalDevice);
 
 	meshRenderer->teardown(vkInstance);
+	skyboxRenderer->teardown(vkInstance);
 	delete meshRenderer;
+	delete skyboxRenderer;
 	delete entity;
 	delete mesh;
+	delete cube;
 }
 
 void Application::cleanup() {
@@ -168,5 +255,18 @@ void uploadTextures(VulkanInstance* vkInstance) {
 	GPUTexture::getTexture("default", &texture);
 	GPUTexture::loadGPU(vkInstance, texture);
 	GPUTexture::getTexture("shipTexture", &texture);
+	GPUTexture::loadGPU(vkInstance, texture);
+
+	GPUTexture::getTexture("skybox-top", &texture);
+	GPUTexture::loadGPU(vkInstance, texture);
+	GPUTexture::getTexture("skybox-front", &texture);
+	GPUTexture::loadGPU(vkInstance, texture);
+	GPUTexture::getTexture("skybox-right", &texture);
+	GPUTexture::loadGPU(vkInstance, texture);
+	GPUTexture::getTexture("skybox-back", &texture);
+	GPUTexture::loadGPU(vkInstance, texture);
+	GPUTexture::getTexture("skybox-left", &texture);
+	GPUTexture::loadGPU(vkInstance, texture);
+	GPUTexture::getTexture("skybox-bottom", &texture);
 	GPUTexture::loadGPU(vkInstance, texture);
 }

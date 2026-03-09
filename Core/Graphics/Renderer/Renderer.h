@@ -15,6 +15,7 @@ struct VkDevice_T;
 
 struct GLFWwindow;
 
+struct Camera;
 struct VulkanInstance;
 struct VulkanDevice;
 struct VulkanSwapChain;
@@ -41,10 +42,10 @@ struct Renderer {
 	static Renderer* const getInstance();
 
 	void addPipeline(PipelineShader* shader);
-	GraphicsPipeline* const getPipeline(const PipelineShader* shader);
+	GraphicsPipeline* const getPipeline(uint32_t index);
 	void removePipeline(GraphicsPipeline* pipeline);
 
-	void render(VulkanInstance* instance, GLFWwindow* window);
+	void render(VulkanInstance* instance, GLFWwindow* window, Camera* camera);
 	
 	void notifyFramebufferResized();
 
@@ -64,7 +65,7 @@ private:
 	void setupGlobalDescriptorSets(const VulkanInstance* const instance);
 
 	bool beginFrame(const VulkanDevice* const device);
-	void updateGlobalBuffer(const VulkanDevice* const device);
+	void updateGlobalBuffer(const VulkanDevice* const device, Camera* camera);
 	void beginCommandBufferForCurrentFrame();
 	void bindGlobalDescriptors(GraphicsPipeline* pipeline);
 	void beginRenderPassForCurrentFrame();

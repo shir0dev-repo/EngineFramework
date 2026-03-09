@@ -1,0 +1,30 @@
+#pragma once
+
+#include "Core/Scene/SceneNode.h"
+#include "shml/vec3f.hpp"
+#include "Core/Structure/DataPtr.h"
+
+struct EntityCommandBuffer;
+template <typename T>
+struct linkedList;
+
+class World {
+	World();
+	~World();
+
+	EntityCommandBuffer* commandBuffer = nullptr;
+	SceneNode rootNode;
+	linkedList<DataPtr>* entityCommandData = nullptr;
+
+	static void moveEntityCommand(Entity* entity);
+public:
+	static World* const getWorld();
+	SceneNode* const getRootNode() const;
+	
+	void moveEntity(Entity* entity, const shml::vec3f& position);
+	void rotateEntityCommand(Entity* entity, const shml::vec3f& rotationEuler);
+
+	void addChildCommand(Entity* parent, Entity* child);
+
+	void executeCommands();
+};

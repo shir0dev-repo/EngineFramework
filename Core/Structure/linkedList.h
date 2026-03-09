@@ -4,8 +4,6 @@
 #include <iostream>
 #include <cassert>
 
-
-
 template<typename T>
 class linkedList {
 	struct node {
@@ -48,7 +46,7 @@ public:
 		return tail->item;
 	}
 
-	bool getPtr(uint32_t index, T** pOut) {
+	bool getPtr(uint32_t index, T* pOut) {
 		ASSERT_IN_RANGE(index);
 		node* temp = head;
 
@@ -57,7 +55,7 @@ public:
 			temp = temp->next;
 		}
 
-		assert(current == index);
+		assert(current == index + 1);
 		pOut = &temp->item;
 		return pOut != nullptr;
 	}
@@ -204,6 +202,13 @@ public:
 		if (index >= m_count) {
 			return false;
 		}
+		if (index == 0) {
+			node* temp = head;
+			this->head = head->next;
+			delete temp;
+			m_count--;
+			return true;
+		}
 
 		node* temp = head;
 		node* lastTemp = nullptr;
@@ -214,7 +219,8 @@ public:
 		}
 
 		node* current = this->head;
-		node* prev = nullptr, next = nullptr;
+		node* prev = nullptr;
+		node* next = nullptr;
 		for (uint32_t i = 1; i <= index; i++) {
 			prev = current;
 			current = next;
@@ -270,10 +276,14 @@ public:
 		node* temp = head;
 		uint32_t current = 0;
 
-		// prefix increment so we get the last valid node
-		while (temp && ++current < index) {
+		for (uint32_t i = 0; i < index; i++) {
 			temp = temp->next;
 		}
+
+		//// prefix increment so we get the last valid node
+		//while (temp && ++current != index) {
+		//	temp = temp->next;
+		//}
 
 		ASSERT_HAS_VALUE(temp);
 		return temp->item;

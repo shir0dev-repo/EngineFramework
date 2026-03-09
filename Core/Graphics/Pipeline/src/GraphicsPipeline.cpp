@@ -291,7 +291,7 @@ void GraphicsPipeline::createPipeline(const VulkanInstance* const instance, Rend
 	VkPipelineRasterizationStateCreateInfo rasterizer = {};
 	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterizer.cullMode = VK_CULL_MODE_NONE;
 	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizer.lineWidth = 1.0f;
 	#pragma endregion
@@ -546,6 +546,10 @@ void GraphicsPipeline::updatePipelineDescriptorWrites(const VulkanInstance* cons
 }
 
 void GraphicsPipeline::bindDescriptorSets(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame) {
+	if (vkPipelineDescriptorSets == nullptr) {
+		return;
+	}
+
 	VkDescriptorSet_T* boundSets = vkPipelineDescriptorSets[currentFrame];
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkLayout, Renderer::PIPELINE_DESCRIPTOR_SET, 1, &boundSets, 0, nullptr);
 }
