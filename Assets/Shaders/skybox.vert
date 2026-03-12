@@ -15,7 +15,7 @@ layout (location = 3) in vec4 inColor;
 layout (location = 0) out vec4 outPosition;
 
 void main() {
-	vec3 position = inPosition.xyz * Matrices.projectionParams.w;
+	vec3 position = inPosition.xyz;// * Matrices.projectionParams.w;
 	outPosition = Matrices.proj * Matrices.view * vec4(position, 1.0);
 	gl_Position = outPosition;
 }

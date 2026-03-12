@@ -2,6 +2,7 @@
 #include "../Util/QueueFamilyIndices.h"
 #include "../Util/SwapChainSupportDetails.h"
 #include "../VulkanDevice.h"
+#include "Core/Vulkan/VulkanInstance.h"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -36,16 +37,16 @@ VkImageView_T* const VulkanSwapChain::getImageView(uint32_t index) {
 	return this->swapChainImageViews[index];
 }
 
-void VulkanSwapChain::setup(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window) {
+void VulkanSwapChain::setup(const VulkanInstance* const instance, VkSurfaceKHR_T* surface, GLFWwindow* window) {
 	this->supportDetails = new SwapChainSupportDetails();
-	querySwapChainCapabilities(device->physicalDevice, surface, *this->supportDetails);
+	querySwapChainCapabilities(instance->physicalDevice, surface, *this->supportDetails);
 
-	createSwapChain(device, surface, window);
-	createImages(device->logicalDevice);
-	createImageViews(device->logicalDevice);
+	createSwapChain(instance, surface, window);
+	createImages(instance->logicalDevice);
+	createImageViews(instance->logicalDevice);
 }
 
-void VulkanSwapChain::createSwapChain(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window) {
+void VulkanSwapChain::createSwapChain(const VulkanInstance* const instance, VkSurfaceKHR_T* surface, GLFWwindow* window) {
 	chooseSwapSurfaceFormat(supportDetails->supportedFormats, supportDetails->supportedFormatsCount);
 	chooseSwapPresentMode(supportDetails->supportedPresentModes, supportDetails->supportedPresentModesCount);
 	chooseSwapExtent(*supportDetails->capabilities, window);
@@ -65,8 +66,8 @@ void VulkanSwapChain::createSwapChain(const VulkanDevice* const device, VkSurfac
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	uint32_t gIndex = device->graphicsQueueFamilyIndex;
-	uint32_t pIndex = device->presentQueueFamilyIndex;
+	uint32_t gIndex = instance->graphicsQueueFamilyIndex;
+	uint32_t pIndex = instance->presentQueueFamilyIndex;
 	uint32_t queueFamilyIndices[] = { gIndex, pIndex };
 
 	if (gIndex != pIndex) {
@@ -86,7 +87,7 @@ void VulkanSwapChain::createSwapChain(const VulkanDevice* const device, VkSurfac
 	createInfo.clipped = VK_TRUE;
 	createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-	if (vkCreateSwapchainKHR(device->logicalDevice, &createInfo, nullptr, &this->swapChain) != VK_SUCCESS) {
+	if (vkCreateSwapchainKHR(instance->logicalDevice, &createInfo, nullptr, &this->swapChain) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create swap chain!");
 	}
 }
@@ -125,7 +126,7 @@ void VulkanSwapChain::createImageViews(VkDevice_T* logicalDevice) {
 	}
 }
 
-void VulkanSwapChain::recreate(const VulkanDevice* const device, VkRenderPass_T* renderPass, VkSurfaceKHR_T* surface, GLFWwindow* window) {
+void VulkanSwapChain::recreate(const VulkanInstance* const instance, VkRenderPass_T* renderPass, VkSurfaceKHR_T* surface, GLFWwindow* window) {
 	int width = 0, height = 0;
 	glfwGetFramebufferSize(window, &width, &height);
 	while (width == 0 || height == 0) {
@@ -135,13 +136,13 @@ void VulkanSwapChain::recreate(const VulkanDevice* const device, VkRenderPass_T*
 		glfwGetFramebufferSize(window, &width, &height);
 		glfwWaitEvents();
 	}
-	vkDeviceWaitIdle(device->logicalDevice);
+	vkDeviceWaitIdle(instance->logicalDevice);
 
-	cleanupSwapchain(device->logicalDevice, false);
-	querySwapChainCapabilities(device->physicalDevice, surface, *this->supportDetails);
-	createSwapChain(device, surface, window);
-	createImages(device->logicalDevice);
-	createImageViews(device->logicalDevice);
+	cleanupSwapchain(instance->logicalDevice, false);
+	querySwapChainCapabilities(instance->physicalDevice, surface, *this->supportDetails);
+	createSwapChain(instance, surface, window);
+	createImages(instance->logicalDevice);
+	createImageViews(instance->logicalDevice);
 }
 
 void VulkanSwapChain::teardown(VkDevice_T* device) {

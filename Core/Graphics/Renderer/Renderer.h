@@ -17,7 +17,6 @@ struct GLFWwindow;
 
 struct Camera;
 struct VulkanInstance;
-struct VulkanDevice;
 struct VulkanSwapChain;
 struct RenderPass;
 struct GraphicsPipeline;
@@ -53,19 +52,19 @@ struct Renderer {
 	void teardown(VkDevice_T* logicalDevice);
 
 private:
-	void setupRenderPass(const VulkanDevice* const device);
-	void setupCommandPool(const VulkanDevice* const device);
-	void setupCommandBuffers(const VulkanDevice* const device);
+	void setupRenderPass(const VulkanInstance* const instance);
+	void setupCommandPool(const VulkanInstance* const instance);
+	void setupCommandBuffers(const VulkanInstance* const instance);
 	void setupDepthBuffer(const VulkanInstance* const instance);
-	void setupFramebuffers(const VulkanDevice* const device);
-	void setupSyncs(const VulkanDevice* const device);
+	void setupFramebuffers(const VulkanInstance* const instance);
+	void setupSyncs(const VulkanInstance* const instance);
 	void setupGlobalUniforms(const VulkanInstance* const instance);
 	void setupGlobalDescriptorLayout(const VulkanInstance* const instance);
 	void setupGlobalDescriptorPool(const VulkanInstance* const instance);
 	void setupGlobalDescriptorSets(const VulkanInstance* const instance);
 
-	bool beginFrame(const VulkanDevice* const device);
-	void updateGlobalBuffer(const VulkanDevice* const device, Camera* camera);
+	bool beginFrame(const VulkanInstance* const instance);
+	void updateGlobalBuffer(const VulkanInstance* const instance, Camera* camera);
 	void beginCommandBufferForCurrentFrame();
 	void bindGlobalDescriptors(GraphicsPipeline* pipeline);
 	void beginRenderPassForCurrentFrame();
@@ -76,8 +75,8 @@ private:
 	void finalizeRenderPassForCurrentFrame();
 	void finalizeCommandBufferForCurrentFrame();
 
-	void submitRender(const VulkanDevice* const device);
-	bool presentRender(const VulkanDevice* const device);
+	void submitRender(const VulkanInstance* const instance);
+	bool presentRender(const VulkanInstance* const instance);
 
 	void handleInvalidSwapchain(const VulkanInstance* const instance, GLFWwindow* window);
 
@@ -105,5 +104,5 @@ private:
 	uint32_t currentFrame = 0;
 	bool frameBufferResized = false;
 
-	static VkFormat findDepthFormat(const VulkanDevice* const device);
+	static VkFormat findDepthFormat(const VulkanInstance* const device);
 };

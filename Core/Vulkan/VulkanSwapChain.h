@@ -5,6 +5,7 @@ typedef unsigned int uint32_t;
 struct SwapChainSupportDetails;
 struct VulkanDevice;
 struct Frame;
+struct VulkanInstance;
 
 struct GLFWwindow;
 
@@ -35,14 +36,14 @@ struct VulkanSwapChain {
 	/// <param name="device">The logical device this swapchain will render to.</param>
 	/// <param name="surface">The surface this swapchain will render to.</param>
 	/// <param name="window">The window this swapchain will render to.</param>
-	void setup(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window);
+	void setup(const VulkanInstance* const instance, VkSurfaceKHR_T* surface, GLFWwindow* window);
 	
 	/// <summary>Recreates the swapchain, resolving and out of date or suboptimal errors.</summary>
 	/// <param name="device">The logical device this swapchain will render to.</param>
 	/// <param name="renderPass">The render pass this swap chain is using.</param>
 	/// <param name="surface">The surface this swapchain will render to.</param>
 	/// <param name="window">The window this swapchain will render to.</param>
-	void recreate(const VulkanDevice* const device, VkRenderPass_T* renderPass, VkSurfaceKHR_T* surface, GLFWwindow* window);
+	void recreate(const VulkanInstance* const instance, VkRenderPass_T* renderPass, VkSurfaceKHR_T* surface, GLFWwindow* window);
 	
 	/// <summary>Cleans up any references made by the VulkanSwapChain.</summary>
 	/// <param name="logicalDevice">The logical device this swapchain belonged to.</param>
@@ -75,7 +76,7 @@ private:
 	/// <param name="device">The logical device this swapchain will render to.</param>
 	/// <param name="surface">The surface this swapchain will render to.</param>
 	/// <param name="window">The window this swapchain will render to.</param>
-	void createSwapChain(const VulkanDevice* const device, VkSurfaceKHR_T* surface, GLFWwindow* window);
+	void createSwapChain(const VulkanInstance* const instance, VkSurfaceKHR_T* surface, GLFWwindow* window);
 
 	void createImages(VkDevice_T* logicalDevice);
 	

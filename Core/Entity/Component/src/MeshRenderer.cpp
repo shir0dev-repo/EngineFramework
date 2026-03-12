@@ -32,7 +32,7 @@ void MeshRenderer::teardown(const VulkanInstance* const instance) {
 		meshBuffer->teardown(instance);
 	}
 	if (transformBuffer != nullptr) {
-		transformBuffer->dispose(instance->device->logicalDevice);
+		transformBuffer->dispose(instance->logicalDevice);
 		delete transformBuffer;
 		transformBuffer = nullptr;
 	}

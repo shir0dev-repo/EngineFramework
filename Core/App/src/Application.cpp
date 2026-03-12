@@ -20,6 +20,8 @@
 #include "Core/Scene/SceneNode.h"
 #include "Core/Entity/CommandBuffer/EntityCommandBuffer.h"
 #include "Core/Scene/World.h"
+#include "Core/Input/InputHandler.h"
+#include "Core/Events/EventHandler.h"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -68,6 +70,8 @@ bool Application::initWindow() {
 	this->window = AppWindow::getInstance();
 	window->setup(800, 800, &Application::onWindowResized);
 
+	glfwSetKeyCallback(window->GetWindow(), &InputHandler::GLFWkeyCallback);
+
 	return 1;
 }
 
@@ -93,8 +97,8 @@ static void uploadTextures(VulkanInstance* vkInstance);
 void Application::initRenderer() {
 	this->renderer = Renderer::getInstance();
 	renderer->setup(vkInstance);
-	int vertexID = ShaderModule::createNew(vkInstance->device->logicalDevice, "Assets/Shaders/vert.spv", "default-v");
-	int fragmentID = ShaderModule::createNew(vkInstance->device->logicalDevice, "Assets/Shaders/frag.spv", "default-f");
+	int vertexID = ShaderModule::createNew(vkInstance->logicalDevice, "Assets/Shaders/vert.spv", "default-v");
+	int fragmentID = ShaderModule::createNew(vkInstance->logicalDevice, "Assets/Shaders/frag.spv", "default-f");
 
 	ShaderModule* vertex = nullptr; 
 	ShaderModule::find(vertexID, &vertex);
@@ -107,8 +111,8 @@ void Application::initRenderer() {
 
 	renderer->addPipeline(&shader);
 
-	int skyboxVertexID = ShaderModule::createNew(vkInstance->device->logicalDevice, "Assets/Shaders/skybox-vert.spv", "skybox-v");
-	int skyboxFragmentID = ShaderModule::createNew(vkInstance->device->logicalDevice, "Assets/Shaders/skybox-frag.spv", "skybox-f");
+	int skyboxVertexID = ShaderModule::createNew(vkInstance->logicalDevice, "Assets/Shaders/skybox-vert.spv", "skybox-v");
+	int skyboxFragmentID = ShaderModule::createNew(vkInstance->logicalDevice, "Assets/Shaders/skybox-frag.spv", "skybox-f");
 
 	ShaderModule::find(skyboxVertexID, &vertex);
 	ShaderModule::find(skyboxFragmentID, &fragment);
@@ -120,46 +124,68 @@ void Application::initRenderer() {
 	uploadTextures(vkInstance);
 }
 
-void moveEntity(Entity* e) {
-	shml::vec3f inputDir{};
-	static GLFWwindow* window = nullptr;
-	if (window == nullptr) {
-		window = AppWindow::getInstance()->GetWindow();
-	}
+shml::vec3f inputDir{};
+bool cursorLocked = true;
 
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-		inputDir.x = -1;
+void Application::onKeyDown(const Event<EKeyboardEvents>& keyPress) {
+	KeyDownEvent evt = keyPress.toType<KeyDownEvent>();
+	switch (evt.keyCode) {
+		case GLFW_KEY_W:
+			inputDir.z = -1;
+			break;
+		case GLFW_KEY_S:
+			inputDir.z = 1;
+			break;
+		case GLFW_KEY_A:
+			inputDir.x = 1;
+			break;
+		case GLFW_KEY_D:
+			inputDir.x = -1;
+			break;
+		case GLFW_KEY_Q:
+			inputDir.y = -1;
+			break;
+		case GLFW_KEY_E:
+			inputDir.y = 1;
+			break;
+		case GLFW_KEY_LEFT_ALT:
+			cursorLocked = !cursorLocked;
+			break;
 	}
-	else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-		inputDir.x = 1;
-	}
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-		inputDir.z = -1;
-	}
-	else if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-		inputDir.z = 1;
+}
+
+void Application::onKeyUp(const Event<EKeyboardEvents>& keyPress) {
+	KeyDownEvent evt = keyPress.toType<KeyDownEvent>();
+	switch (evt.keyCode) {
+	case GLFW_KEY_W:
+	case GLFW_KEY_S:
+		inputDir.z = 0;
+		break;
+	case GLFW_KEY_A:
+	case GLFW_KEY_D:
+		inputDir.x = 0;
+		break;
+	case GLFW_KEY_Q:
+	case GLFW_KEY_E:
+		inputDir.y = 0;
+		break;
 	}
 }
 
 void Application::mainLoop() {
+	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyDown, Application::onKeyDown, this);
+	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyUp, Application::onKeyUp, this);
+
 	Mesh* mesh = nullptr;
 	Mesh* cube = nullptr;
 	MeshLoader::loadOBJ("Assets/OBJ/ship.obj", &mesh);
 	MeshLoader::loadOBJ("Assets/OBJ/cube.obj", &cube);
-
 
 	Material* material = Material::create(vkInstance, renderer->getPipeline(0), "default");
 	Material* skyboxMaterial = Material::create(vkInstance, renderer->getPipeline(1), "skybox");
 	GPUTexture* shipTexture = nullptr;
 	GPUTexture::getTexture("shipTexture", &shipTexture);
 	material->setTexture(vkInstance, shipTexture, 0);
-
-	/*layout (set = 2, binding = 0) uniform sampler2D top;
-layout (set = 2, binding = 1) uniform sampler2D front;
-layout (set = 2, binding = 2) uniform sampler2D right;
-layout (set = 2, binding = 3) uniform sampler2D back;
-layout (set = 2, binding = 4) uniform sampler2D left;
-layout (set = 2, binding = 5) uniform sampler2D bottom;*/
 
 	GPUTexture* skyboxTexture = nullptr;
 	GPUTexture::getTexture("skybox-top", &skyboxTexture);
@@ -177,45 +203,29 @@ layout (set = 2, binding = 5) uniform sampler2D bottom;*/
 	
 	Entity* entity = new Entity();
 	entity->setPosition({ 0, 0, -5 });
+	entity->setRotation(shml::quat(0, 180.0, 0));
 
 	MeshRenderer* meshRenderer = new MeshRenderer(vkInstance, renderer, entity, mesh, material);
 	MeshRenderer* skyboxRenderer = new MeshRenderer(vkInstance, renderer, nullptr, cube, skyboxMaterial);
 	float time = 0;
 
 	Camera mainCamera{};
+	
 	mainCamera.setup(window->Width, window->Height);
 	glfwSetInputMode(window->GetWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	bool cursorLocked = true;
 
 	while (!glfwWindowShouldClose(window->GetWindow())) {
 		time += 0.01f;
 		glfwPollEvents();
-		if (glfwGetKey(window->GetWindow(), GLFW_KEY_LEFT_ALT) == GLFW_PRESS) {
-			cursorLocked = !cursorLocked;
-			if (cursorLocked) {
-				glfwSetInputMode(window->GetWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-			}
-			else {
-				glfwSetInputMode(window->GetWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-			}
-		}
 
-		shml::vec3f inputDir{};
-		if (glfwGetKey(window->GetWindow(), GLFW_KEY_A) == GLFW_PRESS) {
-			inputDir.x = -1;
+		if (cursorLocked) {
+			glfwSetInputMode(window->GetWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		}
-		else if (glfwGetKey(window->GetWindow(), GLFW_KEY_D) == GLFW_PRESS) {
-			inputDir.x = 1;
+		else {
+			glfwSetInputMode(window->GetWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		}
-		if (glfwGetKey(window->GetWindow(), GLFW_KEY_S) == GLFW_PRESS) {
-			inputDir.z = -1;
-		}
-		else if (glfwGetKey(window->GetWindow(), GLFW_KEY_W) == GLFW_PRESS) {
-			inputDir.z = 1;
-		}
-
+		
 		inputDir = inputDir.normalized_safe() * 0.02f;
-		//meshRenderer->getEntity()->setPosition(entity->getPosition() + inputDir);
 		World::getWorld()->moveEntity(meshRenderer->getEntity(), entity->getPosition() + inputDir);
 		World::getWorld()->executeCommands();
 		
@@ -226,7 +236,7 @@ layout (set = 2, binding = 5) uniform sampler2D bottom;*/
 		renderer->render(vkInstance, window->GetWindow(), &mainCamera);
 	}
 	
-	vkDeviceWaitIdle(vkInstance->device->logicalDevice);
+	vkDeviceWaitIdle(vkInstance->logicalDevice);
 
 	meshRenderer->teardown(vkInstance);
 	skyboxRenderer->teardown(vkInstance);
@@ -240,8 +250,8 @@ layout (set = 2, binding = 5) uniform sampler2D bottom;*/
 void Application::cleanup() {
 	Material::cleanup(vkInstance);
 	GPUTexture::cleanup(vkInstance);
-	ShaderModule::teardown(vkInstance->device->logicalDevice);
-	renderer->teardown(vkInstance->device->logicalDevice);
+	ShaderModule::teardown(vkInstance->logicalDevice);
+	renderer->teardown(vkInstance->logicalDevice);
 	delete renderer;
 	vkInstance->teardown();
 	delete vkInstance;

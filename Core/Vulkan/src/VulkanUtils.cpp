@@ -35,23 +35,23 @@ void createVkImage(const VulkanInstance* const instance, uint32_t width, uint32_
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	if (vkCreateImage(instance->device->logicalDevice, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+	if (vkCreateImage(instance->logicalDevice, &imageInfo, nullptr, &image) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create image!");
 	}
 
 	VkMemoryRequirements memRequirements;
-	vkGetImageMemoryRequirements(instance->device->logicalDevice, image, &memRequirements);
+	vkGetImageMemoryRequirements(instance->logicalDevice, image, &memRequirements);
 
 	VkMemoryAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = getMemoryType(instance->device->physicalDevice, memRequirements.memoryTypeBits, properties);
+	allocInfo.memoryTypeIndex = getMemoryType(instance->physicalDevice, memRequirements.memoryTypeBits, properties);
 
-	if (vkAllocateMemory(instance->device->logicalDevice, &allocInfo, nullptr, &memory) != VK_SUCCESS) {
+	if (vkAllocateMemory(instance->logicalDevice, &allocInfo, nullptr, &memory) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate memory for image!");
 	}
 
-	vkBindImageMemory(instance->device->logicalDevice, image, memory, 0);
+	vkBindImageMemory(instance->logicalDevice, image, memory, 0);
 }
 
 void createVkImageView(const VulkanInstance* const instance, VkImage_T* image, VkFormat format, VkImageAspectFlags aspectMask, VkImageView_T*& view) {
@@ -66,7 +66,7 @@ void createVkImageView(const VulkanInstance* const instance, VkImage_T* image, V
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.layerCount = 1;
 
-	if (vkCreateImageView(instance->device->logicalDevice, &viewInfo, nullptr, &view) != VK_SUCCESS) {
+	if (vkCreateImageView(instance->logicalDevice, &viewInfo, nullptr, &view) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create image view!");
 	}
 }

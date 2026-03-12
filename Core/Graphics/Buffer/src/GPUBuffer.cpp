@@ -19,25 +19,25 @@ GPUBuffer* GPUBuffer::create(const VulkanInstance* const instance, uint32_t size
 	buffer->bufferSize = sizeInBytes;
 
 	VkMemoryPropertyFlags memProps = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-	BufferUtils::createBuffer(instance->device, sizeInBytes, VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage, memProps, &buffer->vkBuffer, &buffer->vkMemory);
+	BufferUtils::createBuffer(instance, sizeInBytes, VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage, memProps, &buffer->vkBuffer, &buffer->vkMemory);
 	
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingMemory;
 
 	VkMemoryPropertyFlags stagingProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-	BufferUtils::createBuffer(instance->device, sizeInBytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, stagingProperties, &stagingBuffer, &stagingMemory);
+	BufferUtils::createBuffer(instance, sizeInBytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, stagingProperties, &stagingBuffer, &stagingMemory);
 	
 	if (data != nullptr) {
 		void* mappedData = nullptr;
-		vkMapMemory(instance->device->logicalDevice, stagingMemory, 0, sizeInBytes, 0, &mappedData);
+		vkMapMemory(instance->logicalDevice, stagingMemory, 0, sizeInBytes, 0, &mappedData);
 		memcpy(mappedData, data, sizeInBytes);
-		vkUnmapMemory(instance->device->logicalDevice, stagingMemory);
+		vkUnmapMemory(instance->logicalDevice, stagingMemory);
 	}
 
 	BufferUtils::copyBuffer(instance, stagingBuffer, buffer->vkBuffer, sizeInBytes, 0);
 
-	vkDestroyBuffer(instance->device->logicalDevice, stagingBuffer, nullptr);
-	vkFreeMemory(instance->device->logicalDevice, stagingMemory, nullptr);
+	vkDestroyBuffer(instance->logicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(instance->logicalDevice, stagingMemory, nullptr);
 
 	return buffer;
 }
@@ -66,16 +66,16 @@ void GPUBuffer::bufferData(const VulkanInstance* const instance, const void* dat
 	VkDeviceMemory stagingMemory;
 
 	VkMemoryPropertyFlags stagingProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-	BufferUtils::createBuffer(instance->device, sizeInBytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, stagingProperties, &stagingBuffer, &stagingMemory);
+	BufferUtils::createBuffer(instance, sizeInBytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, stagingProperties, &stagingBuffer, &stagingMemory);
 
 	void* mappedData;
-	vkMapMemory(instance->device->logicalDevice, stagingMemory, 0, sizeInBytes, 0, &mappedData);
+	vkMapMemory(instance->logicalDevice, stagingMemory, 0, sizeInBytes, 0, &mappedData);
 	memcpy(mappedData, data, sizeInBytes);
-	vkUnmapMemory(instance->device->logicalDevice, stagingMemory);
+	vkUnmapMemory(instance->logicalDevice, stagingMemory);
 	
 	BufferUtils::copyBuffer(instance, stagingBuffer, this->vkBuffer, sizeInBytes, offset);
-	vkDestroyBuffer(instance->device->logicalDevice, stagingBuffer, nullptr);
-	vkFreeMemory(instance->device->logicalDevice, stagingMemory, nullptr);
+	vkDestroyBuffer(instance->logicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(instance->logicalDevice, stagingMemory, nullptr);
 }
 
 void GPUBuffer::bind(VkCommandBuffer_T* commandBuffer) {

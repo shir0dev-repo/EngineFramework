@@ -19,31 +19,31 @@ uint32_t BufferUtils::getMemoryType(VkPhysicalDevice_T* physicalDevice, uint32_t
 	throw std::runtime_error("Failed to find suitable memory type!");
 }
 
-void BufferUtils::createBuffer(const VulkanDevice* const device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryUsage, VkBuffer_T** buffer, VkDeviceMemory_T** memory) {
+void BufferUtils::createBuffer(const VulkanInstance* const instance, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryUsage, VkBuffer_T** buffer, VkDeviceMemory_T** memory) {
 	VkBufferCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	createInfo.size = size;
 	createInfo.usage = usage;
 	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	
-	if (vkCreateBuffer(device->logicalDevice, &createInfo, nullptr, buffer) != VK_SUCCESS) {
+	if (vkCreateBuffer(instance->logicalDevice, &createInfo, nullptr, buffer) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create buffer!");
 	}
 	
 	VkMemoryRequirements memRequirements = {};
-	vkGetBufferMemoryRequirements(device->logicalDevice, *buffer, &memRequirements);
+	vkGetBufferMemoryRequirements(instance->logicalDevice, *buffer, &memRequirements);
 	
 	VkMemoryAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = getMemoryType(device->physicalDevice, memRequirements.memoryTypeBits, memoryUsage);
+	allocInfo.memoryTypeIndex = getMemoryType(instance->physicalDevice, memRequirements.memoryTypeBits, memoryUsage);
 	
-	VkResult result = vkAllocateMemory(device->logicalDevice, &allocInfo, nullptr, memory);
+	VkResult result = vkAllocateMemory(instance->logicalDevice, &allocInfo, nullptr, memory);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate buffer memory!");
 	}
 	
-	vkBindBufferMemory(device->logicalDevice, *buffer, *memory, 0);
+	vkBindBufferMemory(instance->logicalDevice, *buffer, *memory, 0);
 }
 
 void BufferUtils::copyBuffer(const VulkanInstance* const instance, VkBuffer_T* src, VkBuffer_T* dst, VkDeviceSize size, uint32_t dstOffset) {

@@ -22,12 +22,12 @@ void MeshBuffer::setup(const VulkanInstance* const instance, Renderer* renderer,
 
 void MeshBuffer::teardown(const VulkanInstance* const instance) {
 	if (vertexBuffer != nullptr) {
-		vertexBuffer->dispose(instance->device->logicalDevice);
+		vertexBuffer->dispose(instance->logicalDevice);
 		delete vertexBuffer;
 		vertexBuffer = nullptr;
 	}
 	if (indexBuffer != nullptr) {
-		indexBuffer->dispose(instance->device->logicalDevice);
+		indexBuffer->dispose(instance->logicalDevice);
 		delete indexBuffer;
 		indexBuffer = nullptr;
 	}

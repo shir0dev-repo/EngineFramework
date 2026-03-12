@@ -7,6 +7,10 @@ struct VulkanInstance;
 struct Renderer;
 struct GraphicsPipeline;
 
+template <typename T>
+class Event;
+typedef enum class EKeyboardEvents;
+
 /// <summary>The core engine application.</summary>
 struct Application {
 	/// <summary>
@@ -47,10 +51,6 @@ private:
 	void initRenderer();
 
 	/// <summary>
-	/// Initializes render materials.
-	/// </summary>
-	void initMaterials();
-	/// <summary>
 	/// Runs every frame.
 	/// </summary>
 	void mainLoop();
@@ -58,6 +58,9 @@ private:
 	/// Cleans up any resources created during runtime.
 	/// </summary>
 	void cleanup();
+
+	void onKeyDown(const Event<EKeyboardEvents>& evt);
+	void onKeyUp(const Event<EKeyboardEvents>& evt);
 
 	/// <summary>
 	/// The AppWindow of the application.

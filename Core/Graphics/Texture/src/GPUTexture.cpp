@@ -24,10 +24,10 @@ void GPUTexture::cleanup(const VulkanInstance* const instance) {
 	}
 
 	for (auto& [filePath, texture] : textureLookup) {
-		vkDestroySampler(instance->device->logicalDevice, texture->imageSampler, nullptr);
-		vkDestroyImageView(instance->device->logicalDevice, texture->imageView, nullptr);
-		vkDestroyImage(instance->device->logicalDevice, texture->image, nullptr);
-		vkFreeMemory(instance->device->logicalDevice, texture->imageMemory, nullptr);
+		vkDestroySampler(instance->logicalDevice, texture->imageSampler, nullptr);
+		vkDestroyImageView(instance->logicalDevice, texture->imageView, nullptr);
+		vkDestroyImage(instance->logicalDevice, texture->image, nullptr);
+		vkFreeMemory(instance->logicalDevice, texture->imageMemory, nullptr);
 		delete texture->imageViewInfo;
 		delete texture;
 	}
@@ -158,19 +158,19 @@ void GPUTexture::loadGPU(const VulkanInstance* const instance, GPUTexture* textu
 	VkDeviceMemory stagingMemory = nullptr;
 	VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 	VkMemoryPropertyFlags memoryUsage = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-	BufferUtils::createBuffer(instance->device, texture->size, usage, memoryUsage, &stagingBuffer, &stagingMemory);
+	BufferUtils::createBuffer(instance, texture->size, usage, memoryUsage, &stagingBuffer, &stagingMemory);
 
 	void* data = nullptr;
-	vkMapMemory(instance->device->logicalDevice, stagingMemory, 0, texture->size, 0, &data);
+	vkMapMemory(instance->logicalDevice, stagingMemory, 0, texture->size, 0, &data);
 	memcpy(data, handle, texture->size);
-	vkUnmapMemory(instance->device->logicalDevice, stagingMemory);
+	vkUnmapMemory(instance->logicalDevice, stagingMemory);
 	
 	loadedTextures.erase(texture);
 	stbi_image_free(handle);
 
 	texture->createImage(instance);
 	texture->createMemory(instance);
-	vkBindImageMemory(instance->device->logicalDevice, texture->image, texture->imageMemory, 0);
+	vkBindImageMemory(instance->logicalDevice, texture->image, texture->imageMemory, 0);
 
 	texture->createImageView(instance);
 	texture->createSampler(instance);
@@ -192,8 +192,8 @@ void GPUTexture::loadGPU(const VulkanInstance* const instance, GPUTexture* textu
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 	);
 
-	vkDestroyBuffer(instance->device->logicalDevice, stagingBuffer, nullptr);
-	vkFreeMemory(instance->device->logicalDevice, stagingMemory, nullptr);
+	vkDestroyBuffer(instance->logicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(instance->logicalDevice, stagingMemory, nullptr);
 }
 
 void GPUTexture::transitionLayout(const VulkanInstance* const instance, GPUTexture* texture, VkFormat imageFormat,
@@ -260,7 +260,7 @@ void GPUTexture::createImage(const VulkanInstance* const instance) {
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.flags = 0; // can be used for things like sparse images
 
-	if (vkCreateImage(instance->device->logicalDevice, &imageInfo, nullptr, &this->image) != VK_SUCCESS) {
+	if (vkCreateImage(instance->logicalDevice, &imageInfo, nullptr, &this->image) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create image!");
 	}
 }
@@ -277,22 +277,22 @@ void GPUTexture::createImageView(const VulkanInstance* const instance) {
 	imageViewInfo->subresourceRange.baseArrayLayer = 0;
 	imageViewInfo->subresourceRange.layerCount = 1;
 	
-	if (vkCreateImageView(instance->device->logicalDevice, this->imageViewInfo, nullptr, &this->imageView) != VK_SUCCESS) {
+	if (vkCreateImageView(instance->logicalDevice, this->imageViewInfo, nullptr, &this->imageView) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create image view!");
 	}
 }
 
 void GPUTexture::createMemory(const VulkanInstance* const instance) {
 	VkMemoryRequirements memRequirements;
-	vkGetImageMemoryRequirements(instance->device->logicalDevice, image, &memRequirements);
+	vkGetImageMemoryRequirements(instance->logicalDevice, image, &memRequirements);
 
 	VkMemoryAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memRequirements.size;
-	uint32_t memType = BufferUtils::getMemoryType(instance->device->physicalDevice, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	uint32_t memType = BufferUtils::getMemoryType(instance->physicalDevice, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	allocInfo.memoryTypeIndex = memType;
 
-	if (vkAllocateMemory(instance->device->logicalDevice, &allocInfo, nullptr, &this->imageMemory) != VK_SUCCESS) {
+	if (vkAllocateMemory(instance->logicalDevice, &allocInfo, nullptr, &this->imageMemory) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate image memory!");
 	}
 }
@@ -307,9 +307,9 @@ void GPUTexture::createSampler(const VulkanInstance* const instance) {
 	sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	
-	if (instance->device->deviceSupportsSamplingAnisotropy()) {
+	if (instance->anisotropicSamplingSupported) {
 		VkPhysicalDeviceProperties deviceProps = {};
-		vkGetPhysicalDeviceProperties(instance->device->physicalDevice, &deviceProps);
+		vkGetPhysicalDeviceProperties(instance->physicalDevice, &deviceProps);
 
 		//sampler.anisotropyEnable = VK_TRUE;
 		//sampler.maxAnisotropy = deviceProps.limits.maxSamplerAnisotropy;
@@ -330,7 +330,7 @@ void GPUTexture::createSampler(const VulkanInstance* const instance) {
 	sampler.minLod = 0.0f;
 	sampler.maxLod = 0.0f;
 
-	if (vkCreateSampler(instance->device->logicalDevice, &sampler, nullptr, &this->imageSampler) != VK_SUCCESS) {
+	if (vkCreateSampler(instance->logicalDevice, &sampler, nullptr, &this->imageSampler) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create image sampler!");
 	}
 }

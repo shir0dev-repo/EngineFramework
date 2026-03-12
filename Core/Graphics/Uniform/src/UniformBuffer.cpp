@@ -1,5 +1,6 @@
 #include "../UniformBuffer.h"
 #include "../../../Vulkan/VulkanDevice.h"
+#include "Core/Vulkan/VulkanInstance.h"
 
 #include <vulkan/vulkan.h>
 #include <iostream>
@@ -16,7 +17,7 @@ static uint32_t getMemoryType(VkPhysicalDevice_T* physicalDevice, uint32_t typeF
 	throw std::runtime_error("Failed to find suitable memory type!");
 }
 
-UniformBuffer* UniformBuffer::create(const VulkanDevice* const device, uint32_t allocationSize,
+UniformBuffer* UniformBuffer::create(const VulkanInstance* const instance, uint32_t allocationSize,
 	VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryUsage) {
 	
 	VkBufferCreateInfo createInfo = {};
@@ -26,23 +27,23 @@ UniformBuffer* UniformBuffer::create(const VulkanDevice* const device, uint32_t 
 	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 	UniformBuffer* buffer = new UniformBuffer();
-	if (vkCreateBuffer(device->logicalDevice, &createInfo, nullptr, &buffer->vkBuffer) != VK_SUCCESS) {
+	if (vkCreateBuffer(instance->logicalDevice, &createInfo, nullptr, &buffer->vkBuffer) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create buffer!");
 	}
 
 	VkMemoryRequirements memRequirements = {};
-	vkGetBufferMemoryRequirements(device->logicalDevice, buffer->vkBuffer, &memRequirements);
+	vkGetBufferMemoryRequirements(instance->logicalDevice, buffer->vkBuffer, &memRequirements);
 
 	VkMemoryAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = getMemoryType(device->physicalDevice, memRequirements.memoryTypeBits, memoryUsage);
+	allocInfo.memoryTypeIndex = getMemoryType(instance->physicalDevice, memRequirements.memoryTypeBits, memoryUsage);
 
-	if (vkAllocateMemory(device->logicalDevice, &allocInfo, nullptr, &buffer->vkMemory) != VK_SUCCESS) {
+	if (vkAllocateMemory(instance->logicalDevice, &allocInfo, nullptr, &buffer->vkMemory) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate buffer memory!");
 	}
 
-	vkBindBufferMemory(device->logicalDevice, buffer->vkBuffer, buffer->vkMemory, 0);
+	vkBindBufferMemory(instance->logicalDevice, buffer->vkBuffer, buffer->vkMemory, 0);
 	return buffer;
 }
 

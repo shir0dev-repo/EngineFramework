@@ -19,14 +19,14 @@ void Material::cleanup(const VulkanInstance* const instance) {
 	for (auto& [name, material] : materialLookup) {
 		if (material->pBuffers != nullptr) {
 			for (uint32_t i = 0; i < material->numBufferHandles; i++) {
-				material->pBuffers[i].handle->dispose(instance->device->logicalDevice);
+				material->pBuffers[i].handle->dispose(instance->logicalDevice);
 				delete material->pBuffers[i].handle;
 			}
 			delete[] material->pBuffers;
 		}
 		if (material->pInstanceBuffers != nullptr) {
 			for (uint32_t i = 0; i < material->numInstanceBufferHandles; i++) {
-				material->pInstanceBuffers[i].handle->dispose(instance->device->logicalDevice);
+				material->pInstanceBuffers[i].handle->dispose(instance->logicalDevice);
 				delete material->pInstanceBuffers[i].handle;
 			}
 			delete[] material->pInstanceBuffers;
@@ -142,7 +142,7 @@ Material* const Material::create(const VulkanInstance* const instance, GraphicsP
 
 			writes.push_back(write);
 		}
-		vkUpdateDescriptorSets(instance->device->logicalDevice, writes.size(), writes.data(), 0, nullptr);
+		vkUpdateDescriptorSets(instance->logicalDevice, writes.size(), writes.data(), 0, nullptr);
 	}
 
 	materialLookup.emplace(name, material);
@@ -251,7 +251,7 @@ void Material::setTexture(const VulkanInstance* const instance, GPUTexture* text
 		write.dstBinding = binding;
 		write.pImageInfo = &imageInfo;
 
-		vkUpdateDescriptorSets(instance->device->logicalDevice, 1, &write, 0, nullptr);
+		vkUpdateDescriptorSets(instance->logicalDevice, 1, &write, 0, nullptr);
 	}
 
 	pTextures[binding].customHandle = texture;

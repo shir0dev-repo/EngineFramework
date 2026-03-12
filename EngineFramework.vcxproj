@@ -134,6 +134,7 @@
   <ItemGroup>
     <ClCompile Include="Core\Entity\CommandBuffer\src\EntityCommandBuffer.cpp" />
     <ClCompile Include="Core\Entity\Component\src\Camera.cpp" />
+    <ClCompile Include="Core\Events\src\EventHandler.cpp" />
     <ClCompile Include="Core\Graphics\Descriptor\src\Descriptors.cpp" />
     <ClCompile Include="Core\Graphics\Material\src\Material.cpp" />
     <ClCompile Include="Core\Graphics\Buffer\src\MeshBuffer.cpp" />
@@ -156,6 +157,7 @@
     <ClCompile Include="Core\Graphics\Util\src\RenderUtils.cpp" />
     <ClCompile Include="Core\App\src\Application.cpp" />
     <ClCompile Include="Core\App\src\AppWindow.cpp" />
+    <ClCompile Include="Core\Input\InputHandler.cpp" />
     <ClCompile Include="Core\Scene\src\World.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanInstance.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanSwapChain.cpp" />
@@ -174,6 +176,13 @@
     <ClCompile Include="Core\Entity\src\Entity.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Core\Events\Event.h" />
+    <ClInclude Include="Core\Events\EventHandler.h" />
+    <ClInclude Include="Core\Events\KeyboardEvents.h" />
+    <ClInclude Include="Core\Events\MouseEvents.h" />
+    <ClInclude Include="Core\Events\WindowEvents.h" />
+    <ClInclude Include="Core\Game\Game.h" />
+    <ClInclude Include="Core\Input\InputHandler.h" />
     <ClInclude Include="Core\Scene\SceneNode.h" />
     <ClInclude Include="Core\Scene\World.h" />
     <ClInclude Include="Core\Entity\CommandBuffer\EntityCommandBuffer.h" />

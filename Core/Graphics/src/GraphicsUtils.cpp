@@ -8,7 +8,7 @@
 bool GraphicsUtils::GetPhysicalDevice(VkPhysicalDevice_T*& physicalDevice) {
 	static VkPhysicalDevice_T* device = nullptr;
 	if (device == nullptr) {
-		device = VulkanInstance::getInstance()->device->physicalDevice;
+		device = VulkanInstance::getInstance()->physicalDevice;
 	}
 
 	physicalDevice = device;
@@ -18,7 +18,7 @@ bool GraphicsUtils::GetPhysicalDevice(VkPhysicalDevice_T*& physicalDevice) {
 bool GraphicsUtils::GetLogicalDevice(VkDevice_T*& logicalDevice) {
 	static VkDevice_T* device = nullptr;
 	if (device == nullptr) {
-		device = VulkanInstance::getInstance()->device->logicalDevice;
+		device = VulkanInstance::getInstance()->logicalDevice;
 	}
 
 	logicalDevice = device;
