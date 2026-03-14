@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include <cassert>
+#include <iterator>
 
 template<typename T>
 class linkedList {
@@ -28,12 +29,47 @@ class linkedList {
 public:
 	typedef bool (*Comparer)(T t1, T t2);
 
+	struct Iterator {
+		using iterator_category = std::forward_iterator_tag;
+		using difference_type = std::ptrdiff_t;
+		
+		using value_type = T;
+		using value_pointer = value_type*;
+		using value_reference = value_type&;
+		using node_pointer = node*;
+		using node_reference = node&;
+
+		Iterator(node_pointer ptr) : m_ptr(ptr) {}
+
+		value_reference operator*() const { return m_ptr->item; }
+		value_pointer operator->() { return &m_ptr->item; }
+
+		Iterator& operator++() {
+			m_ptr = m_ptr->next;
+			return *this;
+		}
+		Iterator operator++(int) {
+			Iterator tmp = *this;
+			m_ptr = m_ptr->next;
+			return tmp;
+		}
+
+		friend bool operator== (const Iterator& a, const Iterator& b) { return a.m_ptr == b.m_ptr; }
+		friend bool operator!= (const Iterator& a, const Iterator& b) { return a.m_ptr != b.m_ptr; }
+
+	private:
+		node_pointer m_ptr;
+	};
+
 	linkedList() {
 		head = nullptr;
 		tail = nullptr;
 		m_count = 0;
 	}
 	~linkedList() { clear(); }
+
+	Iterator begin() { return Iterator(head); }
+	Iterator end() { return Iterator(tail->next); }
 
 	uint32_t size() const { return m_count; }
 	
@@ -152,49 +188,6 @@ public:
 			}
 		}
 
-		return false;
-	}
-
-	bool remove(T item) {
-		node* temp = head;
-		node* lastTemp = nullptr;
-
-		// empty list
-		if (!temp) {
-			return false;
-		}
-
-		// remove head
-		if (temp->item == item) {
-			head = temp->next;
-			delete temp;
-			m_count--;
-			return true;
-		}
-		else {
-			lastTemp = temp;
-			temp = temp->next;
-		}
-
-		while (temp) {
-			if (temp->item == item) {
-				if (temp->next) {
-					lastTemp->next = temp->next;
-				}
-				else {
-					lastTemp->next = nullptr;
-				}
-
-				delete temp;
-				m_count--;
-				return true;
-			}
-			else {
-				lastTemp = temp;
-				temp = temp->next;
-			}
-		}
-		// couldn't find item
 		return false;
 	}
 

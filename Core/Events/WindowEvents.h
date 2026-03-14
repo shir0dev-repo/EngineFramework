@@ -9,6 +9,7 @@ enum class EWindowEvents {
 
 struct WindowResizeEvent : public Event<EWindowEvents> {
 	WindowResizeEvent() : Event<EWindowEvents>(EWindowEvents::WindowResized, "WindowResize") {}
+	struct GLFWwindow* window;
 	int width = 0;
 	int height = 0;
 };

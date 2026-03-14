@@ -52,7 +52,13 @@ int Application::run() {
 
 void Application::onWindowResized(GLFWwindow* window, int width, int height) {
 	static Application* instance = getInstance();
-	
+	WindowResizeEvent we;
+	we.window = window;
+	we.width = width;
+	we.height = height;
+
+	SEND_WINDOW_EVENT(we);
+
 	instance->renderer->notifyFramebufferResized();
 	instance->window->Width = width;
 	instance->window->Height = height;
@@ -200,8 +206,10 @@ void Application::mainLoop() {
 	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 4);
 	GPUTexture::getTexture("skybox-bottom", &skyboxTexture);
 	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 5);
-	
-	Entity* entity = new Entity();
+	SceneNode* entity = new SceneNode();
+
+	entity->parent = World::getWorld()->getRootNode();
+
 	entity->setPosition({ 0, 0, -5 });
 	entity->setRotation(shml::quat(0, 180.0, 0));
 

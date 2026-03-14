@@ -367,6 +367,14 @@ void VulkanInstance::teardown() {
 		vkDestroySurfaceKHR(instance, surface, nullptr);
 		surface = nullptr;
 	}
+	if (logicalDevice != nullptr) {
+		vkDestroyDevice(logicalDevice, nullptr);
+		logicalDevice = nullptr;
+	}
+	if (debugMessenger != nullptr) {
+		DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+		debugMessenger = nullptr;
+	}
 	if (instance != nullptr) {
 		vkDestroyInstance(instance, nullptr);
 		instance = nullptr;

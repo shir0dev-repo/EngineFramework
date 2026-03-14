@@ -158,6 +158,7 @@
     <ClCompile Include="Core\App\src\Application.cpp" />
     <ClCompile Include="Core\App\src\AppWindow.cpp" />
     <ClCompile Include="Core\Input\InputHandler.cpp" />
+    <ClCompile Include="Core\Scene\src\SceneNode.cpp" />
     <ClCompile Include="Core\Scene\src\World.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanInstance.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanSwapChain.cpp" />

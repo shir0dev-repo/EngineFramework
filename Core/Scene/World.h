@@ -19,7 +19,7 @@ class World {
 	static void moveEntityCommand(Entity* entity);
 public:
 	static World* const getWorld();
-	SceneNode* const getRootNode() const;
+	SceneNode* const getRootNode();
 	
 	void moveEntity(Entity* entity, const shml::vec3f& position);
 	void rotateEntityCommand(Entity* entity, const shml::vec3f& rotationEuler);

@@ -21,9 +21,14 @@ World* const World::getWorld() {
 	static World* world;
 	if (world == nullptr) {
 		world = new World();
+		world->rootNode = {};
 	}
 
 	return world;
+}
+
+SceneNode* const World::getRootNode() {
+	return &rootNode;
 }
 
 void World::moveEntity(Entity* entity, const shml::vec3f& position) {
