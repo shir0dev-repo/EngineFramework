@@ -118,6 +118,31 @@ GPUTexture* GPUTexture::createTexture(const char* filePath, const char* name) {
 	return texture;
 }
 
+GPUTexture* GPUTexture::createTexture(const uint32_t width, const uint32_t height, const uint32_t channels, const void* data, const char* name) {
+	GPUTexture* texture = nullptr;
+	std::string nameStr;
+	uint32_t nameLen = strnlen_s(name, MAX_NAME_SIZE);
+
+	if (getTexture(name, &texture)) {
+		return texture;
+	}
+	else {
+		nameStr = name;
+	}
+
+	texture = new GPUTexture();
+	texture->name = new char[nameLen];
+	nameStr.copy(texture->name, nameLen);
+
+	texture->width = width;
+	texture->height = height;
+	texture->channels = channels;
+	texture->size = static_cast<VkDeviceSize>(texture->width * texture->height * sizeof(float));
+
+	textureLookup.emplace(nameStr, texture);
+	return texture;
+}
+
 GPUTexture* GPUTexture::createTextureLoadImmediate(const VulkanInstance* const instance, const char* filePath, const char* name) {
 	
 	GPUTexture* texture = createTexture(filePath, name);
@@ -127,6 +152,14 @@ GPUTexture* GPUTexture::createTextureLoadImmediate(const VulkanInstance* const i
 		loadGPU(instance, texture, handle);
 	}
 	
+	return texture;
+}
+
+GPUTexture* GPUTexture::createTextureLoadImmediate(const VulkanInstance* const instance, const uint32_t width, const uint32_t height,
+	const uint32_t channels, const uint32_t sizeInBytes, const void* data, const char* name) {
+
+	GPUTexture* texture = createTexture(width, height, channels, data, name);
+	GPUTexture::loadGPU(instance, sizeInBytes, data, texture);
 	return texture;
 }
 
@@ -181,6 +214,41 @@ void GPUTexture::loadGPU(const VulkanInstance* const instance, GPUTexture* textu
 		instance->swapChain->getFormat()->format,
 		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
 	);
+
+	BufferUtils::copyToImage(instance, stagingBuffer, texture);
+
+	GPUTexture::transitionLayout(
+		instance,
+		texture,
+		instance->swapChain->getFormat()->format,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+	);
+
+	vkDestroyBuffer(instance->logicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(instance->logicalDevice, stagingMemory, nullptr);
+}
+
+void GPUTexture::loadGPU(const VulkanInstance* const instance, const uint32_t sizeInBytes, const void* data, GPUTexture* texture) {
+	VkBuffer stagingBuffer = nullptr;
+	VkDeviceMemory stagingMemory = nullptr;
+	VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	VkMemoryPropertyFlags memoryUsage = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	BufferUtils::createBuffer(instance, texture->size, usage, memoryUsage, &stagingBuffer, &stagingMemory);
+
+	void* mappedData = nullptr;
+	VkResult result = vkMapMemory(instance->logicalDevice, stagingMemory, 0, texture->size, 0, &mappedData);
+	memcpy(mappedData, data, sizeInBytes);
+	vkUnmapMemory(instance->logicalDevice, stagingMemory);
+
+	texture->createImage(instance);
+	texture->createMemory(instance);
+	vkBindImageMemory(instance->logicalDevice, texture->image, texture->imageMemory, 0);
+
+	texture->createImageView(instance);
+	texture->createSampler(instance);
+
+	GPUTexture::transitionLayout(instance, texture, instance->swapChain->getFormat()->format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
 	BufferUtils::copyToImage(instance, stagingBuffer, texture);
 

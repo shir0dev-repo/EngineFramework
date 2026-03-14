@@ -9,6 +9,7 @@
 #include "Core/Graphics/Mesh/Mesh.h"
 #include "Core/Graphics/Buffer/GPUBuffer.h"
 #include "Core/Graphics/Buffer/MeshBuffer.h"
+#include "Core/Graphics/Material/Material.h"
 
 #include <shml/matrix4f.hpp>
 #include <vulkan/vulkan.h>
@@ -17,14 +18,7 @@ MeshRenderer::MeshRenderer(const VulkanInstance* const instance, Renderer* rende
 : IEntityComponent(entity) {
 	this->material = materialRef;
 	
-	this->meshBuffer = new MeshBuffer();
-	meshBuffer->setup(instance, renderer, meshRef);
-	if (entity) {
-		this->transformBuffer = GPUBuffer::create(instance, sizeof(shml::matrix4f), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, entity->getTransform().getPointer());
-	}
-	else {
-		transformBuffer = nullptr;
-	}
+	IRenderable::setup(instance, renderer, entity, meshRef, materialRef);
 }
 
 void MeshRenderer::teardown(const VulkanInstance* const instance) {
@@ -38,23 +32,10 @@ void MeshRenderer::teardown(const VulkanInstance* const instance) {
 	}
 }
 
-GPUBuffer* const MeshRenderer::getVertexBuffer() const {
-	return meshBuffer->vertexBuffer;
-}
-GPUBuffer* const MeshRenderer::getIndexBuffer() const {
-	return meshBuffer->indexBuffer;
-}
-GPUBuffer* const MeshRenderer::getTransformBuffer() const {
-	return transformBuffer;
-}
+void MeshRenderer::draw() {
+	if (!material) {
+		return;
+	}
 
-uint32_t MeshRenderer::getVertexCount() const {
-	return meshBuffer->mesh->vertexCount;
-}
-uint32_t MeshRenderer::getIndexCount() const {
-	return meshBuffer->mesh->indexCount;
-}
-
-void MeshRenderer::draw(GraphicsPipeline* pipeline) {
-	pipeline->addRenderCommand(this);
+	material->pipeline->addRenderCommand(this);
 }

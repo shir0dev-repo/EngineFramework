@@ -134,6 +134,7 @@
   <ItemGroup>
     <ClCompile Include="Core\Entity\CommandBuffer\src\EntityCommandBuffer.cpp" />
     <ClCompile Include="Core\Entity\Component\src\Camera.cpp" />
+    <ClCompile Include="Core\Entity\Component\src\IRenderable.cpp" />
     <ClCompile Include="Core\Events\src\EventHandler.cpp" />
     <ClCompile Include="Core\Graphics\Descriptor\src\Descriptors.cpp" />
     <ClCompile Include="Core\Graphics\Material\src\Material.cpp" />
@@ -160,6 +161,8 @@
     <ClCompile Include="Core\Input\InputHandler.cpp" />
     <ClCompile Include="Core\Scene\src\SceneNode.cpp" />
     <ClCompile Include="Core\Scene\src\World.cpp" />
+    <ClCompile Include="Core\UI\src\FontAsset.cpp" />
+    <ClCompile Include="Core\UI\src\TextMesh.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanInstance.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanSwapChain.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanUtils.cpp" />
@@ -177,6 +180,8 @@
     <ClCompile Include="Core\Entity\src\Entity.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Core\Entity\Component\IRenderable.h" />
+    <ClInclude Include="Core\Entity\Component\TextRenderer.h" />
     <ClInclude Include="Core\Events\Event.h" />
     <ClInclude Include="Core\Events\EventHandler.h" />
     <ClInclude Include="Core\Events\KeyboardEvents.h" />
@@ -227,6 +232,10 @@
     <ClInclude Include="Core\Structure\DataPtr.h" />
     <ClInclude Include="Core\Structure\IDVector.h" />
     <ClInclude Include="Core\Structure\linkedList.h" />
+    <ClInclude Include="Core\UI\FontAsset.h" />
+    <ClInclude Include="Core\UI\Rect.h" />
+    <ClInclude Include="Core\UI\Text.h" />
+    <ClInclude Include="Core\UI\TextMesh.h" />
     <ClInclude Include="Core\Vulkan\Util\QueueFamilyIndices.h" />
     <ClInclude Include="Core\Vulkan\Util\SwapChainSupportDetails.h" />
     <ClInclude Include="Core\Vulkan\VulkanInstance.h" />

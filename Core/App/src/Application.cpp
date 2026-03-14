@@ -22,6 +22,8 @@
 #include "Core/Scene/World.h"
 #include "Core/Input/InputHandler.h"
 #include "Core/Events/EventHandler.h"
+#include "Core/UI/FontAsset.h"
+#include "Core/UI/TextMesh.h"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -122,10 +124,22 @@ void Application::initRenderer() {
 
 	ShaderModule::find(skyboxVertexID, &vertex);
 	ShaderModule::find(skyboxFragmentID, &fragment);
+
 	PipelineShader skyboxShader = {};
 	skyboxShader.vertexModule = vertex;
 	skyboxShader.fragmentModule = fragment;
 	renderer->addPipeline(&skyboxShader);
+
+	int fontVertexID = ShaderModule::createNew(vkInstance->logicalDevice, "Assets/Shaders/UIText-vert.spv", "font-v");
+	int fontFragmentID = ShaderModule::createNew(vkInstance->logicalDevice, "Assets/Shaders/UIText-frag.spv", "font-f");
+
+	ShaderModule::find(fontVertexID, &vertex);
+	ShaderModule::find(fontFragmentID, &fragment);
+
+	PipelineShader fontShader = {};
+	fontShader.vertexModule = vertex;
+	fontShader.fragmentModule = fragment;
+	renderer->addPipeline(&fontShader);
 
 	uploadTextures(vkInstance);
 }
@@ -182,6 +196,8 @@ void Application::mainLoop() {
 	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyDown, Application::onKeyDown, this);
 	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyUp, Application::onKeyUp, this);
 
+	FontAsset* font = FontAsset::create(vkInstance, "Assets/Fonts/Minecraft.ttf", 16.0f);
+	//GPUTexture::loadGPU(vkInstance, reinterpret_cast<void*>(font->fontAtlasTextureData), font->texture);
 	Mesh* mesh = nullptr;
 	Mesh* cube = nullptr;
 	MeshLoader::loadOBJ("Assets/OBJ/ship.obj", &mesh);
@@ -189,6 +205,9 @@ void Application::mainLoop() {
 
 	Material* material = Material::create(vkInstance, renderer->getPipeline(0), "default");
 	Material* skyboxMaterial = Material::create(vkInstance, renderer->getPipeline(1), "skybox");
+	Material* fontMaterial = Material::create(vkInstance, renderer->getPipeline(2), "font");
+	fontMaterial->setTexture(vkInstance, font->texture, 0);
+
 	GPUTexture* shipTexture = nullptr;
 	GPUTexture::getTexture("shipTexture", &shipTexture);
 	material->setTexture(vkInstance, shipTexture, 0);
@@ -215,6 +234,8 @@ void Application::mainLoop() {
 
 	MeshRenderer* meshRenderer = new MeshRenderer(vkInstance, renderer, entity, mesh, material);
 	MeshRenderer* skyboxRenderer = new MeshRenderer(vkInstance, renderer, nullptr, cube, skyboxMaterial);
+	TextMesh* fontMesh = TextMesh::generate(vkInstance, window->Width, window->Height, font, "Hello Vulkan!", { 200, 200, 600, 600 }, 16);
+	meshRenderer->material->setTexture(vkInstance, font->texture, 0);
 	float time = 0;
 
 	Camera mainCamera{};
@@ -239,8 +260,8 @@ void Application::mainLoop() {
 		
 		const float* transform = entity->getTransform().getPointer();
 		material->setBuffer(vkInstance, 3, 0, transform, sizeof(shml::matrix4f));
-		skyboxRenderer->draw(renderer->getPipeline(1));
-		meshRenderer->draw(renderer->getPipeline(0));
+		skyboxRenderer->draw();
+		meshRenderer->draw();
 		renderer->render(vkInstance, window->GetWindow(), &mainCamera);
 	}
 	

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Entity/Component/IEntityComponent.h"
+#include "Core/Entity/Component/IRenderable.h"
 
 typedef unsigned int uint32_t;
 
@@ -15,21 +16,10 @@ struct Material;
 struct Entity;
 struct MeshBuffer;
 
-struct MeshRenderer : public IEntityComponent {
-	MeshBuffer* meshBuffer = nullptr;
-	Material* material = nullptr;
-
-	GPUBuffer* const getVertexBuffer() const;
-	uint32_t getVertexCount() const;
-	GPUBuffer* const getIndexBuffer() const;
-	uint32_t getIndexCount() const;
-	GPUBuffer* const getTransformBuffer() const;
-
+struct MeshRenderer : public IEntityComponent, public IRenderable {
+	
 	MeshRenderer(const VulkanInstance* const instance, Renderer* renderer, Entity* const entity, Mesh* const meshRef, Material* const materialRef);
 	void teardown(const VulkanInstance* const instance);
 
-	void draw(GraphicsPipeline* pipeline);
-
-private:
-	GPUBuffer* transformBuffer;
+	virtual void draw() override;
 };

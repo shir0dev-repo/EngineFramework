@@ -33,8 +33,13 @@ struct GPUTexture {
 	uint32_t channels = 0;
 
 	static GPUTexture* createTexture(const char* filePath, const char* name = "");
+	static GPUTexture* createTexture(const uint32_t width, const uint32_t height, const uint32_t channels, 
+		const void* data = nullptr, const char* name = "");
+	
 	static GPUTexture* createTextureLoadImmediate(const VulkanInstance* const instance, const char* filePath,
 		const char* name = "");
+	static GPUTexture* createTextureLoadImmediate(const VulkanInstance* const instance, const uint32_t width, const uint32_t height,
+		const uint32_t channels, const uint32_t sizeInBytes = 0, const void* data = nullptr, const char* name = "");
 
 	static bool getTexture(const char* name, GPUTexture** outTexture);
 
@@ -42,7 +47,8 @@ struct GPUTexture {
 		VkImageLayout oldLayout, VkImageLayout newLayout);
 
 	static void loadGPU(const VulkanInstance* const instance, GPUTexture* texture);
-	static void loadGPU(const VulkanInstance*const instance, GPUTexture* texture, unsigned char* handle);
+	static void loadGPU(const VulkanInstance* const instance, GPUTexture* texture, unsigned char* handle);
+	static void loadGPU(const VulkanInstance* const instance, const uint32_t sizeInBytes, const void* data, GPUTexture* texture);
 	static void cleanup(const VulkanInstance* const instance);
 private:
 	static bool getCPUTextureHandle(GPUTexture* texture, unsigned char** outHandle);

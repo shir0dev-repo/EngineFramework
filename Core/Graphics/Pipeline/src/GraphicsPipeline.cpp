@@ -24,7 +24,8 @@
 #include "Core/Graphics/Mesh/Mesh.h"
 
 #include "Core/Entity/Entity.h"
-#include "Core/Entity/Component/MeshRenderer.h"
+//#include "Core/Entity/Component/MeshRenderer.h"
+#include "Core/Entity/Component/IRenderable.h"
 
 #include <string>
 #include <vulkan/vulkan.h>
@@ -585,12 +586,12 @@ void GraphicsPipeline::getRegisteredMaterials(uint32_t* count, Material** outMat
 	}
 }
 
-void GraphicsPipeline::addRenderCommand(const MeshRenderer* const meshRenderer) {
+void GraphicsPipeline::addRenderCommand(const IRenderable* const meshRenderer) {
 	RenderCommand* rc = RenderCommand::create(
 		meshRenderer->material,
 		meshRenderer->getVertexBuffer(), meshRenderer->getIndexBuffer(),
 		meshRenderer->getVertexCount(), meshRenderer->getIndexCount(),
-		meshRenderer->getTransformBuffer());
+		meshRenderer->transformBuffer);
 
 	commandList->add(rc);
 }

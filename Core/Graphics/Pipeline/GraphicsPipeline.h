@@ -19,7 +19,7 @@ struct VkPipelineShaderStageCreateInfo;
 struct Renderer;
 struct VulkanInstance;
 struct VulkanDevice;
-struct MeshRenderer;
+struct IRenderable;
 struct DescriptorHandle;
 struct Material;
 struct PipelineSummary;
@@ -47,7 +47,7 @@ struct GraphicsPipeline {
 
 	void bindDescriptorSets(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame);
 
-	void addRenderCommand(const MeshRenderer* const meshRenderer);
+	void addRenderCommand(const IRenderable* const renderable);
 	void executeRenderCommands(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame);
 
 	void generateMaterialDescriptorSets(const VulkanInstance* const instance, VkDescriptorSet_T** outSets);
