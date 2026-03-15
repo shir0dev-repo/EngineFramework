@@ -16,7 +16,7 @@ layout (location = 1) out vec3 outNormal;
 layout (location = 2) out vec4 outColor;
 
 void main() {
-	gl_Position = Matrices.proj * vec4(screenPosition.xyz, 1.0);
+	gl_Position = vec4(screenPosition.xyz, 1.0);
 	outUV = uv.xy;
 	outNormal = normal.xyz;
 	outColor = uv.xyxy;

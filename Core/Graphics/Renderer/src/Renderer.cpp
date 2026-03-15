@@ -297,6 +297,7 @@ void Renderer::render(VulkanInstance* instance, GLFWwindow* window, Camera* came
 	for (uint32_t i = 0; i < graphicsPipelines->size(); i++) {
 		auto pipeline = (*graphicsPipelines)[i];
 		if (currentPipeline != pipeline) {
+			currentPipeline = pipeline;
 			beginPipeline(pipeline);
 		}
 		

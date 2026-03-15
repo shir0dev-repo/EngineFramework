@@ -137,7 +137,7 @@ GPUTexture* GPUTexture::createTexture(const uint32_t width, const uint32_t heigh
 	texture->width = width;
 	texture->height = height;
 	texture->channels = channels;
-	texture->size = static_cast<VkDeviceSize>(texture->width * texture->height * sizeof(float));
+	texture->size = static_cast<VkDeviceSize>(static_cast<unsigned long long>(texture->width) * texture->height * sizeof(float));
 
 	textureLookup.emplace(nameStr, texture);
 	return texture;
@@ -252,6 +252,50 @@ void GPUTexture::loadGPU(const VulkanInstance* const instance, const uint32_t si
 
 	BufferUtils::copyToImage(instance, stagingBuffer, texture);
 
+	GPUTexture::transitionLayout(
+		instance,
+		texture,
+		instance->swapChain->getFormat()->format,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+	);
+
+	vkDestroyBuffer(instance->logicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(instance->logicalDevice, stagingMemory, nullptr);
+}
+
+void GPUTexture::setPixels(const VulkanInstance* const instance, const uint32_t pixelStride, const uint32_t sizeInBytes, void* pixelData,
+	GPUTexture* texture) {
+	
+	VkBuffer stagingBuffer = nullptr;
+	VkDeviceMemory stagingMemory = nullptr;
+	VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	VkMemoryPropertyFlags memoryUsage = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	BufferUtils::createBuffer(instance, texture->size, usage, memoryUsage, &stagingBuffer, &stagingMemory);
+
+	if (pixelStride == sizeof(float)) {
+		
+		void* mappedData = nullptr;
+		VkResult result = vkMapMemory(instance->logicalDevice, stagingMemory, 0, texture->size, 0, &mappedData);
+		memcpy(mappedData, pixelData, sizeInBytes);
+		vkUnmapMemory(instance->logicalDevice, stagingMemory);
+	}
+	else {
+		std::vector<float> data{};
+		
+		uint32_t currentIndex = 0;
+		
+		uint32_t stride = sizeof(float);
+		uint32_t padding = pixelStride - stride;
+		
+		for (uint32_t i = 0; i < sizeInBytes; i++) {
+			char* val = reinterpret_cast<char*>(pixelData) + currentIndex;
+			
+		}
+	}
+
+	GPUTexture::transitionLayout(instance, texture, instance->swapChain->getFormat()->format, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	BufferUtils::copyToImage(instance, stagingBuffer, texture);
 	GPUTexture::transitionLayout(
 		instance,
 		texture,

@@ -197,7 +197,7 @@ void Application::mainLoop() {
 	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyUp, Application::onKeyUp, this);
 
 	FontAsset* font = FontAsset::create(vkInstance, "Assets/Fonts/Minecraft.ttf", 16.0f);
-	//GPUTexture::loadGPU(vkInstance, reinterpret_cast<void*>(font->fontAtlasTextureData), font->texture);
+	//FontAsset* font = FontAsset::create(vkInstance, "C:\\Windows\\Fonts\\Arial.ttf", 16.0f);
 	Mesh* mesh = nullptr;
 	Mesh* cube = nullptr;
 	MeshLoader::loadOBJ("Assets/OBJ/ship.obj", &mesh);
@@ -234,8 +234,8 @@ void Application::mainLoop() {
 
 	MeshRenderer* meshRenderer = new MeshRenderer(vkInstance, renderer, entity, mesh, material);
 	MeshRenderer* skyboxRenderer = new MeshRenderer(vkInstance, renderer, nullptr, cube, skyboxMaterial);
-	TextMesh* fontMesh = TextMesh::generate(vkInstance, window->Width, window->Height, font, "Hello Vulkan!", { 200, 200, 600, 600 }, 16);
-	meshRenderer->material->setTexture(vkInstance, font->texture, 0);
+	TextMesh* fontMesh = TextMesh::generate(vkInstance, renderer, fontMaterial, window->Width, window->Height, font, "Hello", { 00, 00, 600, 600 }, 16);
+
 	float time = 0;
 
 	Camera mainCamera{};
@@ -262,6 +262,7 @@ void Application::mainLoop() {
 		material->setBuffer(vkInstance, 3, 0, transform, sizeof(shml::matrix4f));
 		skyboxRenderer->draw();
 		meshRenderer->draw();
+		fontMesh->draw();
 		renderer->render(vkInstance, window->GetWindow(), &mainCamera);
 	}
 	
@@ -269,8 +270,10 @@ void Application::mainLoop() {
 
 	meshRenderer->teardown(vkInstance);
 	skyboxRenderer->teardown(vkInstance);
+	fontMesh->teardown(vkInstance);
 	delete meshRenderer;
 	delete skyboxRenderer;
+	delete fontMesh;
 	delete entity;
 	delete mesh;
 	delete cube;

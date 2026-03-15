@@ -369,4 +369,7 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <Font Include="C:\Users\Shir0\Downloads\fuck you.ttf" />
+  </ItemGroup>
 </Project>

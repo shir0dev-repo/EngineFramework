@@ -547,12 +547,10 @@ void GraphicsPipeline::updatePipelineDescriptorWrites(const VulkanInstance* cons
 }
 
 void GraphicsPipeline::bindDescriptorSets(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame) {
-	if (vkPipelineDescriptorSets == nullptr) {
-		return;
+	if (vkPipelineDescriptorSets != nullptr) {
+		VkDescriptorSet_T* boundSets = vkPipelineDescriptorSets[currentFrame];
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkLayout, Renderer::PIPELINE_DESCRIPTOR_SET, 1, &boundSets, 0, nullptr);
 	}
-
-	VkDescriptorSet_T* boundSets = vkPipelineDescriptorSets[currentFrame];
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkLayout, Renderer::PIPELINE_DESCRIPTOR_SET, 1, &boundSets, 0, nullptr);
 }
 
 void GraphicsPipeline::registerMaterial(Material* material) {

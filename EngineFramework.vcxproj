@@ -254,6 +254,9 @@
     <ClInclude Include="lib\SPIRV-Reflect\spirv_reflect.h" />
     <ClInclude Include="Core\Entity\Entity.h" />
   </ItemGroup>
+  <ItemGroup>
+    <Font Include="C:\Users\Shir0\Downloads\fuck you.ttf" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

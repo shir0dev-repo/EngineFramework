@@ -49,6 +49,9 @@ struct GPUTexture {
 	static void loadGPU(const VulkanInstance* const instance, GPUTexture* texture);
 	static void loadGPU(const VulkanInstance* const instance, GPUTexture* texture, unsigned char* handle);
 	static void loadGPU(const VulkanInstance* const instance, const uint32_t sizeInBytes, const void* data, GPUTexture* texture);
+	static void setPixels(const VulkanInstance* const instance, const uint32_t pixelStride, const uint32_t sizeInBytes, void* pixelData,
+		GPUTexture* texture);
+
 	static void cleanup(const VulkanInstance* const instance);
 private:
 	static bool getCPUTextureHandle(GPUTexture* texture, unsigned char** outHandle);
