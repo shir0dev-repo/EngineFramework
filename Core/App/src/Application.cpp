@@ -197,7 +197,7 @@ void Application::mainLoop() {
 	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyUp, Application::onKeyUp, this);
 
 	FontAsset* font = FontAsset::create(vkInstance, "Assets/Fonts/Minecraft.ttf", 16.0f);
-	//FontAsset* font = FontAsset::create(vkInstance, "C:\\Windows\\Fonts\\Arial.ttf", 16.0f);
+	//FontAsset* font = FontAsset::create(vkInstance, "C:\\Windows\\Fonts\\Arial.ttf", 32.0f);
 	Mesh* mesh = nullptr;
 	Mesh* cube = nullptr;
 	MeshLoader::loadOBJ("Assets/OBJ/ship.obj", &mesh);
@@ -234,7 +234,7 @@ void Application::mainLoop() {
 
 	MeshRenderer* meshRenderer = new MeshRenderer(vkInstance, renderer, entity, mesh, material);
 	MeshRenderer* skyboxRenderer = new MeshRenderer(vkInstance, renderer, nullptr, cube, skyboxMaterial);
-	TextMesh* fontMesh = TextMesh::generate(vkInstance, renderer, fontMaterial, window->Width, window->Height, font, "Hello", { 00, 00, 600, 600 }, 8);
+	TextMesh* fontMesh = TextMesh::generate(vkInstance, renderer, fontMaterial, window->Width, window->Height, font, "Hello", { 1, 0, 600, 600 }, 8);
 
 	float time = 0;
 
