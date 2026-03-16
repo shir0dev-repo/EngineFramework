@@ -40,8 +40,10 @@ struct Renderer {
 
 	static Renderer* const getInstance();
 
-	void addPipeline(PipelineShader* shader);
+	void addPipeline(PipelineShader* shader, bool transparent);
 	GraphicsPipeline* const getPipeline(uint32_t index);
+	GraphicsPipeline* const getTransparentPipeline(uint32_t index);
+
 	void removePipeline(GraphicsPipeline* pipeline);
 
 	void render(VulkanInstance* instance, GLFWwindow* window, Camera* camera);
@@ -81,9 +83,11 @@ private:
 	void handleInvalidSwapchain(const VulkanInstance* const instance, GLFWwindow* window);
 
 	linkedList<GraphicsPipeline*>* graphicsPipelines = nullptr;
+	linkedList<GraphicsPipeline*>* transparentPipelines = nullptr;
 
 	VulkanSwapChain* swapChain = nullptr;
 	VkRenderPass_T* vkRenderPass = nullptr;
+	VkRenderPass_T* transparentRenderPass = nullptr;
 
 	VkFramebuffer_T** vkFramebuffers = nullptr;
 	GraphicsSyncObject* syncObjects = nullptr;

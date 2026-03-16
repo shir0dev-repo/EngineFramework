@@ -65,7 +65,7 @@ FontAsset* const FontAsset::create(const VulkanInstance* const instance, const c
 	uint32_t* pixels = new uint32_t[font->atlasSize * font->atlasSize];
 	for (uint32_t i = 0; i < font->atlasSize * font->atlasSize; i++) {
 		uint32_t alpha = 0;
-		alpha |= font->fontAtlasTextureData[i];
+		alpha |= font->fontAtlasTextureData[i] << 24;
 		pixels[i] = alpha;
 	}
 	uint32_t sizeInBytes = sizeof(uint32_t) * font->atlasSize * font->atlasSize;

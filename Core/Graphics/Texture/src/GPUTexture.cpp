@@ -412,8 +412,8 @@ void GPUTexture::createMemory(const VulkanInstance* const instance) {
 void GPUTexture::createSampler(const VulkanInstance* const instance) {
 	VkSamplerCreateInfo sampler = {};
 	sampler.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	sampler.minFilter = VK_FILTER_LINEAR;
-	sampler.magFilter = VK_FILTER_LINEAR;
+	sampler.minFilter = VK_FILTER_NEAREST;
+	sampler.magFilter = VK_FILTER_NEAREST;
 	
 	sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -423,8 +423,8 @@ void GPUTexture::createSampler(const VulkanInstance* const instance) {
 		VkPhysicalDeviceProperties deviceProps = {};
 		vkGetPhysicalDeviceProperties(instance->physicalDevice, &deviceProps);
 
-		//sampler.anisotropyEnable = VK_TRUE;
-		//sampler.maxAnisotropy = deviceProps.limits.maxSamplerAnisotropy;
+		sampler.anisotropyEnable = VK_TRUE;
+		sampler.maxAnisotropy = deviceProps.limits.maxSamplerAnisotropy;
 	}
 	else {
 		sampler.anisotropyEnable = VK_FALSE;

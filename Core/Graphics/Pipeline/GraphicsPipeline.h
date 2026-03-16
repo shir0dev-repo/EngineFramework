@@ -42,7 +42,7 @@ struct GraphicsPipeline {
 	const PipelineMaterialLayout* const getMaterialLayout() const;
 	const PipelineSummary* const getSummary() const;
 	
-	void setup(const VulkanInstance* const instance, Renderer* renderer, ShaderModule* vertex, ShaderModule* fragment);
+	void setup(const VulkanInstance* const instance, Renderer* renderer, ShaderModule* vertex, ShaderModule* fragment, const bool transparency);
 	void teardown(VkDevice_T* logicalDevice);
 
 	void bindDescriptorSets(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame);
@@ -57,7 +57,7 @@ struct GraphicsPipeline {
 private:
 	static VkPipelineShaderStageCreateInfo makeShaderStageCreateInfo(const ShaderModule*& shader);
 	void createPipelineSummary(const VulkanInstance* const instance, ShaderModule* vertex, ShaderModule* fragment);
-	void createPipeline(const VulkanInstance* const instance, Renderer* renderer, ShaderModule* vertex, ShaderModule* fragment);
+	void createPipeline(const VulkanInstance* const instance, Renderer* renderer, ShaderModule* vertex, ShaderModule* fragment, const bool transparency);
 	void createMaterialLayout(const VulkanInstance* const instance);
 
 	void setupDescriptors(const VulkanInstance* const instance);

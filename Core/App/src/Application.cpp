@@ -117,7 +117,7 @@ void Application::initRenderer() {
 	shader.vertexModule = vertex;
 	shader.fragmentModule = fragment;
 
-	renderer->addPipeline(&shader);
+	renderer->addPipeline(&shader, false);
 
 	int skyboxVertexID = ShaderModule::createNew(vkInstance->logicalDevice, "Assets/Shaders/skybox-vert.spv", "skybox-v");
 	int skyboxFragmentID = ShaderModule::createNew(vkInstance->logicalDevice, "Assets/Shaders/skybox-frag.spv", "skybox-f");
@@ -128,7 +128,7 @@ void Application::initRenderer() {
 	PipelineShader skyboxShader = {};
 	skyboxShader.vertexModule = vertex;
 	skyboxShader.fragmentModule = fragment;
-	renderer->addPipeline(&skyboxShader);
+	renderer->addPipeline(&skyboxShader, false);
 
 	int fontVertexID = ShaderModule::createNew(vkInstance->logicalDevice, "Assets/Shaders/UIText-vert.spv", "font-v");
 	int fontFragmentID = ShaderModule::createNew(vkInstance->logicalDevice, "Assets/Shaders/UIText-frag.spv", "font-f");
@@ -139,7 +139,7 @@ void Application::initRenderer() {
 	PipelineShader fontShader = {};
 	fontShader.vertexModule = vertex;
 	fontShader.fragmentModule = fragment;
-	renderer->addPipeline(&fontShader);
+	renderer->addPipeline(&fontShader, true);
 
 	uploadTextures(vkInstance);
 }
@@ -205,7 +205,7 @@ void Application::mainLoop() {
 
 	Material* material = Material::create(vkInstance, renderer->getPipeline(0), "default");
 	Material* skyboxMaterial = Material::create(vkInstance, renderer->getPipeline(1), "skybox");
-	Material* fontMaterial = Material::create(vkInstance, renderer->getPipeline(2), "font");
+	Material* fontMaterial = Material::create(vkInstance, renderer->getTransparentPipeline(0), "font");
 	fontMaterial->setTexture(vkInstance, font->texture, 0);
 
 	GPUTexture* shipTexture = nullptr;
@@ -234,7 +234,7 @@ void Application::mainLoop() {
 
 	MeshRenderer* meshRenderer = new MeshRenderer(vkInstance, renderer, entity, mesh, material);
 	MeshRenderer* skyboxRenderer = new MeshRenderer(vkInstance, renderer, nullptr, cube, skyboxMaterial);
-	TextMesh* fontMesh = TextMesh::generate(vkInstance, renderer, fontMaterial, window->Width, window->Height, font, "Hello", { 00, 00, 600, 600 }, 16);
+	TextMesh* fontMesh = TextMesh::generate(vkInstance, renderer, fontMaterial, window->Width, window->Height, font, "Hello", { 00, 00, 600, 600 }, 8);
 
 	float time = 0;
 

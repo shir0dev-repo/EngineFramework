@@ -55,6 +55,7 @@ void Renderer::setup(VulkanInstance* vkInstance) {
 	setupGlobalDescriptorSets(vkInstance);
 
 	this->graphicsPipelines = new linkedList<GraphicsPipeline*>();
+	this->transparentPipelines = new linkedList<GraphicsPipeline*>();
 }
 
 void Renderer::setupRenderPass(const VulkanInstance* const instance) {
@@ -269,15 +270,24 @@ void Renderer::setupGlobalDescriptorSets(const VulkanInstance* const instance) {
 	}
 }
 
-void Renderer::addPipeline(PipelineShader* pipelineShader) {
+void Renderer::addPipeline(PipelineShader* pipelineShader, const bool transparent) {
 	GraphicsPipeline* pipeline = new GraphicsPipeline();
 
-	pipeline->setup(VulkanInstance::getInstance(), this, pipelineShader->vertexModule, pipelineShader->fragmentModule);
-	graphicsPipelines->add(pipeline);
+	pipeline->setup(VulkanInstance::getInstance(), this, pipelineShader->vertexModule, pipelineShader->fragmentModule, transparent);
+	if (transparent) {
+		transparentPipelines->add(pipeline);
+	}
+	else {
+		graphicsPipelines->add(pipeline);
+	}
 }
 
 GraphicsPipeline* const Renderer::getPipeline(uint32_t index) {
 	return (*graphicsPipelines)[index];
+}
+
+GraphicsPipeline* const Renderer::getTransparentPipeline(uint32_t index) {
+	return (*transparentPipelines)[index];
 }
 
 void Renderer::render(VulkanInstance* instance, GLFWwindow* window, Camera* camera) {
@@ -305,8 +315,20 @@ void Renderer::render(VulkanInstance* instance, GLFWwindow* window, Camera* came
 		finalizePipeline(pipeline);
 	}
 
+	for (uint32_t i = 0; i < transparentPipelines->size(); i++) {
+		auto pipeline = (*transparentPipelines)[i];
+		if (currentPipeline != pipeline) {
+			currentPipeline = pipeline;
+			beginPipeline(pipeline);
+		}
+
+		executePipeline(pipeline);
+		finalizePipeline(pipeline);
+	}
+
 	finalizeRenderPassForCurrentFrame();
 	finalizeCommandBufferForCurrentFrame();
+
 	updateGlobalBuffer(instance, camera);
 
 	submitRender(instance);
@@ -595,6 +617,15 @@ void Renderer::teardown(VkDevice_T* logicalDevice) {
 		for (uint32_t i = 0; i < graphicsPipelines->size(); i++) {
 			(*graphicsPipelines)[i]->teardown(logicalDevice);
 		}
+		delete graphicsPipelines;
+		graphicsPipelines = nullptr;
+	}
+	if (transparentPipelines != nullptr) {
+		for (uint32_t i = 0; i < transparentPipelines->size(); i++) {
+			(*transparentPipelines)[i]->teardown(logicalDevice);
+		}
+		delete transparentPipelines;
+		transparentPipelines = nullptr;
 	}
 	if (vkRenderPass != nullptr) {
 		vkDestroyRenderPass(logicalDevice, vkRenderPass, nullptr);

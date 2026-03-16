@@ -10,6 +10,6 @@ layout (set = 2, binding = 0) uniform sampler2D fontAtlas;
 layout (location = 0) out vec4 outColor;
 
 void main() {
-	float fontCol = texture(fontAtlas, inUV).r;
-	outColor = vec4(clamp(fontCol * inColor.xyz, 0, 1), inColor.a);
+	vec4 fontCol = texture(fontAtlas, inUV);
+	outColor = clamp(fontCol, 0, 1);
 }

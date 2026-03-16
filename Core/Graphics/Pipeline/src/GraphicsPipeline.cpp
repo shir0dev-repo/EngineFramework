@@ -200,14 +200,15 @@ const PipelineSummary* const GraphicsPipeline::getSummary() const {
 	return this->summary;
 }
 
-void GraphicsPipeline::setup(const VulkanInstance* const instance, Renderer* renderer, ShaderModule* vertex, ShaderModule* fragment) {
+void GraphicsPipeline::setup(const VulkanInstance* const instance, Renderer* renderer, ShaderModule* vertex, ShaderModule* fragment,
+	const bool transparency) {
 	this->commandList = new linkedList<RenderCommand*>();
 
 	createPipelineSummary(instance, vertex, fragment);
 	createMaterialLayout(instance);
 	
 	setupDescriptors(instance);
-	createPipeline(instance, renderer, vertex, fragment);
+	createPipeline(instance, renderer, vertex, fragment, transparency);
 }
 
 void GraphicsPipeline::createPipelineSummary(const VulkanInstance* const instance, ShaderModule* vertex, ShaderModule* fragment) {
@@ -236,7 +237,8 @@ void GraphicsPipeline::setupDescriptors(const VulkanInstance* const instance) {
 	createInstanceDescriptorSetLayout(instance, instanceBindings.data(), instanceBindings.size());
 }
 
-void GraphicsPipeline::createPipeline(const VulkanInstance* const instance, Renderer* renderer, ShaderModule* vertex, ShaderModule* fragment) {
+void GraphicsPipeline::createPipeline(const VulkanInstance* const instance, Renderer* renderer, ShaderModule* vertex, ShaderModule* fragment,
+	const bool transparency) {
 	#pragma region Push Constants
 	std::vector<VkPushConstantRange> pcRanges;
 	mergePushConstantRanges(summary->pPushConstantInfos, summary->numPushConstantInfos, &pcRanges);
@@ -292,9 +294,10 @@ void GraphicsPipeline::createPipeline(const VulkanInstance* const instance, Rend
 	VkPipelineRasterizationStateCreateInfo rasterizer = {};
 	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-	rasterizer.cullMode = VK_CULL_MODE_NONE;
+	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizer.lineWidth = 1.0f;
+
 	#pragma endregion
 
 	#pragma region Dynamic States
@@ -314,7 +317,19 @@ void GraphicsPipeline::createPipeline(const VulkanInstance* const instance, Rend
 	#pragma region Blending
 	VkPipelineColorBlendAttachmentState blend = {};
 	blend.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	blend.blendEnable = VK_FALSE; // transparency 
+	if (transparency) {
+		blend.blendEnable = VK_TRUE; // transparency 
+		blend.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+		blend.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+		blend.colorBlendOp = VK_BLEND_OP_ADD;
+		blend.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		blend.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		blend.alphaBlendOp = VK_BLEND_OP_ADD;
+	}
+	else {
+		blend.blendEnable = VK_FALSE;
+	}
+
 	VkPipelineColorBlendStateCreateInfo blendState = {};
 	blendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	blendState.attachmentCount = 1;
@@ -325,7 +340,7 @@ void GraphicsPipeline::createPipeline(const VulkanInstance* const instance, Rend
 	VkPipelineDepthStencilStateCreateInfo ds = {};
 	ds.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 	ds.depthTestEnable = VK_TRUE;
-	ds.depthWriteEnable = VK_TRUE;
+	ds.depthWriteEnable = transparency ? VK_FALSE : VK_TRUE;
 	ds.depthCompareOp = VK_COMPARE_OP_LESS;
 	ds.depthBoundsTestEnable = VK_FALSE;
 	ds.minDepthBounds = 0.0f;
@@ -399,6 +414,10 @@ void GraphicsPipeline::createPipelineDescriptorPool(const VulkanInstance* const 
 	poolInfo.pPoolSizes = &poolSizes[0];
 	poolInfo.maxSets = numDescriptorCopies * numPipelineDescriptorSets * 2;
 
+	if (poolInfo.maxSets <= 0) {
+		return;
+	}
+
 	if (vkCreateDescriptorPool(instance->logicalDevice, &poolInfo, nullptr, &this->vkPipelineDescriptorPool) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create pipeline descriptor pool!");
 	}
@@ -415,6 +434,10 @@ void GraphicsPipeline::createMaterialDescriptorPool(const VulkanInstance* const 
 	poolInfo.poolSizeCount = 2;
 	poolInfo.pPoolSizes = &poolSizes[0];
 	poolInfo.maxSets = numDescriptorCopies * 2 * MAX_MATERIAL_COUNT;
+
+	if (poolInfo.maxSets <= 0) {
+		return;
+	}
 
 	if (vkCreateDescriptorPool(instance->logicalDevice, &poolInfo, nullptr, &this->vkMaterialDescriptorPool) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create material descriptor pool!");
