@@ -3,8 +3,8 @@
 #include <shml/matrix4f.hpp>
 
 struct Entity {
-	void setPosition(shml::vec3f position);
-	shml::vec3f getPosition() const;
+	void setPosition(shml::vec3f localPosition);
+	shml::vec3f getLocalPosition() const;
 
 	void setRotation(shml::quat rotation);
 	shml::quat getRotation() const;

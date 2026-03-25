@@ -423,10 +423,10 @@ namespace shml {
 		// Returns a copy of v multiplied by this matrix.
 		inline vec4f operator*(const vec4f& v) const {
 			vec4f result;
-			result.x = vec4f::dot(v, getRow(0));
-			result.y = vec4f::dot(v, getRow(1));
-			result.z = vec4f::dot(v, getRow(2));
-			result.w = vec4f::dot(v, getRow(3));
+			result.x = vec4f::dot(getRow(0), v);
+			result.y = vec4f::dot(getRow(1), v);
+			result.z = vec4f::dot(getRow(2), v);
+			result.w = vec4f::dot(getRow(3), v);
 
 			return result;
 		}

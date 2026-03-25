@@ -374,5 +374,8 @@
     <ClInclude Include="Core\Scene\RenderNode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Entity\EntityMover.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

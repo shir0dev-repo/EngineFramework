@@ -23,6 +23,8 @@ struct SceneNode : public Entity {
 
 	uint32_t uuid();
 
+	shml::vec3f getWorldPosition() const;
+
 	void addChild(SceneNode* child);
 	bool removeChild(SceneNode* child);
 

@@ -231,11 +231,9 @@ void Application::mainLoop() {
 	MeshLoader::loadOBJ("Assets/OBJ/ship.obj", &mesh);
 	MeshLoader::loadOBJ("Assets/OBJ/cube.obj", &cube);
 
-	
 	SceneNode* entity = new SceneNode();
 
 	World::getWorld()->getRootNode()->addChild(entity);
-	//0x00000093e9d4e5b8 {parent=0x00000216a29f1650 {parent=0x00000216a269da08 {parent=0x0000000000000000 {...} ...} ...} ...}
 	entity->setPosition({ 0, 0, -5 });
 	entity->setRotation(shml::quat(0, 180.0, 0));
 
@@ -252,6 +250,7 @@ void Application::mainLoop() {
 	TextMesh* fontMesh = TextMesh::generate(vkInstance, renderer, fontMat, window->Width, window->Height, FontAsset::find("default"),
 		"Hello", {1, 0, 600, 600}, 8);
 
+	std::cout << rNode->getWorldPosition() << std::endl;
 	float time = 0;
 
 	Camera mainCamera{};
@@ -272,7 +271,7 @@ void Application::mainLoop() {
 		
 		inputDir = inputDir.normalized_safe() * 0.02f;
 		World::getWorld()->getRootNode()->onUpdate(World::getWorld(), 0.02f);
-		World::getWorld()->moveEntity(entity, entity->getPosition() + inputDir);
+		World::getWorld()->moveEntity(entity, entity->getLocalPosition() + inputDir);
 		World::getWorld()->executeCommands();
 		
 		const float* transform = entity->getTransform().getPointer();

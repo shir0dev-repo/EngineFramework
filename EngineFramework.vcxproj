@@ -183,6 +183,7 @@
   <ItemGroup>
     <ClInclude Include="Core\Entity\Component\IRenderable.h" />
     <ClInclude Include="Core\Entity\Component\TextRenderer.h" />
+    <ClInclude Include="Core\Entity\EntityMover.h" />
     <ClInclude Include="Core\Events\Event.h" />
     <ClInclude Include="Core\Events\EventHandler.h" />
     <ClInclude Include="Core\Events\KeyboardEvents.h" />

@@ -3,7 +3,7 @@
 using vec3f = shml::vec3f;
 using quat = shml::quat;
 
-vec3f Entity::getPosition() const {
+vec3f Entity::getLocalPosition() const {
 	return this->transform.getPosition();
 }
 

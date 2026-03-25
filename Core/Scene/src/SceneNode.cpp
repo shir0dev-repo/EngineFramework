@@ -20,6 +20,17 @@ void SceneNode::preUpdate(World* world) {
 	}
 }
 
+shml::vec3f SceneNode::getWorldPosition() const {
+	shml::vec3f worldPos = this->getTransform().getPosition();
+	SceneNode* p = this->parent;
+	while (p != nullptr) {
+		worldPos = p->getTransform() * worldPos;
+		p = p->parent;
+	}
+
+	return worldPos;
+}
+
 void SceneNode::onUpdate(World* world, float dt) {
 	if (didUpdate) {
 		return;
