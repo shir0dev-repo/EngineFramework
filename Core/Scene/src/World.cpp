@@ -7,6 +7,7 @@ typedef shml::vec3f vec3f;
 World::World() {
 	this->commandBuffer = new EntityCommandBuffer();
 	this->entityCommandData = new linkedList<DataPtr>();
+	this->rootNode = new SceneNode();
 }
 World::~World() {
 	for (uint32_t i = 0; i < entityCommandData->size(); i++) {
@@ -21,14 +22,13 @@ World* const World::getWorld() {
 	static World* world;
 	if (world == nullptr) {
 		world = new World();
-		world->rootNode = {};
 	}
 
 	return world;
 }
 
 SceneNode* const World::getRootNode() {
-	return &rootNode;
+	return rootNode;
 }
 
 void World::moveEntity(Entity* entity, const shml::vec3f& position) {

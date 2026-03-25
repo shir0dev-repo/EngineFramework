@@ -13,7 +13,7 @@ class World {
 	~World();
 
 	EntityCommandBuffer* commandBuffer = nullptr;
-	SceneNode rootNode;
+	SceneNode* rootNode = nullptr;
 	linkedList<DataPtr>* entityCommandData = nullptr;
 
 	static void moveEntityCommand(Entity* entity);

@@ -69,7 +69,7 @@ public:
 	~linkedList() { clear(); }
 
 	Iterator begin() { return Iterator(head); }
-	Iterator end() { return Iterator(tail->next); }
+	Iterator end() { return Iterator(tail == nullptr ? tail : tail->next); }
 
 	uint32_t size() const { return m_count; }
 	
@@ -120,7 +120,7 @@ public:
 	void addUnique(T item, Comparer comp) {
 		node* temp = head;
 		while (temp) {
-			if (comp(temp, item)) {
+			if (comp(temp->item, item)) {
 				return;
 			}
 			temp = temp->next;
@@ -183,7 +183,7 @@ public:
 	bool contains(T value, Comparer comp) {
 		node* current = head;
 		while (current->next != nullptr) {
-			if (comp(value, current)) {
+			if (comp(value, current->item)) {
 				return true;
 			}
 		}

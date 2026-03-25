@@ -7,7 +7,7 @@ typedef unsigned int uint32_t;
 
 struct SceneNode : public Entity {
 	SceneNode* parent = nullptr;
-	linkedList<SceneNode>* children = nullptr;
+	linkedList<SceneNode*>* children = nullptr;
 
 	SceneNode();
 	virtual ~SceneNode();
@@ -23,8 +23,8 @@ struct SceneNode : public Entity {
 
 	uint32_t uuid();
 
-	void addChild(SceneNode& child);
-	bool removeChild(SceneNode& child);
+	void addChild(SceneNode* child);
+	bool removeChild(SceneNode* child);
 
 	bool didUpdate = false;
 	

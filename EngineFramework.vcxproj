@@ -159,6 +159,7 @@
     <ClCompile Include="Core\App\src\Application.cpp" />
     <ClCompile Include="Core\App\src\AppWindow.cpp" />
     <ClCompile Include="Core\Input\InputHandler.cpp" />
+    <ClCompile Include="Core\Scene\src\RenderNode.cpp" />
     <ClCompile Include="Core\Scene\src\SceneNode.cpp" />
     <ClCompile Include="Core\Scene\src\World.cpp" />
     <ClCompile Include="Core\UI\src\FontAsset.cpp" />
@@ -189,6 +190,7 @@
     <ClInclude Include="Core\Events\WindowEvents.h" />
     <ClInclude Include="Core\Game\Game.h" />
     <ClInclude Include="Core\Input\InputHandler.h" />
+    <ClInclude Include="Core\Scene\RenderNode.h" />
     <ClInclude Include="Core\Scene\SceneNode.h" />
     <ClInclude Include="Core\Scene\World.h" />
     <ClInclude Include="Core\Entity\CommandBuffer\EntityCommandBuffer.h" />
@@ -253,9 +255,6 @@
     <ClInclude Include="lib\shml\vec4f.hpp" />
     <ClInclude Include="lib\SPIRV-Reflect\spirv_reflect.h" />
     <ClInclude Include="Core\Entity\Entity.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Font Include="C:\Users\Shir0\Downloads\fuck you.ttf" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

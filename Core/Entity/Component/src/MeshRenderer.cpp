@@ -14,6 +14,10 @@
 #include <shml/matrix4f.hpp>
 #include <vulkan/vulkan.h>
 
+MeshRenderer::MeshRenderer() : IEntityComponent(nullptr) {
+	this->material = nullptr;
+}
+
 MeshRenderer::MeshRenderer(const VulkanInstance* const instance, Renderer* renderer, Entity* const entity, Mesh* const meshRef, Material* const materialRef)
 : IEntityComponent(entity) {
 	this->material = materialRef;

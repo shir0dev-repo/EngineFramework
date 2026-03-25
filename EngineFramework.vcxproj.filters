@@ -147,6 +147,9 @@
     <ClCompile Include="Core\UI\src\FontAsset.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Core\Scene\src\RenderNode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Vulkan\VulkanInstance.h">
@@ -368,8 +371,8 @@
     <ClInclude Include="Core\Entity\Component\TextRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Font Include="C:\Users\Shir0\Downloads\fuck you.ttf" />
+    <ClInclude Include="Core\Scene\RenderNode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

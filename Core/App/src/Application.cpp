@@ -8,6 +8,8 @@
 #include "Core/Graphics/Pipeline/GraphicsPipeline.h"
 #include "Core/Graphics/Mesh/Mesh.h"
 #include "Core/Entity/Component/MeshRenderer.h"
+#include "Core/Scene/RenderNode.h"
+
 #include "Core/Graphics/Mesh/Mesh.h"
 #include "Core/Graphics/Material/Material.h"
 #include "Core/Graphics/Shader/ShaderModule.h"
@@ -197,7 +199,7 @@ void Application::mainLoop() {
 	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyUp, Application::onKeyUp, this);
 
 	FontAsset* font = FontAsset::create(vkInstance, "Assets/Fonts/Minecraft.ttf", 16.0f);
-	//FontAsset* font = FontAsset::create(vkInstance, "C:\\Windows\\Fonts\\Arial.ttf", 32.0f);
+
 	Mesh* mesh = nullptr;
 	Mesh* cube = nullptr;
 	MeshLoader::loadOBJ("Assets/OBJ/ship.obj", &mesh);
@@ -227,13 +229,16 @@ void Application::mainLoop() {
 	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 5);
 	SceneNode* entity = new SceneNode();
 
-	entity->parent = World::getWorld()->getRootNode();
-
+	World::getWorld()->getRootNode()->addChild(entity);
+	//0x00000093e9d4e5b8 {parent=0x00000216a29f1650 {parent=0x00000216a269da08 {parent=0x0000000000000000 {...} ...} ...} ...}
 	entity->setPosition({ 0, 0, -5 });
 	entity->setRotation(shml::quat(0, 180.0, 0));
 
 	MeshRenderer* meshRenderer = new MeshRenderer(vkInstance, renderer, entity, mesh, material);
 	MeshRenderer* skyboxRenderer = new MeshRenderer(vkInstance, renderer, nullptr, cube, skyboxMaterial);
+	RenderNode* rNode = new RenderNode(entity, renderer, mesh, material);
+	entity->addChild(rNode);
+
 	TextMesh* fontMesh = TextMesh::generate(vkInstance, renderer, fontMaterial, window->Width, window->Height, font, "Hello", { 1, 0, 600, 600 }, 8);
 
 	float time = 0;
@@ -255,13 +260,13 @@ void Application::mainLoop() {
 		}
 		
 		inputDir = inputDir.normalized_safe() * 0.02f;
+		World::getWorld()->getRootNode()->onUpdate(World::getWorld(), 0.02f);
 		World::getWorld()->moveEntity(meshRenderer->getEntity(), entity->getPosition() + inputDir);
 		World::getWorld()->executeCommands();
 		
 		const float* transform = entity->getTransform().getPointer();
 		material->setBuffer(vkInstance, 3, 0, transform, sizeof(shml::matrix4f));
 		skyboxRenderer->draw();
-		meshRenderer->draw();
 		fontMesh->draw();
 		renderer->render(vkInstance, window->GetWindow(), &mainCamera);
 	}
@@ -271,8 +276,9 @@ void Application::mainLoop() {
 	meshRenderer->teardown(vkInstance);
 	skyboxRenderer->teardown(vkInstance);
 	fontMesh->teardown(vkInstance);
-	delete meshRenderer;
+	
 	delete skyboxRenderer;
+	delete rNode;
 	delete fontMesh;
 	delete entity;
 	delete mesh;

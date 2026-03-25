@@ -1,7 +1,7 @@
 #include "../SceneNode.h"
 
 SceneNode::SceneNode() : Entity() {
-	this->children = new linkedList<SceneNode>();
+	this->children = new linkedList<SceneNode*>();
 }
 
 SceneNode::~SceneNode() {
@@ -15,7 +15,7 @@ void SceneNode::preUpdate(World* world) {
 	this->didUpdate = false;
 	if (children) {
 		for (auto& child : *children) {
-			child.preUpdate(world);
+			child->preUpdate(world);
 		}
 	}
 }
@@ -27,20 +27,20 @@ void SceneNode::onUpdate(World* world, float dt) {
 	update(world, dt);
 	if (children) {
 		for (auto& child : *children) {
-			child.onUpdate(world, dt);
+			child->onUpdate(world, dt);
 		}
 	}
 }
 
-void SceneNode::addChild(SceneNode& child) {
-	if (!children) {
-		children = new linkedList<SceneNode>();
+void SceneNode::addChild(SceneNode* child) {
+	if (children == nullptr) {
+		children = new linkedList<SceneNode*>();
 	}
 
 	children->add(child);
 }
 
-bool SceneNode::removeChild(SceneNode& child) {
+bool SceneNode::removeChild(SceneNode* child) {
 	if (!children) {
 		return false;
 	}
@@ -49,7 +49,7 @@ bool SceneNode::removeChild(SceneNode& child) {
 	int32_t current = 0;
 
 	for (auto& it : *children) {
-		if (child.uuid()  == it.uuid()) {
+		if (child->uuid()  == it->uuid()) {
 			toRemove = current;
 			break;
 		}

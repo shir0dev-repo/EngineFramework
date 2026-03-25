@@ -18,6 +18,7 @@ struct MeshBuffer;
 
 struct MeshRenderer : public IEntityComponent, public IRenderable {
 	
+	MeshRenderer();
 	MeshRenderer(const VulkanInstance* const instance, Renderer* renderer, Entity* const entity, Mesh* const meshRef, Material* const materialRef);
 	void teardown(const VulkanInstance* const instance);
 

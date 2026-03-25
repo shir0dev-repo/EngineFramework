@@ -2,10 +2,10 @@
 
 class Game {
 public:
-	void Run();
+	void run();
 
 protected:
-	virtual void ExecuteLogic();
-	virtual void Render();
+	virtual void executeLogic();
+	virtual void render();
 	virtual void cleanup();
 };
