@@ -74,3 +74,13 @@ FontAsset* const FontAsset::create(const VulkanInstance* const instance, const c
 	fontMap.emplace("default", font);
 	return font;
 }
+
+FontAsset* const FontAsset::find(const char* name) {
+	auto it = fontMap.find(name);
+	if (it != fontMap.end()) {
+		return it->second;
+	}
+	else {
+		return nullptr;
+	}
+}

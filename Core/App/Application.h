@@ -50,6 +50,8 @@ private:
 	/// </summary>
 	void initRenderer();
 
+	void initMaterials();
+
 	/// <summary>
 	/// Runs every frame.
 	/// </summary>

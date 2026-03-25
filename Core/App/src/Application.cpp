@@ -48,6 +48,7 @@ int Application::run() {
 	initAssets();
 	initVulkan();
 	initRenderer();
+	initMaterials();
 	mainLoop();
 	cleanup();
 
@@ -146,6 +147,33 @@ void Application::initRenderer() {
 	uploadTextures(vkInstance);
 }
 
+void Application::initMaterials() {
+	Material* material = Material::create(vkInstance, renderer->getPipeline(0), "default");
+	Material* skyboxMaterial = Material::create(vkInstance, renderer->getPipeline(1), "skybox");
+	
+	FontAsset* font = FontAsset::create(vkInstance, "Assets/Fonts/Minecraft.ttf", 16.0f);
+	Material* fontMaterial = Material::create(vkInstance, renderer->getTransparentPipeline(0), "font");
+	fontMaterial->setTexture(vkInstance, font->texture, 0);
+
+	GPUTexture* shipTexture = nullptr;
+	GPUTexture::getTexture("shipTexture", &shipTexture);
+	material->setTexture(vkInstance, shipTexture, 0);
+
+	GPUTexture* skyboxTexture = nullptr;
+	GPUTexture::getTexture("skybox-top", &skyboxTexture);
+	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 0);
+	GPUTexture::getTexture("skybox-front", &skyboxTexture);
+	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 1);
+	GPUTexture::getTexture("skybox-right", &skyboxTexture);
+	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 2);
+	GPUTexture::getTexture("skybox-back", &skyboxTexture);
+	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 3);
+	GPUTexture::getTexture("skybox-left", &skyboxTexture);
+	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 4);
+	GPUTexture::getTexture("skybox-bottom", &skyboxTexture);
+	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 5);
+}
+
 shml::vec3f inputDir{};
 bool cursorLocked = true;
 
@@ -198,35 +226,12 @@ void Application::mainLoop() {
 	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyDown, Application::onKeyDown, this);
 	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyUp, Application::onKeyUp, this);
 
-	FontAsset* font = FontAsset::create(vkInstance, "Assets/Fonts/Minecraft.ttf", 16.0f);
-
 	Mesh* mesh = nullptr;
 	Mesh* cube = nullptr;
 	MeshLoader::loadOBJ("Assets/OBJ/ship.obj", &mesh);
 	MeshLoader::loadOBJ("Assets/OBJ/cube.obj", &cube);
 
-	Material* material = Material::create(vkInstance, renderer->getPipeline(0), "default");
-	Material* skyboxMaterial = Material::create(vkInstance, renderer->getPipeline(1), "skybox");
-	Material* fontMaterial = Material::create(vkInstance, renderer->getTransparentPipeline(0), "font");
-	fontMaterial->setTexture(vkInstance, font->texture, 0);
-
-	GPUTexture* shipTexture = nullptr;
-	GPUTexture::getTexture("shipTexture", &shipTexture);
-	material->setTexture(vkInstance, shipTexture, 0);
-
-	GPUTexture* skyboxTexture = nullptr;
-	GPUTexture::getTexture("skybox-top", &skyboxTexture);
-	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 0);
-	GPUTexture::getTexture("skybox-front", &skyboxTexture);
-	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 1);
-	GPUTexture::getTexture("skybox-right", &skyboxTexture);
-	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 2);
-	GPUTexture::getTexture("skybox-back", &skyboxTexture);
-	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 3);
-	GPUTexture::getTexture("skybox-left", &skyboxTexture);
-	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 4);
-	GPUTexture::getTexture("skybox-bottom", &skyboxTexture);
-	skyboxMaterial->setTexture(vkInstance, skyboxTexture, 5);
+	
 	SceneNode* entity = new SceneNode();
 
 	World::getWorld()->getRootNode()->addChild(entity);
@@ -234,12 +239,18 @@ void Application::mainLoop() {
 	entity->setPosition({ 0, 0, -5 });
 	entity->setRotation(shml::quat(0, 180.0, 0));
 
-	MeshRenderer* meshRenderer = new MeshRenderer(vkInstance, renderer, entity, mesh, material);
-	MeshRenderer* skyboxRenderer = new MeshRenderer(vkInstance, renderer, nullptr, cube, skyboxMaterial);
-	RenderNode* rNode = new RenderNode(entity, renderer, mesh, material);
-	entity->addChild(rNode);
+	Material* skyboxMat = nullptr;
+	Material::find("skybox", &skyboxMat);
+	Material* shipMat = nullptr;
+	Material::find("default", &shipMat);
+	Material* fontMat = nullptr;
+	Material::find("font", &fontMat);
 
-	TextMesh* fontMesh = TextMesh::generate(vkInstance, renderer, fontMaterial, window->Width, window->Height, font, "Hello", { 1, 0, 600, 600 }, 8);
+	MeshRenderer* skyboxRenderer = new MeshRenderer(vkInstance, renderer, nullptr, cube, skyboxMat);
+	RenderNode* rNode = new RenderNode(entity, renderer, mesh, shipMat);
+	entity->addChild(rNode);
+	TextMesh* fontMesh = TextMesh::generate(vkInstance, renderer, fontMat, window->Width, window->Height, FontAsset::find("default"),
+		"Hello", {1, 0, 600, 600}, 8);
 
 	float time = 0;
 
@@ -261,11 +272,11 @@ void Application::mainLoop() {
 		
 		inputDir = inputDir.normalized_safe() * 0.02f;
 		World::getWorld()->getRootNode()->onUpdate(World::getWorld(), 0.02f);
-		World::getWorld()->moveEntity(meshRenderer->getEntity(), entity->getPosition() + inputDir);
+		World::getWorld()->moveEntity(entity, entity->getPosition() + inputDir);
 		World::getWorld()->executeCommands();
 		
 		const float* transform = entity->getTransform().getPointer();
-		material->setBuffer(vkInstance, 3, 0, transform, sizeof(shml::matrix4f));
+		shipMat->setBuffer(vkInstance, 3, 0, transform, sizeof(shml::matrix4f));
 		skyboxRenderer->draw();
 		fontMesh->draw();
 		renderer->render(vkInstance, window->GetWindow(), &mainCamera);
@@ -273,7 +284,6 @@ void Application::mainLoop() {
 	
 	vkDeviceWaitIdle(vkInstance->logicalDevice);
 
-	meshRenderer->teardown(vkInstance);
 	skyboxRenderer->teardown(vkInstance);
 	fontMesh->teardown(vkInstance);
 	
