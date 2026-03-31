@@ -230,8 +230,8 @@ void Application::mainLoop() {
 	// Load Meshes
 	Mesh* mesh = nullptr;
 	Mesh* cube = nullptr;
-	MeshLoader::loadOBJ("Assets/OBJ/ship.obj", &mesh);
-	MeshLoader::loadOBJ("Assets/OBJ/cube.obj", &cube);
+	MeshLoader::loadOBJ("Assets/Mesh/ship.obj", &mesh);
+	MeshLoader::loadOBJ("Assets/Mesh/cube.obj", &cube);
 
 	// Create Player
 	SceneNode* entity = new SceneNode();
