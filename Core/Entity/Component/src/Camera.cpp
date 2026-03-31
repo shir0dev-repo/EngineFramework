@@ -2,7 +2,7 @@
 
 void Camera::setup(uint32_t windowWidth, uint32_t windowHeight) {
 	regenerateProjectionMatrix(windowWidth, windowHeight);
-	transform.setPosition({ 0, 0, -5 });
+	transform.setPosition({0, 0, -5});
 	updateViewMatrix();
 }
 

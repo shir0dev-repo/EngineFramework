@@ -7,6 +7,10 @@ mat4x4 proj;
 vec4 projectionParams;
 } Matrices;
 
+layout(set = 3, binding = 0) uniform TransformData {
+	mat4x4 localToWorldMatrix;
+} transformData;
+
 layout (location = 0) in vec4 inPosition;
 layout (location = 1) in vec4 uv;
 layout (location = 2) in vec4 normal;
@@ -15,7 +19,6 @@ layout (location = 3) in vec4 inColor;
 layout (location = 0) out vec4 outPosition;
 
 void main() {
-	vec3 position = inPosition.xyz;// * Matrices.projectionParams.w;
-	outPosition = Matrices.proj * Matrices.view * vec4(position, 1.0);
+	outPosition = Matrices.proj * Matrices.view * transformData.localToWorldMatrix * inPosition;
 	gl_Position = outPosition;
 }

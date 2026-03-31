@@ -6,6 +6,7 @@
 #include "Core/Vulkan/VulkanInstance.h"
 #include "Core/Graphics/Mesh/Mesh.h"
 #include "Core/Graphics/Material/Material.h"
+#include "Core/Graphics/Buffer/GPUBuffer.h"
 
 RenderNode::RenderNode(SceneNode* parent, Renderer* renderer, Mesh* const meshRef, Material* const materialRef) {
 	if (parent) {
@@ -27,6 +28,8 @@ RenderNode::~RenderNode() {
 
 void RenderNode::update(World* world, const float dt) {
 	if (meshRenderer) {
+		meshRenderer->transformBuffer->bufferData(VulkanInstance::getInstance(), this->getTransform().getPointer(), sizeof(shml::matrix4f));
+		meshRenderer->material->setBuffer(VulkanInstance::getInstance(), 3, 0, this->getTransform().getPointer(), sizeof(shml::matrix4f));
 		meshRenderer->draw();
 	}
 }

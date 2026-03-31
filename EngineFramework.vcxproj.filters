@@ -150,6 +150,9 @@
     <ClCompile Include="Core\Scene\src\RenderNode.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Core\Scene\src\NodeMover.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Vulkan\VulkanInstance.h">
@@ -375,6 +378,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Core\Entity\EntityMover.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Scene\NodeMover.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

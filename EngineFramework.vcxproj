@@ -159,6 +159,7 @@
     <ClCompile Include="Core\App\src\Application.cpp" />
     <ClCompile Include="Core\App\src\AppWindow.cpp" />
     <ClCompile Include="Core\Input\InputHandler.cpp" />
+    <ClCompile Include="Core\Scene\src\NodeMover.cpp" />
     <ClCompile Include="Core\Scene\src\RenderNode.cpp" />
     <ClCompile Include="Core\Scene\src\SceneNode.cpp" />
     <ClCompile Include="Core\Scene\src\World.cpp" />
@@ -191,6 +192,7 @@
     <ClInclude Include="Core\Events\WindowEvents.h" />
     <ClInclude Include="Core\Game\Game.h" />
     <ClInclude Include="Core\Input\InputHandler.h" />
+    <ClInclude Include="Core\Scene\NodeMover.h" />
     <ClInclude Include="Core\Scene\RenderNode.h" />
     <ClInclude Include="Core\Scene\SceneNode.h" />
     <ClInclude Include="Core\Scene\World.h" />

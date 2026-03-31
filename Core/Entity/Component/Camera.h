@@ -1,6 +1,7 @@
 #pragma once
 
 #include <shml/matrix4f.hpp>
+#include "Core/Scene/SceneNode.h"
 
 typedef unsigned int uint32_t;
 

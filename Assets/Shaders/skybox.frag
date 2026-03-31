@@ -41,7 +41,7 @@ int getClosestSampler(in vec3 pos) {
 
 	float highest = pow(10, -45);
 	int highestIndex = 0;
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < 6; i++) {
 		if (dotOutput[i] > highest) {
 			highest = dotOutput[i];
 			highestIndex = i;
@@ -81,6 +81,7 @@ vec4 sampleAs3DTexture(in vec3 screenPosition) {
 }
 
 layout (location = 0) in vec4 inPosition;
+
 layout (location = 0) out vec4 outColor;
 
 void main() {

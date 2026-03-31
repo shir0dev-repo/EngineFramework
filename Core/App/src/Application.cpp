@@ -9,6 +9,7 @@
 #include "Core/Graphics/Mesh/Mesh.h"
 #include "Core/Entity/Component/MeshRenderer.h"
 #include "Core/Scene/RenderNode.h"
+#include "Core/Scene/NodeMover.h"
 
 #include "Core/Graphics/Mesh/Mesh.h"
 #include "Core/Graphics/Material/Material.h"
@@ -226,36 +227,44 @@ void Application::mainLoop() {
 	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyDown, Application::onKeyDown, this);
 	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyUp, Application::onKeyUp, this);
 
+	// Load Meshes
 	Mesh* mesh = nullptr;
 	Mesh* cube = nullptr;
 	MeshLoader::loadOBJ("Assets/OBJ/ship.obj", &mesh);
 	MeshLoader::loadOBJ("Assets/OBJ/cube.obj", &cube);
 
+	// Create Player
 	SceneNode* entity = new SceneNode();
-
 	World::getWorld()->getRootNode()->addChild(entity);
 	entity->setPosition({ 0, 0, -5 });
 	entity->setRotation(shml::quat(0, 180.0, 0));
 
+	// Load Materials and assign to render node.
+	SceneNode* skyboxEntity = new SceneNode();
 	Material* skyboxMat = nullptr;
 	Material::find("skybox", &skyboxMat);
+	RenderNode* skyboxRenderer = new RenderNode(World::getWorld()->getRootNode(), renderer, cube, skyboxMat);
+	NodeMover* mover = new NodeMover(entity, entity);
+
+	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyDown, NodeMover::setVelocity, mover);
+	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyUp, NodeMover::setVelocity, mover);
+
 	Material* shipMat = nullptr;
 	Material::find("default", &shipMat);
 	Material* fontMat = nullptr;
 	Material::find("font", &fontMat);
 
-	MeshRenderer* skyboxRenderer = new MeshRenderer(vkInstance, renderer, nullptr, cube, skyboxMat);
 	RenderNode* rNode = new RenderNode(entity, renderer, mesh, shipMat);
 	entity->addChild(rNode);
 	TextMesh* fontMesh = TextMesh::generate(vkInstance, renderer, fontMat, window->Width, window->Height, FontAsset::find("default"),
 		"Hello", {1, 0, 600, 600}, 8);
 
-	std::cout << rNode->getWorldPosition() << std::endl;
 	float time = 0;
 
 	Camera mainCamera{};
 	
 	mainCamera.setup(window->Width, window->Height);
+
 	glfwSetInputMode(window->GetWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	while (!glfwWindowShouldClose(window->GetWindow())) {
@@ -271,19 +280,18 @@ void Application::mainLoop() {
 		
 		inputDir = inputDir.normalized_safe() * 0.02f;
 		World::getWorld()->getRootNode()->onUpdate(World::getWorld(), 0.02f);
+		skyboxRenderer->setPosition((shml::vec3f)(mainCamera.transform.getRow(2)));
 		World::getWorld()->moveEntity(entity, entity->getLocalPosition() + inputDir);
 		World::getWorld()->executeCommands();
 		
 		const float* transform = entity->getTransform().getPointer();
 		shipMat->setBuffer(vkInstance, 3, 0, transform, sizeof(shml::matrix4f));
-		skyboxRenderer->draw();
 		fontMesh->draw();
 		renderer->render(vkInstance, window->GetWindow(), &mainCamera);
 	}
 	
 	vkDeviceWaitIdle(vkInstance->logicalDevice);
 
-	skyboxRenderer->teardown(vkInstance);
 	fontMesh->teardown(vkInstance);
 	
 	delete skyboxRenderer;
