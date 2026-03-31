@@ -188,9 +188,6 @@
     <ClInclude Include="lib\shml\matrix3f.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="lib\shml\matrix4f.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="lib\shml\quat.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -381,6 +378,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Core\Scene\NodeMover.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\shml\matrix4f.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
