@@ -9,10 +9,10 @@ struct VkDevice_T;
 struct VkBuffer_T;
 struct VkDeviceMemory_T;
 
-struct VulkanInstance;
+struct VulkanContext;
 
 struct UniformBuffer {
-	static UniformBuffer* create(const VulkanInstance* const instance, uint32_t allocationSize, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryUsage);
+	static UniformBuffer* create(const VulkanContext* const instance, uint32_t allocationSize, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryUsage);
 	static void dispose(UniformBuffer*& buffer, VkDevice_T* logicalDevice);
 
 	VkBuffer_T* vkBuffer;

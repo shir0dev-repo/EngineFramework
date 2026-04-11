@@ -12,7 +12,7 @@ struct VkDeviceMemory_T;
 struct VkSampler_T;
 struct VkSamplerCreateInfo;
 struct VkImageViewCreateInfo;
-struct VulkanInstance;
+struct VulkanContext;
 
 struct GPUTexture {
 	static const unsigned int MAX_NAME_SIZE = 64;
@@ -36,28 +36,28 @@ struct GPUTexture {
 	static GPUTexture* createTexture(const uint32_t width, const uint32_t height, const uint32_t channels, 
 		const void* data = nullptr, const char* name = "");
 	
-	static GPUTexture* createTextureLoadImmediate(const VulkanInstance* const instance, const char* filePath,
+	static GPUTexture* createTextureLoadImmediate(const VulkanContext* const instance, const char* filePath,
 		const char* name = "");
-	static GPUTexture* createTextureLoadImmediate(const VulkanInstance* const instance, const uint32_t width, const uint32_t height,
+	static GPUTexture* createTextureLoadImmediate(const VulkanContext* const instance, const uint32_t width, const uint32_t height,
 		const uint32_t channels, const uint32_t sizeInBytes = 0, const void* data = nullptr, const char* name = "");
 
 	static bool getTexture(const char* name, GPUTexture** outTexture);
 
-	static void transitionLayout(const VulkanInstance* const instance, GPUTexture* texture, VkFormat imageFormat,
+	static void transitionLayout(const VulkanContext* const instance, GPUTexture* texture, VkFormat imageFormat,
 		VkImageLayout oldLayout, VkImageLayout newLayout);
 
-	static void loadGPU(const VulkanInstance* const instance, GPUTexture* texture);
-	static void loadGPU(const VulkanInstance* const instance, GPUTexture* texture, unsigned char* handle);
-	static void loadGPU(const VulkanInstance* const instance, const uint32_t sizeInBytes, const void* data, GPUTexture* texture);
-	static void setPixels(const VulkanInstance* const instance, const uint32_t pixelStride, const uint32_t sizeInBytes, void* pixelData,
+	static void loadGPU(const VulkanContext* const instance, GPUTexture* texture);
+	static void loadGPU(const VulkanContext* const instance, GPUTexture* texture, unsigned char* handle);
+	static void loadGPU(const VulkanContext* const instance, const uint32_t sizeInBytes, const void* data, GPUTexture* texture);
+	static void setPixels(const VulkanContext* const instance, const uint32_t pixelStride, const uint32_t sizeInBytes, void* pixelData,
 		GPUTexture* texture);
 
-	static void cleanup(const VulkanInstance* const instance);
+	static void cleanup(const VulkanContext* const instance);
 private:
 	static bool getCPUTextureHandle(GPUTexture* texture, unsigned char** outHandle);
 
-	void createImage(const VulkanInstance* const instance);
-	void createImageView(const VulkanInstance* const instance);
-	void createMemory(const VulkanInstance* const instance);
-	void createSampler(const VulkanInstance* const instance);
+	void createImage(const VulkanContext* const instance);
+	void createImageView(const VulkanContext* const instance);
+	void createMemory(const VulkanContext* const instance);
+	void createSampler(const VulkanContext* const instance);
 };

@@ -1,13 +1,13 @@
 #include "../GPUBuffer.h"
+#include "Core/Vulkan/VulkanContext.h"
 #include "Core/Vulkan/VulkanDevice.h"
-#include "Core/Vulkan/VulkanInstance.h"
 #include "Core/Graphics/GraphicsUtils.h"
 #include "Core/Graphics/Buffer/BufferUtils.h"
 
 #include <vulkan/vulkan.h>
 #include <iostream>
 
-GPUBuffer* GPUBuffer::create(const VulkanInstance* const instance, uint32_t sizeInBytes, VkBufferUsageFlags usage, const void* data) {
+GPUBuffer* GPUBuffer::create(const VulkanContext* const instance, uint32_t sizeInBytes, VkBufferUsageFlags usage, const void* data) {
 	
 	if (sizeInBytes <= 0) {
 		return nullptr;
@@ -29,15 +29,15 @@ GPUBuffer* GPUBuffer::create(const VulkanInstance* const instance, uint32_t size
 	
 	if (data != nullptr) {
 		void* mappedData = nullptr;
-		vkMapMemory(instance->logicalDevice, stagingMemory, 0, sizeInBytes, 0, &mappedData);
+		vkMapMemory(instance->getDevice()->getLogicalDevice(), stagingMemory, 0, sizeInBytes, 0, &mappedData);
 		memcpy(mappedData, data, sizeInBytes);
-		vkUnmapMemory(instance->logicalDevice, stagingMemory);
+		vkUnmapMemory(instance->getDevice()->getLogicalDevice(), stagingMemory);
 	}
 
 	BufferUtils::copyBuffer(instance, stagingBuffer, buffer->vkBuffer, sizeInBytes, 0);
 
-	vkDestroyBuffer(instance->logicalDevice, stagingBuffer, nullptr);
-	vkFreeMemory(instance->logicalDevice, stagingMemory, nullptr);
+	vkDestroyBuffer(instance->getDevice()->getLogicalDevice(), stagingBuffer, nullptr);
+	vkFreeMemory(instance->getDevice()->getLogicalDevice(), stagingMemory, nullptr);
 
 	return buffer;
 }
@@ -54,7 +54,7 @@ void GPUBuffer::dispose(VkDevice_T* logicalDevice) {
 	}
 }
 
-void GPUBuffer::bufferData(const VulkanInstance* const instance, const void* data, uint32_t sizeInBytes, uint32_t offset) {
+void GPUBuffer::bufferData(const VulkanContext* const instance, const void* data, uint32_t sizeInBytes, uint32_t offset) {
 	if (sizeInBytes <= 0) {
 		throw std::runtime_error("Cannot buffer zero bytes of data!");
 	}
@@ -69,13 +69,13 @@ void GPUBuffer::bufferData(const VulkanInstance* const instance, const void* dat
 	BufferUtils::createBuffer(instance, sizeInBytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, stagingProperties, &stagingBuffer, &stagingMemory);
 
 	void* mappedData;
-	vkMapMemory(instance->logicalDevice, stagingMemory, 0, sizeInBytes, 0, &mappedData);
+	vkMapMemory(instance->getDevice()->getLogicalDevice(), stagingMemory, 0, sizeInBytes, 0, &mappedData);
 	memcpy(mappedData, data, sizeInBytes);
-	vkUnmapMemory(instance->logicalDevice, stagingMemory);
+	vkUnmapMemory(instance->getDevice()->getLogicalDevice(), stagingMemory);
 	
 	BufferUtils::copyBuffer(instance, stagingBuffer, this->vkBuffer, sizeInBytes, offset);
-	vkDestroyBuffer(instance->logicalDevice, stagingBuffer, nullptr);
-	vkFreeMemory(instance->logicalDevice, stagingMemory, nullptr);
+	vkDestroyBuffer(instance->getDevice()->getLogicalDevice(), stagingBuffer, nullptr);
+	vkFreeMemory(instance->getDevice()->getLogicalDevice(), stagingMemory, nullptr);
 }
 
 void GPUBuffer::bind(VkCommandBuffer_T* commandBuffer) {

@@ -12,6 +12,6 @@ struct FontAsset {
 	stbtt_packedchar* packedChars = nullptr;
 	struct GPUTexture* texture = nullptr;
 
-	static FontAsset* const create(const struct VulkanInstance* const instance, const char* path, const float pointSize = 12.0f);
+	static FontAsset* const create(const struct VulkanContext* const instance, const char* path, const float pointSize = 12.0f);
 	static FontAsset* const find(const char* name);
 };

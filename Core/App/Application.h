@@ -3,7 +3,7 @@
 struct GLFWwindow;
 
 struct AppWindow;
-struct VulkanInstance;
+struct VulkanContext;
 struct Renderer;
 struct GraphicsPipeline;
 
@@ -71,7 +71,7 @@ private:
 	/// <summary>
 	/// The VulkanInstance of the application.
 	/// </summary>
-	VulkanInstance* vkInstance = nullptr;
+	VulkanContext* vkInstance = nullptr;
 	/// <summary>
 	/// The GraphicsPipeline of the application.
 	/// </summary>

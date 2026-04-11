@@ -1,6 +1,7 @@
 #include "Core/UI/TextMesh.h"
 
-#include "Core/Vulkan/VulkanInstance.h"
+#include "Core/Vulkan/VulkanContext.h"
+#include "Core/Vulkan/VulkanDevice.h"
 #include "Core/Graphics/Renderer/Renderer.h"
 #include "Core/Graphics/Pipeline/GraphicsPipeline.h"
 #include "Core/Graphics/Mesh/Mesh.h"
@@ -18,7 +19,7 @@
 
 #define DEFAULT_STARTING_CHARACTER 32
 
-TextMesh* TextMesh::generate(const VulkanInstance* const instance, Renderer* const renderer, Material* const materialRef, 
+TextMesh* TextMesh::generate(const VulkanContext* const instance, Renderer* const renderer, Material* const materialRef, 
 	uint32_t windowWidth, uint32_t windowHeight, FontAsset* const font, const std::string text, Rect rect, float fontSize) {
 
 	float pixelScale = 2.0f / windowHeight;
@@ -128,7 +129,7 @@ TextMesh* TextMesh::generate(const VulkanInstance* const instance, Renderer* con
 	return textMesh;
 }
 
-void TextMesh::setup(const VulkanInstance* const instance, Renderer* renderer, std::string text, Mesh* const meshRef, Material* const materialRef) {
+void TextMesh::setup(const VulkanContext* const instance, Renderer* renderer, std::string text, Mesh* const meshRef, Material* const materialRef) {
 	IRenderable::setup(instance, renderer, nullptr, meshRef, materialRef);
 	this->text = text;
 }
@@ -140,13 +141,13 @@ void TextMesh::draw() {
 	material->pipeline->addRenderCommand(this);
 }
 
-void TextMesh::teardown(const VulkanInstance* const instance) {
+void TextMesh::teardown(const VulkanContext* const instance) {
 	if (meshBuffer != nullptr) {
 		meshBuffer->teardown(instance);
 		meshBuffer = nullptr;
 	}
 	if (transformBuffer != nullptr) {
-		transformBuffer->dispose(instance->logicalDevice);
+		transformBuffer->dispose(instance->getDevice()->getLogicalDevice());
 		transformBuffer = nullptr;
 	}
 }

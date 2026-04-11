@@ -1,6 +1,6 @@
 #include "Core/UI/FontAsset.h"
 #include "Core/Graphics/Texture/GPUTexture.h"
-#include "Core/Vulkan/VulkanInstance.h"
+#include "Core/Vulkan/VulkanContext.h"
 #include "STBTT/stb_truetype.h"
 #include <fstream>
 #include <iostream>
@@ -11,7 +11,7 @@
 
 static std::map<std::string, FontAsset*> fontMap;
 
-FontAsset* const FontAsset::create(const VulkanInstance* const instance, const char* filePath, const float pointSize) {
+FontAsset* const FontAsset::create(const VulkanContext* const instance, const char* filePath, const float pointSize) {
 	uint8_t* fontBuffer = nullptr;
 	stbtt_fontinfo fontInfo;
 

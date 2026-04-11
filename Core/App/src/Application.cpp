@@ -1,10 +1,8 @@
 #include "Core/Structure/IDVector.h"
 #include "../Application.h"
 #include "../AppWindow.h"
-#include "Core/Vulkan/VulkanInstance.h"
-#include "Core/Vulkan/VulkanValidator.h"
+#include "Core/Vulkan/VulkanContext.h"
 #include "Core/Vulkan/VulkanDevice.h"
-#include "Core/Vulkan/VulkanSwapChain.h"
 #include "Core/Graphics/Pipeline/GraphicsPipeline.h"
 #include "Core/Graphics/Mesh/Mesh.h"
 #include "Core/Entity/Component/MeshRenderer.h"
@@ -100,17 +98,17 @@ void Application::initAssets() {
 }
 
 void Application::initVulkan() {
-	this->vkInstance = VulkanInstance::getInstance();
+	this->vkInstance = VulkanContext::getInstance();
 	this->vkInstance->setup(this->window->GetWindow());
 }
 
-static void uploadTextures(VulkanInstance* vkInstance);
+static void uploadTextures(VulkanContext* vkInstance);
 
 void Application::initRenderer() {
 	this->renderer = Renderer::getInstance();
 	renderer->setup(vkInstance);
-	int vertexID = ShaderModule::createNew(vkInstance->logicalDevice, "Assets/Shaders/vert.spv", "default-v");
-	int fragmentID = ShaderModule::createNew(vkInstance->logicalDevice, "Assets/Shaders/frag.spv", "default-f");
+	int vertexID = ShaderModule::createNew(vkInstance->getDevice()->getLogicalDevice(), "Assets/Shaders/vert.spv", "default-v");
+	int fragmentID = ShaderModule::createNew(vkInstance->getDevice()->getLogicalDevice(), "Assets/Shaders/frag.spv", "default-f");
 
 	ShaderModule* vertex = nullptr; 
 	ShaderModule::find(vertexID, &vertex);
@@ -123,8 +121,8 @@ void Application::initRenderer() {
 
 	renderer->addPipeline(&shader, false);
 
-	int skyboxVertexID = ShaderModule::createNew(vkInstance->logicalDevice, "Assets/Shaders/skybox-vert.spv", "skybox-v");
-	int skyboxFragmentID = ShaderModule::createNew(vkInstance->logicalDevice, "Assets/Shaders/skybox-frag.spv", "skybox-f");
+	int skyboxVertexID = ShaderModule::createNew(vkInstance->getDevice()->getLogicalDevice(), "Assets/Shaders/skybox-vert.spv", "skybox-v");
+	int skyboxFragmentID = ShaderModule::createNew(vkInstance->getDevice()->getLogicalDevice(), "Assets/Shaders/skybox-frag.spv", "skybox-f");
 
 	ShaderModule::find(skyboxVertexID, &vertex);
 	ShaderModule::find(skyboxFragmentID, &fragment);
@@ -134,8 +132,8 @@ void Application::initRenderer() {
 	skyboxShader.fragmentModule = fragment;
 	renderer->addPipeline(&skyboxShader, false);
 
-	int fontVertexID = ShaderModule::createNew(vkInstance->logicalDevice, "Assets/Shaders/UIText-vert.spv", "font-v");
-	int fontFragmentID = ShaderModule::createNew(vkInstance->logicalDevice, "Assets/Shaders/UIText-frag.spv", "font-f");
+	int fontVertexID = ShaderModule::createNew(vkInstance->getDevice()->getLogicalDevice(), "Assets/Shaders/UIText-vert.spv", "font-v");
+	int fontFragmentID = ShaderModule::createNew(vkInstance->getDevice()->getLogicalDevice(), "Assets/Shaders/UIText-frag.spv", "font-f");
 
 	ShaderModule::find(fontVertexID, &vertex);
 	ShaderModule::find(fontFragmentID, &fragment);
@@ -290,7 +288,7 @@ void Application::mainLoop() {
 		renderer->render(vkInstance, window->GetWindow(), &mainCamera);
 	}
 	
-	vkDeviceWaitIdle(vkInstance->logicalDevice);
+	vkDeviceWaitIdle(vkInstance->getDevice()->getLogicalDevice());
 
 	fontMesh->teardown(vkInstance);
 	
@@ -305,8 +303,8 @@ void Application::mainLoop() {
 void Application::cleanup() {
 	Material::cleanup(vkInstance);
 	GPUTexture::cleanup(vkInstance);
-	ShaderModule::teardown(vkInstance->logicalDevice);
-	renderer->teardown(vkInstance->logicalDevice);
+	ShaderModule::teardown(vkInstance->getDevice()->getLogicalDevice());
+	renderer->teardown(vkInstance->getDevice()->getLogicalDevice());
 	delete renderer;
 	vkInstance->teardown();
 	delete vkInstance;
@@ -315,7 +313,7 @@ void Application::cleanup() {
 	glfwTerminate();
 }
 
-void uploadTextures(VulkanInstance* vkInstance) {
+void uploadTextures(VulkanContext* vkInstance) {
 	GPUTexture* texture;
 	GPUTexture::getTexture("default", &texture);
 	GPUTexture::loadGPU(vkInstance, texture);

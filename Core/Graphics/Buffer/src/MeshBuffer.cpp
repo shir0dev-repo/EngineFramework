@@ -1,6 +1,6 @@
 #include "Core/Graphics/Buffer/MeshBuffer.h"
 
-#include "Core/Vulkan/VulkanInstance.h"
+#include "Core/Vulkan/VulkanContext.h"
 #include "Core/Vulkan/VulkanDevice.h"
 
 #include "Core/Graphics/Renderer/Renderer.h"
@@ -9,7 +9,7 @@
 
 #include <vulkan/vulkan.h>
 
-void MeshBuffer::setup(const VulkanInstance* const instance, Renderer* renderer, Mesh* const meshRef) {
+void MeshBuffer::setup(const VulkanContext* const instance, Renderer* renderer, Mesh* const meshRef) {
 	this->mesh = meshRef;
 
 	VkBufferUsageFlags vertexFlags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
@@ -20,14 +20,14 @@ void MeshBuffer::setup(const VulkanInstance* const instance, Renderer* renderer,
 	this->indexBuffer = GPUBuffer::create(instance, meshRef->indexCount * sizeof(uint32_t), indexFlags, meshRef->indexData);
 }
 
-void MeshBuffer::teardown(const VulkanInstance* const instance) {
+void MeshBuffer::teardown(const VulkanContext* const instance) {
 	if (vertexBuffer != nullptr) {
-		vertexBuffer->dispose(instance->logicalDevice);
+		vertexBuffer->dispose(instance->getDevice()->getLogicalDevice());
 		delete vertexBuffer;
 		vertexBuffer = nullptr;
 	}
 	if (indexBuffer != nullptr) {
-		indexBuffer->dispose(instance->logicalDevice);
+		indexBuffer->dispose(instance->getDevice()->getLogicalDevice());
 		delete indexBuffer;
 		indexBuffer = nullptr;
 	}

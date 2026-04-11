@@ -1,7 +1,7 @@
 #include "Core/Graphics/Buffer/BufferUtils.h"
 
+#include "Core/Vulkan/VulkanContext.h"
 #include "Core/Vulkan/VulkanDevice.h"
-#include "Core/Vulkan/VulkanInstance.h"
 #include "Core/Graphics/Texture/GPUTexture.h"
 
 #include <vulkan/vulkan.h>
@@ -19,34 +19,34 @@ uint32_t BufferUtils::getMemoryType(VkPhysicalDevice_T* physicalDevice, uint32_t
 	throw std::runtime_error("Failed to find suitable memory type!");
 }
 
-void BufferUtils::createBuffer(const VulkanInstance* const instance, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryUsage, VkBuffer_T** buffer, VkDeviceMemory_T** memory) {
+void BufferUtils::createBuffer(const VulkanContext* const instance, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryUsage, VkBuffer_T** buffer, VkDeviceMemory_T** memory) {
 	VkBufferCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	createInfo.size = size;
 	createInfo.usage = usage;
 	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	
-	if (vkCreateBuffer(instance->logicalDevice, &createInfo, nullptr, buffer) != VK_SUCCESS) {
+	if (vkCreateBuffer(instance->getDevice()->getLogicalDevice(), &createInfo, nullptr, buffer) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create buffer!");
 	}
 	
 	VkMemoryRequirements memRequirements = {};
-	vkGetBufferMemoryRequirements(instance->logicalDevice, *buffer, &memRequirements);
+	vkGetBufferMemoryRequirements(instance->getDevice()->getLogicalDevice(), *buffer, &memRequirements);
 	
 	VkMemoryAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = getMemoryType(instance->physicalDevice, memRequirements.memoryTypeBits, memoryUsage);
+	allocInfo.memoryTypeIndex = getMemoryType(instance->getDevice()->getPhysicalDevice(), memRequirements.memoryTypeBits, memoryUsage);
 	
-	VkResult result = vkAllocateMemory(instance->logicalDevice, &allocInfo, nullptr, memory);
+	VkResult result = vkAllocateMemory(instance->getDevice()->getLogicalDevice(), &allocInfo, nullptr, memory);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate buffer memory!");
 	}
 	
-	vkBindBufferMemory(instance->logicalDevice, *buffer, *memory, 0);
+	vkBindBufferMemory(instance->getDevice()->getLogicalDevice(), *buffer, *memory, 0);
 }
 
-void BufferUtils::copyBuffer(const VulkanInstance* const instance, VkBuffer_T* src, VkBuffer_T* dst, VkDeviceSize size, uint32_t dstOffset) {
+void BufferUtils::copyBuffer(const VulkanContext* const instance, VkBuffer_T* src, VkBuffer_T* dst, VkDeviceSize size, uint32_t dstOffset) {
 	VkCommandBuffer commandBuffer;
 	instance->beginSingleUseCommandBuffer(&commandBuffer);
 
@@ -60,7 +60,7 @@ void BufferUtils::copyBuffer(const VulkanInstance* const instance, VkBuffer_T* s
 	instance->endSingleUseCommandBuffer(commandBuffer);
 }
 
-void BufferUtils::copyToImage(const VulkanInstance* const instance, VkBuffer_T* buffer, GPUTexture* texture) {
+void BufferUtils::copyToImage(const VulkanContext* const instance, VkBuffer_T* buffer, GPUTexture* texture) {
 	VkCommandBuffer commandBuffer;
 	instance->beginSingleUseCommandBuffer(&commandBuffer);
 	

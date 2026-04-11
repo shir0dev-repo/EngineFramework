@@ -1,5 +1,5 @@
 #include "Core/Graphics/Material/Material.h"
-#include "Core/Vulkan/VulkanInstance.h"
+#include "Core/Vulkan/VulkanContext.h"
 #include "Core/Vulkan/VulkanDevice.h"
 #include "Core/Graphics/Pipeline/GraphicsPipeline.h"
 #include "Core/Graphics/Pipeline/PipelineMaterialLayout.h"
@@ -15,18 +15,18 @@
 
 static std::unordered_map<const char*, Material*> materialLookup;
 
-void Material::cleanup(const VulkanInstance* const instance) {
+void Material::cleanup(const VulkanContext* const instance) {
 	for (auto& [name, material] : materialLookup) {
 		if (material->pBuffers != nullptr) {
 			for (uint32_t i = 0; i < material->numBufferHandles; i++) {
-				material->pBuffers[i].handle->dispose(instance->logicalDevice);
+				material->pBuffers[i].handle->dispose(instance->getDevice()->getLogicalDevice());
 				delete material->pBuffers[i].handle;
 			}
 			delete[] material->pBuffers;
 		}
 		if (material->pInstanceBuffers != nullptr) {
 			for (uint32_t i = 0; i < material->numInstanceBufferHandles; i++) {
-				material->pInstanceBuffers[i].handle->dispose(instance->logicalDevice);
+				material->pInstanceBuffers[i].handle->dispose(instance->getDevice()->getLogicalDevice());
 				delete material->pInstanceBuffers[i].handle;
 			}
 			delete[] material->pInstanceBuffers;
@@ -36,7 +36,7 @@ void Material::cleanup(const VulkanInstance* const instance) {
 	}
 }
 
-Material* const Material::create(const VulkanInstance* const instance, GraphicsPipeline* const pipeline, const char* name) {
+Material* const Material::create(const VulkanContext* const instance, GraphicsPipeline* const pipeline, const char* name) {
 	Material* material = nullptr;
 	if (find(name, &material)) {
 		return material;
@@ -142,7 +142,7 @@ Material* const Material::create(const VulkanInstance* const instance, GraphicsP
 
 			writes.push_back(write);
 		}
-		vkUpdateDescriptorSets(instance->logicalDevice, writes.size(), writes.data(), 0, nullptr);
+		vkUpdateDescriptorSets(instance->getDevice()->getLogicalDevice(), writes.size(), writes.data(), 0, nullptr);
 	}
 
 	materialLookup.emplace(name, material);
@@ -163,7 +163,7 @@ bool Material::find(const char* name, Material** outMaterial) {
 	}
 }
 
-void Material::createTextureHandles(const VulkanInstance* const instance, GraphicsPipeline* const pipeline, const PipelineSummary* const summary,
+void Material::createTextureHandles(const VulkanContext* const instance, GraphicsPipeline* const pipeline, const PipelineSummary* const summary,
 	MaterialBinding* bindings, uint32_t bindingCount) {
 	
 	this->numTextureHandles = bindingCount;
@@ -184,7 +184,7 @@ void Material::createTextureHandles(const VulkanInstance* const instance, Graphi
 	}
 }
 
-void Material::createBufferHandles(const VulkanInstance* const instance, GraphicsPipeline* const pipeline, const PipelineSummary* const summary,
+void Material::createBufferHandles(const VulkanContext* const instance, GraphicsPipeline* const pipeline, const PipelineSummary* const summary,
 	MaterialBinding* bindings, uint32_t bindingCount) {
 
 	this->numBufferHandles = bindingCount;
@@ -204,7 +204,7 @@ void Material::createBufferHandles(const VulkanInstance* const instance, Graphic
 	}
 }
 
-void Material::createInstanceBufferHandles(const VulkanInstance* const instance, GraphicsPipeline* const pipeline, const PipelineSummary* const summary,
+void Material::createInstanceBufferHandles(const VulkanContext* const instance, GraphicsPipeline* const pipeline, const PipelineSummary* const summary,
 	MaterialBinding* bindings, uint32_t bindingCount) {
 
 	this->numInstanceBufferHandles = bindingCount;
@@ -236,7 +236,7 @@ void Material::unbind(VkCommandBuffer_T* commandBuffer, uint32_t currentFrame) c
 	
 }
 
-void Material::setTexture(const VulkanInstance* const instance, GPUTexture* texture, uint32_t binding) {
+void Material::setTexture(const VulkanContext* const instance, GPUTexture* texture, uint32_t binding) {
 	VkDescriptorImageInfo imageInfo = {};
 	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	imageInfo.imageView = texture->imageView;
@@ -251,13 +251,13 @@ void Material::setTexture(const VulkanInstance* const instance, GPUTexture* text
 		write.dstBinding = binding;
 		write.pImageInfo = &imageInfo;
 
-		vkUpdateDescriptorSets(instance->logicalDevice, 1, &write, 0, nullptr);
+		vkUpdateDescriptorSets(instance->getDevice()->getLogicalDevice(), 1, &write, 0, nullptr);
 	}
 
 	pTextures[binding].customHandle = texture;
 }
 
-void Material::setFloat(const VulkanInstance* const instance, uint32_t binding, float value) const {
+void Material::setFloat(const VulkanContext* const instance, uint32_t binding, float value) const {
 	for (uint32_t i = 0; i < numBufferHandles; i++) {
 		GPUBuffer* handle = this->pBuffers[i].handle;
 		void* data = &value;
@@ -265,7 +265,7 @@ void Material::setFloat(const VulkanInstance* const instance, uint32_t binding, 
 	}
 }
 
-void Material::setBuffer(const VulkanInstance* const instance, uint32_t set, uint32_t binding, const void* data, uint32_t size) const {
+void Material::setBuffer(const VulkanContext* const instance, uint32_t set, uint32_t binding, const void* data, uint32_t size) const {
 	uint32_t count = set == 2 ? numBufferHandles : numInstanceBufferHandles;
 	BufferHandleEntry* targetBuffers = set == 2 ? pBuffers : pInstanceBuffers;
 	for (uint32_t i = 0; i < count; i++) {

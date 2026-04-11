@@ -2,10 +2,7 @@
 
 typedef unsigned int uint32_t;
 
-struct SwapChainSupportDetails;
 struct VulkanDevice;
-struct Frame;
-struct VulkanInstance;
 
 struct GLFWwindow;
 
@@ -24,122 +21,52 @@ struct VkSurfaceFormatKHR;
 struct VkExtent2D;
 struct VkImageView_T;
 
-/// <summary>A wrapper object for Vulkan's swap chain functionality.</summary>
+/// <summary>Manages the Vulkan swap chain, images, and image views.</summary>
 struct VulkanSwapChain {
-	/// <summary>Queries the device's swapchain capabilities .</summary>
-	/// <param name="device">The physical device to query.</param>
-	/// <param name="surface">The display surface this device will render to.</param>
-	/// <param name="supportDetails">Out SwapChainSupportDetails for capabilities.</param>
-	static void querySwapChainCapabilities(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, SwapChainSupportDetails& supportDetails);
-	
-	/// <summary>Sets up the swapchain to be used during rendering.</summary>
-	/// <param name="device">The logical device this swapchain will render to.</param>
-	/// <param name="surface">The surface this swapchain will render to.</param>
-	/// <param name="window">The window this swapchain will render to.</param>
-	void setup(const VulkanInstance* const instance, VkSurfaceKHR_T* surface, GLFWwindow* window);
-	
-	/// <summary>Recreates the swapchain, resolving and out of date or suboptimal errors.</summary>
-	/// <param name="device">The logical device this swapchain will render to.</param>
-	/// <param name="renderPass">The render pass this swap chain is using.</param>
-	/// <param name="surface">The surface this swapchain will render to.</param>
-	/// <param name="window">The window this swapchain will render to.</param>
-	void recreate(const VulkanInstance* const instance, VkRenderPass_T* renderPass, VkSurfaceKHR_T* surface, GLFWwindow* window);
-	
-	/// <summary>Cleans up any references made by the VulkanSwapChain.</summary>
-	/// <param name="logicalDevice">The logical device this swapchain belonged to.</param>
-	void teardown(VkDevice_T* logicalDevice);
+    /// <summary>Checks whether a device/surface pair supports adequate swap chain capabilities.</summary>
+    static bool isSwapChainAdequate(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface);
 
-	VkImage_T* const getImage(uint32_t index);
-	VkImageView_T* const getImageView(uint32_t index);
+    /// <summary>Sets up the swap chain.</summary>
+    void setup(const VulkanDevice* device, VkSurfaceKHR_T* surface, GLFWwindow* window);
 
-	/// <summary>Gets the surface format of the selected device.</summary>
-	/// <returns>VulkanSwapChain::selectedFormat.</returns>
-	const VkSurfaceFormatKHR* const getFormat() const { return selectedFormat; }
-	
-	/// <summary>Gets the present mode of the selected device.</summary>
-	/// <returns>VulkanSwapChain::selectedPresentMode.</returns>
-	const VkPresentModeKHR getPresentMode() const { return selectedPresentMode; }
-	
-	/// <summary>Gets the extents of the selected device.</summary>
-	/// <returns>VulkanSwapChain::swapExtent.</returns>
-	const VkExtent2D* const getExtents() const { return swapExtent; }
-	
-	/// <summary>Gets the current swapchain instance.</summary>
-	/// <returns>VulkanSwapChain::swapChain.</returns>
-	VkSwapchainKHR_T* const getSwapChain() const { return swapChain; }
+    /// <summary>Recreates the swap chain after resize or invalidation.</summary>
+    void recreate(const VulkanDevice* device, VkRenderPass_T* renderPass, VkSurfaceKHR_T* surface, GLFWwindow* window);
 
-	/// <summary>Gets the number of swap chain images.</summary>
-	/// <returns>VulkanSwapChain::swapChainImageCount.</returns>
-	const uint32_t getSwapChainImageCount() const { return swapChainImageCount; }
+    /// <summary>Cleans up swap chain resources.</summary>
+    void teardown(VkDevice_T* logicalDevice);
+
+    VkImage_T* const    getImage(uint32_t index);
+    VkImageView_T* const getImageView(uint32_t index);
+
+    const VkSurfaceFormatKHR* const getFormat()              const { return selectedFormat; }
+    const VkPresentModeKHR          getPresentMode()         const { return selectedPresentMode; }
+    const VkExtent2D* const         getExtents()             const { return swapExtent; }
+    VkSwapchainKHR_T* const         getSwapChain()           const { return swapChain; }
+    const uint32_t                  getSwapChainImageCount() const { return swapChainImageCount; }
+
 private:
-	/// <summary>Creates the VkSwapchainKHR_T*.</summary>
-	/// <param name="device">The logical device this swapchain will render to.</param>
-	/// <param name="surface">The surface this swapchain will render to.</param>
-	/// <param name="window">The window this swapchain will render to.</param>
-	void createSwapChain(const VulkanInstance* const instance, VkSurfaceKHR_T* surface, GLFWwindow* window);
+    void createSwapChain(const VulkanDevice* device, VkSurfaceKHR_T* surface, GLFWwindow* window);
+    void createImages(VkDevice_T* logicalDevice);
+    void createImageViews(VkDevice_T* logicalDevice);
+    void cleanupSwapchain(VkDevice_T* logicalDevice, bool isFinalTeardown);
 
-	void createImages(VkDevice_T* logicalDevice);
-	
-	void createImageViews(VkDevice_T* logicalDevice);
+    // Capability queries — internal only, SwapChainSupportDetails lives in .cpp
+    static void querySwapChainCapabilities(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, struct SwapChainSupportDetails& supportDetails);
+    static void querySupportedSurfaceFormats(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, VkSurfaceFormatKHR*& outFormats, uint32_t* count);
+    static void querySupportedPresentModes(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, VkPresentModeKHR*& outPresentModes, uint32_t* count);
+    static void querySurfaceCapabilities(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, VkSurfaceCapabilitiesKHR*& outCapabilities);
 
-	/// <summary>Cleans up any references made by the VulkanSwapChain.</summary>
-	/// <param name="logicalDevice">The logical device this swapchain belongs/belonged to.</param>
-	/// <param name="isFinalTeardown">Whether or not this is being called at the end of the application lifetime.</param>
-	void cleanupSwapchain(VkDevice_T* logicalDevice, bool isFinalTeardown);
+    void chooseSwapSurfaceFormat(const VkSurfaceFormatKHR* availableFormats, uint32_t count);
+    void chooseSwapPresentMode(const VkPresentModeKHR* availablePresentModes, uint32_t count);
+    void chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
 
-	/// <summary>Queries the surface's supported formats.</summary>
-	/// <param name="device">The device this surface might render to.</param>
-	/// <param name="surface">The queried surface.</param>
-	/// <param name="outFormats">Resulting supported formats.</param>
-	/// <param name="count">Number of supported formats.</param>
-	static void querySupportedSurfaceFormats(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, VkSurfaceFormatKHR*& outFormats, uint32_t* count);
+    struct SwapChainSupportDetails* supportDetails = nullptr;
 
-	/// <summary>Queries the surface's supported present modes.</summary>
-	/// <param name="device">The device this surface might render to.</param>
-	/// <param name="surface">The queried surface.</param>
-	/// <param name="outPresentModes">Resulting supported present modes.</param>
-	/// <param name="count">Number of supported present modes.</param>
-	static void querySupportedPresentModes(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, VkPresentModeKHR*& outPresentModes, uint32_t* count);
-
-	/// <summary>Queries the surface's capabilities.</summary>
-	/// <param name="device">The device this surface might render to.</param>
-	/// <param name="surface">The queried surface.</param>
-	/// <param name="outCapabilities">Resulting surface capabilities.</param>
-	static void querySurfaceCapabilities(VkPhysicalDevice_T* device, VkSurfaceKHR_T* surface, VkSurfaceCapabilitiesKHR*& outCapabilities);
-
-	/// <summary>Based on the available formats, selects the best one suited for this application.</summary>
-	/// <param name="availableFormats">The formats available provided by the selected device.</param>
-	/// <param name="count">The number of available formats.</param>
-	void chooseSwapSurfaceFormat(const VkSurfaceFormatKHR* availableFormats, uint32_t count);
-	
-	/// <summary>Based on the available present modes, selected the best one suited for this application.</summary>
-	/// <param name="availablePresentModes">The present modes available provided by the surface.</param>
-	/// <param name="count">The number of available present modes.</param>
-	void chooseSwapPresentMode(const VkPresentModeKHR* availablePresentModes, uint32_t count);
-	
-	/// <summary>Based on the surface's capabilities, creates an ideal extent with the dimensions of the GLFW window.</summary>
-	/// <param name="capabilities">The surface's capabilities.</param>
-	/// <param name="window">The GLFW app window.</param>
-	void chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
-	
-	/// <summary>The found support details when VulkanSwapChain::setup is called.</summary>
-	SwapChainSupportDetails* supportDetails = nullptr;
-	
-	VkImage_T** swapChainImages = nullptr;
-	VkImageView_T** swapChainImageViews = nullptr;
-
-	/// <summary>The number of VkImages in the VulkanSwapChain::swapChainImages array.</summary>
-	uint32_t swapChainImageCount = 0;
-	
-	/// <summary>The VulkanSwapChain's backing swapchain.</summary>
-	VkSwapchainKHR_T* swapChain = nullptr;
-	
-	/// <summary>The swapchain's selected surface format.</summary>
-	VkSurfaceFormatKHR* selectedFormat = nullptr;
-	
-	/// <summary>The swapchain's selected present mode.</summary>
-	VkPresentModeKHR selectedPresentMode;
-	
-	/// <summary>The swapchain's extents.</summary>
-	VkExtent2D* swapExtent = nullptr;
+    VkImage_T**     swapChainImages     = nullptr;
+    VkImageView_T** swapChainImageViews = nullptr;
+    uint32_t        swapChainImageCount = 0;
+    VkSwapchainKHR_T*   swapChain       = nullptr;
+    VkSurfaceFormatKHR* selectedFormat  = nullptr;
+    VkPresentModeKHR    selectedPresentMode;
+    VkExtent2D*         swapExtent      = nullptr;
 };

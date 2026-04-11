@@ -16,7 +16,7 @@ struct VkDevice_T;
 struct GLFWwindow;
 
 struct Camera;
-struct VulkanInstance;
+struct VulkanContext;
 struct VulkanSwapChain;
 struct RenderPass;
 struct GraphicsPipeline;
@@ -46,27 +46,27 @@ struct Renderer {
 
 	void removePipeline(GraphicsPipeline* pipeline);
 
-	void render(VulkanInstance* instance, GLFWwindow* window, Camera* camera);
+	void render(VulkanContext* instance, GLFWwindow* window, Camera* camera);
 	
 	void notifyFramebufferResized();
 
-	void setup(VulkanInstance* vkInstance);
+	void setup(VulkanContext* vkInstance);
 	void teardown(VkDevice_T* logicalDevice);
 
 private:
-	void setupRenderPass(const VulkanInstance* const instance);
-	void setupCommandPool(const VulkanInstance* const instance);
-	void setupCommandBuffers(const VulkanInstance* const instance);
-	void setupDepthBuffer(const VulkanInstance* const instance);
-	void setupFramebuffers(const VulkanInstance* const instance);
-	void setupSyncs(const VulkanInstance* const instance);
-	void setupGlobalUniforms(const VulkanInstance* const instance);
-	void setupGlobalDescriptorLayout(const VulkanInstance* const instance);
-	void setupGlobalDescriptorPool(const VulkanInstance* const instance);
-	void setupGlobalDescriptorSets(const VulkanInstance* const instance);
+	void setupRenderPass(const VulkanContext* const instance);
+	void setupCommandPool(const VulkanContext* const instance);
+	void setupCommandBuffers(const VulkanContext* const instance);
+	void setupDepthBuffer(const VulkanContext* const instance);
+	void setupFramebuffers(const VulkanContext* const instance);
+	void setupSyncs(const VulkanContext* const instance);
+	void setupGlobalUniforms(const VulkanContext* const instance);
+	void setupGlobalDescriptorLayout(const VulkanContext* const instance);
+	void setupGlobalDescriptorPool(const VulkanContext* const instance);
+	void setupGlobalDescriptorSets(const VulkanContext* const instance);
 
-	bool beginFrame(const VulkanInstance* const instance);
-	void updateGlobalBuffer(const VulkanInstance* const instance, Camera* camera);
+	bool beginFrame(const VulkanContext* const instance);
+	void updateGlobalBuffer(const VulkanContext* const instance, Camera* camera);
 	void beginCommandBufferForCurrentFrame();
 	void bindGlobalDescriptors(GraphicsPipeline* pipeline);
 	void beginRenderPassForCurrentFrame();
@@ -77,10 +77,10 @@ private:
 	void finalizeRenderPassForCurrentFrame();
 	void finalizeCommandBufferForCurrentFrame();
 
-	void submitRender(const VulkanInstance* const instance);
-	bool presentRender(const VulkanInstance* const instance);
+	void submitRender(const VulkanContext* const instance);
+	bool presentRender(const VulkanContext* const instance);
 
-	void handleInvalidSwapchain(const VulkanInstance* const instance, GLFWwindow* window);
+	void handleInvalidSwapchain(const VulkanContext* const instance, GLFWwindow* window);
 
 	linkedList<GraphicsPipeline*>* graphicsPipelines = nullptr;
 	linkedList<GraphicsPipeline*>* transparentPipelines = nullptr;
@@ -108,5 +108,5 @@ private:
 	uint32_t currentFrame = 0;
 	bool frameBufferResized = false;
 
-	static VkFormat findDepthFormat(const VulkanInstance* const device);
+	static VkFormat findDepthFormat(const VulkanContext* const device);
 };

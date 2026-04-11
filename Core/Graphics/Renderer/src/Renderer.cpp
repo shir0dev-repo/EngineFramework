@@ -5,7 +5,7 @@
 #include "Core/Graphics/Shader/PipelineShader.h"
 #include "Core/Graphics/Uniform/GPUCameraData.h"
 #include "Core/Graphics/Uniform/UniformBuffer.h"
-#include "Core/Vulkan/VulkanInstance.h"
+#include "Core/Vulkan/VulkanContext.h"
 #include "Core/Vulkan/VulkanDevice.h"
 #include "Core/Vulkan/VulkanSwapChain.h"
 #include "Core/Structure/linkedList.h"
@@ -38,8 +38,8 @@ void Renderer::notifyFramebufferResized() {
 	frameBufferResized = true;
 }
 
-void Renderer::setup(VulkanInstance* vkInstance) {
-	this->swapChain = vkInstance->swapChain; // cached reference
+void Renderer::setup(VulkanContext* vkInstance) {
+	this->swapChain = vkInstance->getSwapChain();
 	this->numFrames = swapChain->getSwapChainImageCount();
 
 	setupRenderPass(vkInstance);
@@ -58,7 +58,7 @@ void Renderer::setup(VulkanInstance* vkInstance) {
 	this->transparentPipelines = new linkedList<GraphicsPipeline*>();
 }
 
-void Renderer::setupRenderPass(const VulkanInstance* const instance) {
+void Renderer::setupRenderPass(const VulkanContext* instance) {
 	VkAttachmentDescription colorAttachment = {};
 	colorAttachment.format = swapChain->getFormat()->format;
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -111,23 +111,23 @@ void Renderer::setupRenderPass(const VulkanInstance* const instance) {
 	createInfo.dependencyCount = 1;
 	createInfo.pDependencies = &dependency;
 
-	if (vkCreateRenderPass(instance->logicalDevice, &createInfo, nullptr, &this->vkRenderPass) != VK_SUCCESS) {
+	if (vkCreateRenderPass(instance->getDevice()->getLogicalDevice(), &createInfo, nullptr, &this->vkRenderPass) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create render pass!");
 	}
 }
 
-void Renderer::setupCommandPool(const VulkanInstance* const instance) {
+void Renderer::setupCommandPool(const VulkanContext* instance) {
 	VkCommandPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	poolInfo.queueFamilyIndex = instance->graphicsQueueFamilyIndex;
+	poolInfo.queueFamilyIndex = instance->getDevice()->getGraphicsQueueFamilyIndex();
 
-	if (vkCreateCommandPool(instance->logicalDevice, &poolInfo, nullptr, &this->vkCommandPool) != VK_SUCCESS) {
+	if (vkCreateCommandPool(instance->getDevice()->getLogicalDevice(), &poolInfo, nullptr, &this->vkCommandPool) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create command pool!");
 	}
 }
 
-void Renderer::setupCommandBuffers(const VulkanInstance* const instance) {
+void Renderer::setupCommandBuffers(const VulkanContext* instance) {
 	this->vkCommandBuffers = new VkCommandBuffer_T* [numFrames] { nullptr };
 	
 	VkCommandBufferAllocateInfo createInfo = {};
@@ -136,17 +136,17 @@ void Renderer::setupCommandBuffers(const VulkanInstance* const instance) {
 	createInfo.commandPool = this->vkCommandPool;
 	createInfo.level = VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	
-	if (vkAllocateCommandBuffers(instance->logicalDevice, &createInfo, this->vkCommandBuffers) != VK_SUCCESS) {
+	if (vkAllocateCommandBuffers(instance->getDevice()->getLogicalDevice(), &createInfo, this->vkCommandBuffers) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate command buffers!");
 	}
 }
 
-void Renderer::setupDepthBuffer(const VulkanInstance* const instance) {
+void Renderer::setupDepthBuffer(const VulkanContext* instance) {
 	VkFormat targetFormats[] = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
 	const VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
 	const VkFormatFeatureFlags features = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 	VkFormat dsFormat = instance->querySupportedFormats(&targetFormats[0], 3, tiling, features);
-	const VkExtent2D* extents = instance->swapChain->getExtents();
+	const VkExtent2D* extents = instance->getSwapChain()->getExtents();
 	this->depthBuffer = new DepthBuffer();
 	createVkImage(instance, extents->width, extents->height,
 		dsFormat,
@@ -160,7 +160,7 @@ void Renderer::setupDepthBuffer(const VulkanInstance* const instance) {
 	
 }
 
-void Renderer::setupFramebuffers(const VulkanInstance* const instance) {
+void Renderer::setupFramebuffers(const VulkanContext* instance) {
 	const VkExtent2D* extent = swapChain->getExtents();
 	
 	this->vkFramebuffers = new VkFramebuffer_T* [numFrames] { nullptr };
@@ -177,23 +177,23 @@ void Renderer::setupFramebuffers(const VulkanInstance* const instance) {
 		framebufferInfo.height = extent->height;
 		framebufferInfo.layers = 1;
 
-		if (vkCreateFramebuffer(instance->logicalDevice, &framebufferInfo, nullptr, &vkFramebuffers[i]) != VK_SUCCESS) {
+		if (vkCreateFramebuffer(instance->getDevice()->getLogicalDevice(), &framebufferInfo, nullptr, &vkFramebuffers[i]) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create framebuffer!");
 		}
 	}
 }
 
-void Renderer::setupSyncs(const VulkanInstance* const instance) {
+void Renderer::setupSyncs(const VulkanContext* instance) {
 	uint32_t numSyncs = swapChain->getSwapChainImageCount();
 	this->syncObjects = new GraphicsSyncObject[numSyncs];
 	
 	for (uint32_t i = 0; i < numSyncs; i++) {
 		syncObjects[i] = {};
-		syncObjects[i].setup(instance->logicalDevice);
+		syncObjects[i].setup(instance->getDevice()->getLogicalDevice());
 	}
 }
 
-void Renderer::setupGlobalUniforms(const VulkanInstance* const instance) {
+void Renderer::setupGlobalUniforms(const VulkanContext* instance) {
 	VkDeviceSize bufferSize = sizeof(GPUCameraData);
 	VkBufferUsageFlags usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 	VkMemoryPropertyFlags memoryUsage = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
@@ -203,11 +203,11 @@ void Renderer::setupGlobalUniforms(const VulkanInstance* const instance) {
 
 	for (uint32_t i = 0; i < numFrames; i++) {
 		this->globalBuffers[i] = UniformBuffer::create(instance, bufferSize, usage, memoryUsage);
-		vkMapMemory(instance->logicalDevice, globalBuffers[i]->vkMemory, 0, bufferSize, 0, &mappedGlobalBuffers[i]);
+		vkMapMemory(instance->getDevice()->getLogicalDevice(), globalBuffers[i]->vkMemory, 0, bufferSize, 0, &mappedGlobalBuffers[i]);
 	}
 }
 
-void Renderer::setupGlobalDescriptorLayout(const VulkanInstance* const instance) {
+void Renderer::setupGlobalDescriptorLayout(const VulkanContext* instance) {
 	VkDescriptorSetLayoutBinding uboBinding = {};
 	uboBinding.binding = 0;
 	uboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -218,12 +218,12 @@ void Renderer::setupGlobalDescriptorLayout(const VulkanInstance* const instance)
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	createInfo.bindingCount = 1;
 	createInfo.pBindings = &uboBinding;
-	if (vkCreateDescriptorSetLayout(instance->logicalDevice, &createInfo, nullptr, &this->globalDescriptorLayout) != VK_SUCCESS) {
+	if (vkCreateDescriptorSetLayout(instance->getDevice()->getLogicalDevice(), &createInfo, nullptr, &this->globalDescriptorLayout) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create descriptor layout for global uniform buffer!");
 	}
 }
 
-void Renderer::setupGlobalDescriptorPool(const VulkanInstance* const instance) {
+void Renderer::setupGlobalDescriptorPool(const VulkanContext* instance) {
 	std::vector<VkDescriptorPoolSize> sizes = { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 } };
 	VkDescriptorPoolCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -232,12 +232,12 @@ void Renderer::setupGlobalDescriptorPool(const VulkanInstance* const instance) {
 	createInfo.poolSizeCount = sizes.size();
 	createInfo.pPoolSizes = sizes.data();
 	
-	if (vkCreateDescriptorPool(instance->logicalDevice, &createInfo, nullptr, &this->globalDescriptorPool) != VK_SUCCESS) {
+	if (vkCreateDescriptorPool(instance->getDevice()->getLogicalDevice(), &createInfo, nullptr, &this->globalDescriptorPool) != VK_SUCCESS) {
 		throw std::runtime_error("Could not create descriptor pool for global descriptors!");
 	}
 }
 
-void Renderer::setupGlobalDescriptorSets(const VulkanInstance* const instance) {
+void Renderer::setupGlobalDescriptorSets(const VulkanContext* instance) {
 	globalDescriptorSets = new VkDescriptorSet_T* [numFrames] { nullptr };
 
 	for (uint32_t i = 0; i < swapChain->getSwapChainImageCount(); i++) {
@@ -247,7 +247,7 @@ void Renderer::setupGlobalDescriptorSets(const VulkanInstance* const instance) {
 		allocInfo.descriptorSetCount = 1;
 		allocInfo.pSetLayouts = &globalDescriptorLayout;
 
-		if (vkAllocateDescriptorSets(instance->logicalDevice, &allocInfo, &(globalDescriptorSets[i])) != VK_SUCCESS) {
+		if (vkAllocateDescriptorSets(instance->getDevice()->getLogicalDevice(), &allocInfo, &(globalDescriptorSets[i])) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to allocate descriptor set for global descriptor!");
 		}
 
@@ -266,14 +266,14 @@ void Renderer::setupGlobalDescriptorSets(const VulkanInstance* const instance) {
 		setWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		setWrite.pBufferInfo = &bufferInfo;
 
-		vkUpdateDescriptorSets(instance->logicalDevice, 1, &setWrite, 0, nullptr);
+		vkUpdateDescriptorSets(instance->getDevice()->getLogicalDevice(), 1, &setWrite, 0, nullptr);
 	}
 }
 
 void Renderer::addPipeline(PipelineShader* pipelineShader, const bool transparent) {
 	GraphicsPipeline* pipeline = new GraphicsPipeline();
 
-	pipeline->setup(VulkanInstance::getInstance(), this, pipelineShader->vertexModule, pipelineShader->fragmentModule, transparent);
+	pipeline->setup(VulkanContext::getInstance(), this, pipelineShader->vertexModule, pipelineShader->fragmentModule, transparent);
 	if (transparent) {
 		transparentPipelines->add(pipeline);
 	}
@@ -290,7 +290,7 @@ GraphicsPipeline* const Renderer::getTransparentPipeline(uint32_t index) {
 	return (*transparentPipelines)[index];
 }
 
-void Renderer::render(VulkanInstance* instance, GLFWwindow* window, Camera* camera) {
+void Renderer::render(VulkanContext* instance, GLFWwindow* window, Camera* camera) {
 	bool shouldRender = beginFrame(instance);
 	if (!shouldRender) {
 		handleInvalidSwapchain(instance, window);
@@ -342,12 +342,12 @@ void Renderer::render(VulkanInstance* instance, GLFWwindow* window, Camera* came
 	}
 }
 
-bool Renderer::beginFrame(const VulkanInstance* const instance) {
+bool Renderer::beginFrame(const VulkanContext* instance) {
 	auto currentSync = syncObjects[currentFrame];
-	currentSync.wait(instance->logicalDevice);
+	currentSync.wait(instance->getDevice()->getLogicalDevice());
 	
 	uint32_t imageIndex;
-	VkResult acquireResult = vkAcquireNextImageKHR(instance->logicalDevice, swapChain->getSwapChain(), UINT64_MAX,
+	VkResult acquireResult = vkAcquireNextImageKHR(instance->getDevice()->getLogicalDevice(), swapChain->getSwapChain(), UINT64_MAX,
 		currentSync.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
 	if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -358,7 +358,7 @@ bool Renderer::beginFrame(const VulkanInstance* const instance) {
 		throw std::runtime_error("Failed to acquire swapchain image!");
 	}
 	else {
-		currentSync.reset(instance->logicalDevice);
+		currentSync.reset(instance->getDevice()->getLogicalDevice());
 		vkResetCommandBuffer(vkCommandBuffers[currentFrame], 0);
 		return true;
 	}
@@ -375,7 +375,7 @@ void Renderer::beginCommandBufferForCurrentFrame() {
 	}
 }
 
-void Renderer::updateGlobalBuffer(const VulkanInstance* const instance, Camera* camera) {
+void Renderer::updateGlobalBuffer(const VulkanContext* instance, Camera* camera) {
 	static AppWindow* windowInstance = nullptr;
 	static float dt = 0;
 	static float moveSpeed = 0.005f;
@@ -494,7 +494,7 @@ void Renderer::finalizeCommandBufferForCurrentFrame() {
 	}
 }
 
-void Renderer::submitRender(const VulkanInstance* const instance) {
+void Renderer::submitRender(const VulkanContext* instance) {
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	GraphicsSyncObject currentSync = syncObjects[currentFrame];
@@ -510,12 +510,12 @@ void Renderer::submitRender(const VulkanInstance* const instance) {
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
-	if (vkQueueSubmit(instance->graphicsQueue, 1, &submitInfo, currentSync.inFlightFence) != VK_SUCCESS) {
+	if (vkQueueSubmit(instance->getDevice()->getGraphicsQueue(), 1, &submitInfo, currentSync.inFlightFence) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to submit draw command buffer!");
 	}
 }
 
-bool Renderer::presentRender(const VulkanInstance* const instance) {
+bool Renderer::presentRender(const VulkanContext* instance) {
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
@@ -530,7 +530,7 @@ bool Renderer::presentRender(const VulkanInstance* const instance) {
 	presentInfo.pImageIndices = &currentFrame;
 	presentInfo.pResults = nullptr;
 
-	VkResult result = vkQueuePresentKHR(instance->presentQueue, &presentInfo);
+	VkResult result = vkQueuePresentKHR(instance->getDevice()->getPresentQueue(), &presentInfo);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || frameBufferResized) {
 		frameBufferResized = false;
 		return false;
@@ -543,17 +543,17 @@ bool Renderer::presentRender(const VulkanInstance* const instance) {
 	}
 }
 
-void Renderer::handleInvalidSwapchain(const VulkanInstance* const instance, GLFWwindow* window) {
-	this->swapChain->recreate(instance, vkRenderPass, instance->surface, window);
+void Renderer::handleInvalidSwapchain(const VulkanContext* instance, GLFWwindow* window) {
+	this->swapChain->recreate(instance->getDevice(), vkRenderPass, instance->getSurface(), window);
 
-	vkDestroyImageView(instance->logicalDevice, depthBuffer->depthImageView, nullptr);
-	vkDestroyImage(instance->logicalDevice, depthBuffer->depthImage, nullptr);
-	vkFreeMemory(instance->logicalDevice, depthBuffer->depthMemory, nullptr);
+	vkDestroyImageView(instance->getDevice()->getLogicalDevice(), depthBuffer->depthImageView, nullptr);
+	vkDestroyImage(instance->getDevice()->getLogicalDevice(), depthBuffer->depthImage, nullptr);
+	vkFreeMemory(instance->getDevice()->getLogicalDevice(), depthBuffer->depthMemory, nullptr);
 	delete depthBuffer;
 	depthBuffer = nullptr;
 
 	for (uint32_t i = 0; i < numFrames; i++) {
-		vkDestroyFramebuffer(instance->logicalDevice, vkFramebuffers[i], nullptr);
+		vkDestroyFramebuffer(instance->getDevice()->getLogicalDevice(), vkFramebuffers[i], nullptr);
 	}
 	
 	delete[] vkFramebuffers;
@@ -637,7 +637,7 @@ void Renderer::teardown(VkDevice_T* logicalDevice) {
 	}
 }
 
-VkFormat Renderer::findDepthFormat(const VulkanInstance* const instance) {
+VkFormat Renderer::findDepthFormat(const VulkanContext* instance) {
 	VkFormat targetFormats[] = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
 	const VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
 	const VkFormatFeatureFlags features = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;

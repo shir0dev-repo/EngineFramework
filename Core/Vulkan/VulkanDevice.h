@@ -1,62 +1,41 @@
 #pragma once
 
 typedef unsigned int uint32_t;
-typedef enum VkImageTiling;
-typedef enum VkFormat;
-typedef uint32_t VkFormatFeatureFlags;
 
 struct VkPhysicalDevice_T;
 struct VkDevice_T;
-struct VkInstance_T;
 struct VkQueue_T;
-struct VkSurfaceKHR_T;
 
-struct GLFWwindow;
+struct VulkanContext;
 
-struct VulkanValidator;
-struct VulkanSwapChain;
-struct SwapChainSupportDetails;
-struct QueueFamilyIndices;
-
-/// <summary>Wrapper object for Vulkan's physical and logical devices.</summary>
+/// <summary>Read-only facade exposing device handles to the Graphics layer. Owned by VulkanContext.</summary>
 struct VulkanDevice {
-	/// <summary>The physical device that is rendering.</summary>
-	VkPhysicalDevice_T* physicalDevice = nullptr;
+    VkDevice_T*         getLogicalDevice()            const { return logicalDevice; }
+    VkPhysicalDevice_T* getPhysicalDevice()           const { return physicalDevice; }
+    VkQueue_T*          getGraphicsQueue()             const { return graphicsQueue; }
+    VkQueue_T*          getPresentQueue()              const { return presentQueue; }
+    uint32_t            getGraphicsQueueFamilyIndex()  const { return graphicsQueueFamilyIndex; }
+    uint32_t            getPresentQueueFamilyIndex()   const { return presentQueueFamilyIndex; }
+    bool                supportsAnisotropicSampling()  const { return anisotropicSamplingSupported; }
 
-	/// <summary>The created logical device used for rendering operations.</summary>
-	VkDevice_T* logicalDevice = nullptr;
-
-	/// <summary>The queue used to send render commands.</summary>
-	VkQueue_T* graphicsQueue = nullptr;
-	uint32_t graphicsQueueFamilyIndex = 0;
-
-	/// <summary>The queue used to present the render operations to the screen.</summary>
-	VkQueue_T* presentQueue = nullptr;
-	uint32_t presentQueueFamilyIndex = 0;
-
-	/// <summary>Sets up the VulkanDevice::logicalDevice based on the highest scored VkPhysicalDevice_T.</summary>
-	/// <param name="instance">The current instance of Vulkan.</param>
-	/// <param name="validator">The validation layer of Vulkan.</param>
-	/// <param name="surface">The surface this device will render to.</param>
-	/// <param name="window">Current GLFW window handle.</param>
-	void setup(VkInstance_T* instance, const VulkanValidator& validator, VkSurfaceKHR_T* surface, GLFWwindow* window);
-
-	/// <summary>Cleans up any resources created from the device.</summary>
-	void teardown();
-
-	bool deviceSupportsSamplingAnisotropy() const { return anisotropicSamplingSupported; }
-
-	VkFormat querySupportedFormats(VkFormat* candidates, uint32_t candidateCount, VkImageTiling tiling, VkFormatFeatureFlags features) const;
 private:
-	/// <summary>Selects the best physical device on this machine.</summary>
-	/// <param name="instance">The current Vulkan instance.</param>
-	/// <param name="surface">The surface this device will render to.</param>
-	void pickPhysicalDevice(struct VkInstance_T* instance, VkSurfaceKHR_T* surface);
+    friend struct VulkanContext;
 
-	/// <summary>Initializes a logical device based on the selected physical device.
-	/// <param name="validator">The validation layer of Vulkan.</param>
-	/// <param name="surface">The surface this device will render to.</param>
-	void createLogicalDevice(const VulkanValidator& validator, VkSurfaceKHR_T* surface);
+    VulkanDevice(VkDevice_T* logicalDevice, VkPhysicalDevice_T* physicalDevice,
+                 VkQueue_T* graphicsQueue, VkQueue_T* presentQueue,
+                 uint32_t graphicsQueueFamilyIndex, uint32_t presentQueueFamilyIndex,
+                 bool anisotropicSamplingSupported)
+        : logicalDevice(logicalDevice), physicalDevice(physicalDevice),
+          graphicsQueue(graphicsQueue), presentQueue(presentQueue),
+          graphicsQueueFamilyIndex(graphicsQueueFamilyIndex),
+          presentQueueFamilyIndex(presentQueueFamilyIndex),
+          anisotropicSamplingSupported(anisotropicSamplingSupported) {}
 
-	bool anisotropicSamplingSupported = false;
+    VkDevice_T*         logicalDevice             = nullptr;
+    VkPhysicalDevice_T* physicalDevice            = nullptr;
+    VkQueue_T*          graphicsQueue             = nullptr;
+    VkQueue_T*          presentQueue              = nullptr;
+    uint32_t            graphicsQueueFamilyIndex  = 0;
+    uint32_t            presentQueueFamilyIndex   = 0;
+    bool                anisotropicSamplingSupported = false;
 };

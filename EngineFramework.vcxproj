@@ -165,6 +165,7 @@
     <ClCompile Include="Core\Scene\src\World.cpp" />
     <ClCompile Include="Core\UI\src\FontAsset.cpp" />
     <ClCompile Include="Core\UI\src\TextMesh.cpp" />
+    <ClCompile Include="Core\Vulkan\src\VulkanContext.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanInstance.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanSwapChain.cpp" />
     <ClCompile Include="Core\Vulkan\src\VulkanUtils.cpp" />
@@ -243,6 +244,7 @@
     <ClInclude Include="Core\UI\TextMesh.h" />
     <ClInclude Include="Core\Vulkan\Util\QueueFamilyIndices.h" />
     <ClInclude Include="Core\Vulkan\Util\SwapChainSupportDetails.h" />
+    <ClInclude Include="Core\Vulkan\VulkanContext.h" />
     <ClInclude Include="Core\Vulkan\VulkanInstance.h" />
     <ClInclude Include="Core\Vulkan\VulkanSwapChain.h" />
     <ClInclude Include="Core\Vulkan\VulkanUtils.h" />

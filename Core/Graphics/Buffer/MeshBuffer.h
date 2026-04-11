@@ -1,6 +1,6 @@
 #pragma once
 
-struct VulkanInstance;
+struct VulkanContext;
 struct Renderer;
 struct GPUBuffer;
 struct Mesh;
@@ -12,6 +12,6 @@ struct MeshBuffer {
 	GPUBuffer* vertexBuffer = nullptr;
 	GPUBuffer* indexBuffer = nullptr;
 
-	void setup(const VulkanInstance* const instance, Renderer* renderer, Mesh* const meshRef);
-	void teardown(const VulkanInstance* const instance);
+	void setup(const VulkanContext* const instance, Renderer* renderer, Mesh* const meshRef);
+	void teardown(const VulkanContext* const instance);
 };
