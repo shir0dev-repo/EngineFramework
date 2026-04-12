@@ -46,7 +46,7 @@ struct Renderer {
 
 	void removePipeline(GraphicsPipeline* pipeline);
 
-	void render(VulkanContext* instance, GLFWwindow* window, Camera* camera);
+	void render(VulkanContext* instance, GLFWwindow* window, Camera* camera, bool isPaused);
 	
 	void notifyFramebufferResized();
 
@@ -66,7 +66,7 @@ private:
 	void setupGlobalDescriptorSets(const VulkanContext* const instance);
 
 	bool beginFrame(const VulkanContext* const instance);
-	void updateGlobalBuffer(const VulkanContext* const instance, Camera* camera);
+	void updateGlobalBuffer(const VulkanContext* const instance, Camera* camera, bool isPaused);
 	void beginCommandBufferForCurrentFrame();
 	void bindGlobalDescriptors(GraphicsPipeline* pipeline);
 	void beginRenderPassForCurrentFrame();

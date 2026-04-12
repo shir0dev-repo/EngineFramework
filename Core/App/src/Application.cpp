@@ -180,10 +180,15 @@ void Application::onKeyDown(const Event<EKeyboardEvents>& keyPress) {
 
 	switch (evt.keyCode) {
 		case GLFW_KEY_1:
-			currentWorld = setupScene(0);
+			if (!isPaused)
+				currentWorld = setupScene(GameState::MAIN_MENU);
 			break;
 		case GLFW_KEY_2:
-			currentWorld = setupScene(1);
+			if (!isPaused)
+				currentWorld = setupScene(GameState::PLAYING);
+			break;
+		case GLFW_KEY_ESCAPE:
+			isPaused = !isPaused;
 			break;
 		case GLFW_KEY_W:
 			inputDir.z = -1;
@@ -227,11 +232,11 @@ void Application::onKeyUp(const Event<EKeyboardEvents>& keyPress) {
 	}
 }
 
-World* Application::setupScene(int index) {
+World* Application::setupScene(GameState nextState) {
 	static int currentScene = -1;
-	if (currentScene == index) return currentWorld;
+	if (currentState == nextState) return currentWorld;
 
-	if (index == 0) {
+	if (nextState == GameState::MAIN_MENU) {
 		static World* world0 = new World();
 		static bool hasBeenCreated = false;
 		if (hasBeenCreated) {
@@ -249,7 +254,7 @@ World* Application::setupScene(int index) {
 		currentScene = 0;
 		return world0;
 	}
-	else if (index == 1) {
+	else if (nextState == GameState::PLAYING) {
 		static World* world1 = new World();
 		static bool hasBeenCreated = false;
 		if (hasBeenCreated) {
@@ -281,20 +286,16 @@ World* Application::setupScene(int index) {
 	else return nullptr;
 }
 
-void Application::teardownCurrentScene() {
-	
-}
-
 void Application::mainLoop() {
 	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyDown, Application::onKeyDown, this);
 	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyUp, Application::onKeyUp, this);
 	
-	Material* shipMat = nullptr;
-	Material::find("default", &shipMat);
+	FontAsset* font = FontAsset::find("default");
 	Material* fontMat = nullptr;
 	Material::find("font", &fontMat);
-
-	currentWorld = setupScene(0);
+	TextMesh* pauseText = TextMesh::generate(vkInstance, renderer, fontMat, window->Width, window->Height, font, "PAUSED",
+		{ 0.5f, 0.5f, 0, 0 }, 8.0f);
+	currentWorld = setupScene(GameState::MAIN_MENU);
 
 	float time = 0;
 	Camera mainCamera{};
@@ -313,14 +314,18 @@ void Application::mainLoop() {
 		else {
 			glfwSetInputMode(window->GetWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		}
-		
-		inputDir = inputDir.normalized_safe() * 0.02f;
 
-		currentWorld->executeCommands();
+		if (!isPaused) {
+			inputDir = inputDir.normalized_safe() * 0.02f;
+			currentWorld->executeCommands();
+		}
+		else {
+			pauseText->draw();
+		}
 		currentWorld->getRootNode()->onDraw(currentWorld);
 		currentWorld->getRootNode()->onUpdate(currentWorld, 0.02f);
 		
-		renderer->render(vkInstance, window->GetWindow(), &mainCamera);
+		renderer->render(vkInstance, window->GetWindow(), &mainCamera, isPaused);
 	}
 	
 	vkDeviceWaitIdle(vkInstance->getDevice()->getLogicalDevice());

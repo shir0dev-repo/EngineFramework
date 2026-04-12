@@ -290,7 +290,7 @@ GraphicsPipeline* const Renderer::getTransparentPipeline(uint32_t index) {
 	return (*transparentPipelines)[index];
 }
 
-void Renderer::render(VulkanContext* instance, GLFWwindow* window, Camera* camera) {
+void Renderer::render(VulkanContext* instance, GLFWwindow* window, Camera* camera, bool isPaused) {
 	bool shouldRender = beginFrame(instance);
 	if (!shouldRender) {
 		handleInvalidSwapchain(instance, window);
@@ -329,7 +329,7 @@ void Renderer::render(VulkanContext* instance, GLFWwindow* window, Camera* camer
 	finalizeRenderPassForCurrentFrame();
 	finalizeCommandBufferForCurrentFrame();
 
-	updateGlobalBuffer(instance, camera);
+	updateGlobalBuffer(instance, camera, isPaused);
 
 	submitRender(instance);
 	bool successfullyPresented = presentRender(instance);
@@ -375,7 +375,8 @@ void Renderer::beginCommandBufferForCurrentFrame() {
 	}
 }
 
-void Renderer::updateGlobalBuffer(const VulkanContext* instance, Camera* camera) {
+void Renderer::updateGlobalBuffer(const VulkanContext* instance, Camera* camera, bool isPaused) {
+	if (isPaused) return;
 	static AppWindow* windowInstance = nullptr;
 	static float dt = 0;
 	static float moveSpeed = 0.005f;

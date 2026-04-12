@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/Game/GameState.h"
+
 struct GLFWwindow;
 
 struct AppWindow;
@@ -52,8 +54,7 @@ private:
 
 	void initMaterials();
 
-	class World* setupScene(int index);
-	void teardownCurrentScene();
+	class World* setupScene(GameState nextState);
 	/// <summary>
 	/// Runs every frame.
 	/// </summary>
@@ -80,4 +81,6 @@ private:
 	Renderer* renderer = nullptr;
 
 	struct World* currentWorld = nullptr;
+	GameState currentState;
+	bool isPaused = false;
 };
