@@ -13,12 +13,11 @@
 #include <shml/matrix4f.hpp>
 #include <vulkan/vulkan.h>
 
-MeshRenderer::MeshRenderer() : IEntityComponent(nullptr) {
+MeshRenderer::MeshRenderer() {
 	this->material = nullptr;
 }
 
-MeshRenderer::MeshRenderer(const VulkanContext* const instance, Renderer* renderer, Entity* const entity, Mesh* const meshRef, Material* const materialRef)
-: IEntityComponent(entity) {
+MeshRenderer::MeshRenderer(const VulkanContext* const instance, Renderer* renderer, Entity* const entity, Mesh* const meshRef, Material* const materialRef) {
 	this->material = materialRef;
 	
 	IRenderable::setup(instance, renderer, entity, meshRef, materialRef);

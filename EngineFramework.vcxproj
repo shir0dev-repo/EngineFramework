@@ -136,6 +136,7 @@
     <ClCompile Include="Core\Entity\Component\src\Camera.cpp" />
     <ClCompile Include="Core\Entity\Component\src\IRenderable.cpp" />
     <ClCompile Include="Core\Events\src\EventHandler.cpp" />
+    <ClCompile Include="Core\Game\GameState.cpp" />
     <ClCompile Include="Core\Graphics\Descriptor\src\Descriptors.cpp" />
     <ClCompile Include="Core\Graphics\Material\src\Material.cpp" />
     <ClCompile Include="Core\Graphics\Buffer\src\MeshBuffer.cpp" />
@@ -192,6 +193,7 @@
     <ClInclude Include="Core\Events\MouseEvents.h" />
     <ClInclude Include="Core\Events\WindowEvents.h" />
     <ClInclude Include="Core\Game\Game.h" />
+    <ClInclude Include="Core\Game\GameState.h" />
     <ClInclude Include="Core\Input\InputHandler.h" />
     <ClInclude Include="Core\Scene\NodeMover.h" />
     <ClInclude Include="Core\Scene\RenderNode.h" />

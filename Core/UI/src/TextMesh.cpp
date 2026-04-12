@@ -134,6 +134,13 @@ void TextMesh::setup(const VulkanContext* const instance, Renderer* renderer, st
 	this->text = text;
 }
 
+void TextMesh::update(class World* world, const float dt) {
+	if (!material) {
+		return;
+	}
+	material->pipeline->addRenderCommand(this);
+}
+
 void TextMesh::draw() {
 	if (!material) {
 		return;

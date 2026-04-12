@@ -7,14 +7,7 @@
 #include "Core/Graphics/Mesh/Mesh.h"
 #include "Core/Graphics/Material/Material.h"
 
-RenderNode::RenderNode(SceneNode* parent, Renderer* renderer, Mesh* const meshRef, Material* const materialRef) {
-	if (parent) {
-		this->parent = parent;
-	}
-	else {
-		this->parent = World::getWorld()->getRootNode();
-	}
-
+RenderNode::RenderNode(Renderer* renderer, Mesh* const meshRef, Material* const materialRef) {
 	auto instance = VulkanContext::getInstance();
 	this->meshRenderer = new MeshRenderer(instance, renderer, this, meshRef, materialRef);
 }
@@ -30,4 +23,8 @@ void RenderNode::update(World* world, const float dt) {
 		meshRenderer->updateTransform(this->getTransform());
 		meshRenderer->draw();
 	}
+}
+
+void RenderNode::draw(World* world) {
+	
 }

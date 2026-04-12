@@ -52,6 +52,8 @@ private:
 
 	void initMaterials();
 
+	class World* setupScene(int index);
+	void teardownCurrentScene();
 	/// <summary>
 	/// Runs every frame.
 	/// </summary>
@@ -76,4 +78,6 @@ private:
 	/// The GraphicsPipeline of the application.
 	/// </summary>
 	Renderer* renderer = nullptr;
+
+	struct World* currentWorld = nullptr;
 };

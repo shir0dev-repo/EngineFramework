@@ -17,6 +17,8 @@ struct SceneNode : public Entity {
 	virtual void update(class World* world, float dt) {}
 	virtual void lateUpdate(class World* world, float dt) {}
 
+	virtual void onDraw(class World* world);
+	virtual void draw(class World* world) {}
 	virtual void initialize(class World* world) {}
 	virtual void onStart(class World* world) {}
 
@@ -29,5 +31,5 @@ struct SceneNode : public Entity {
 	bool removeChild(SceneNode* child);
 
 	bool didUpdate = false;
-	
+	bool didDraw = false;
 };

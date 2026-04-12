@@ -4,21 +4,21 @@
 #include "shml/vec3f.hpp"
 #include "Core/Structure/DataPtr.h"
 
-struct EntityCommandBuffer;
+class EntityCommandBuffer;
+
 template <typename T>
 struct linkedList;
 
 class World {
-	World();
-	~World();
-
 	EntityCommandBuffer* commandBuffer = nullptr;
 	SceneNode* rootNode = nullptr;
 	linkedList<DataPtr>* entityCommandData = nullptr;
 
-	static void moveEntityCommand(Entity* entity);
+	static void moveEntityCommand(World* world, Entity* entity);
 public:
-	static World* const getWorld();
+	World();
+	~World();
+
 	SceneNode* const getRootNode();
 	
 	void moveEntity(Entity* entity, const shml::vec3f& position);

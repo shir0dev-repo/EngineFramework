@@ -2,6 +2,7 @@
 #include "Core/Events/EventHandler.h"
 
 #include <GLFW/glfw3.h>
+#include <iostream>
 
 std::map<int, bool> InputHandler::keysPressedThisFrame{};
 std::map<int, bool> InputHandler::keysReleasedThisFrame{};
@@ -16,6 +17,7 @@ void InputHandler::GLFWkeyCallback(GLFWwindow* window, int key, int scanCode, in
 		KeyDownEvent kde {};
 		kde.keyCode = key;
 		SEND_KEYBOARD_EVENT(kde);
+		std::cout << "Key " << key << " Pressed!" << std::endl;
 	}
 	else if (action == GLFW_RELEASE) {
 		KeyUpEvent ke;

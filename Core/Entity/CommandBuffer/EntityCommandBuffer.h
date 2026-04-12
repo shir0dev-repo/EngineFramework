@@ -1,10 +1,11 @@
 #pragma once
 
 struct Entity;
+struct World;
 
-typedef void (*EntityCommandDelegate)(Entity* entity);
+typedef void (*EntityCommandDelegate)(World* world, Entity* entity);
 template <typename T>
-struct linkedList;
+class linkedList;
 
 class EntityCommandBuffer {
 	struct CommandEntry {
@@ -17,7 +18,7 @@ class EntityCommandBuffer {
 public:
 	EntityCommandBuffer();
 	void addCommand(Entity* entity, EntityCommandDelegate action);
-	void execute();
+	void execute(World* world);
 
 	void clear();
 	void dispose();

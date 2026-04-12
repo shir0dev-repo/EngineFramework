@@ -9,7 +9,6 @@
 #include "Core/Scene/RenderNode.h"
 #include "Core/Scene/NodeMover.h"
 
-#include "Core/Graphics/Mesh/Mesh.h"
 #include "Core/Graphics/Material/Material.h"
 #include "Core/Graphics/Shader/ShaderModule.h"
 #include "Core/Graphics/Shader/PipelineShader.h"
@@ -52,20 +51,6 @@ int Application::run() {
 	cleanup();
 
 	return 0;
-}
-
-void Application::onWindowResized(GLFWwindow* window, int width, int height) {
-	static Application* instance = getInstance();
-	WindowResizeEvent we;
-	we.window = window;
-	we.width = width;
-	we.height = height;
-
-	SEND_WINDOW_EVENT(we);
-
-	instance->renderer->notifyFramebufferResized();
-	instance->window->Width = width;
-	instance->window->Height = height;
 }
 
 bool Application::initWindow() {
@@ -176,9 +161,30 @@ void Application::initMaterials() {
 shml::vec3f inputDir{};
 bool cursorLocked = true;
 
+void Application::onWindowResized(GLFWwindow* window, int width, int height) {
+	static Application* instance = getInstance();
+	WindowResizeEvent we;
+	we.window = window;
+	we.width = width;
+	we.height = height;
+
+	SEND_WINDOW_EVENT(we);
+
+	instance->renderer->notifyFramebufferResized();
+	instance->window->Width = width;
+	instance->window->Height = height;
+}
+
 void Application::onKeyDown(const Event<EKeyboardEvents>& keyPress) {
 	KeyDownEvent evt = keyPress.toType<KeyDownEvent>();
+
 	switch (evt.keyCode) {
+		case GLFW_KEY_1:
+			currentWorld = setupScene(0);
+			break;
+		case GLFW_KEY_2:
+			currentWorld = setupScene(1);
+			break;
 		case GLFW_KEY_W:
 			inputDir.z = -1;
 			break;
@@ -221,44 +227,76 @@ void Application::onKeyUp(const Event<EKeyboardEvents>& keyPress) {
 	}
 }
 
+World* Application::setupScene(int index) {
+	static int currentScene = -1;
+	if (currentScene == index) return currentWorld;
+
+	if (index == 0) {
+		static World* world0 = new World();
+		static bool hasBeenCreated = false;
+		if (hasBeenCreated) {
+			currentScene = 0;
+			return world0;
+		}
+
+		Material* fontMat;
+		Material::find("font", &fontMat);
+		TextMesh* fontMesh = TextMesh::generate(vkInstance, renderer, fontMat, window->Width, window->Height, FontAsset::find("default"),
+			"Press Any Key to Start", { 1, 0, 600, 600 }, 1);
+
+		world0->getRootNode()->addChild(fontMesh);
+		hasBeenCreated = true;
+		currentScene = 0;
+		return world0;
+	}
+	else if (index == 1) {
+		static World* world1 = new World();
+		static bool hasBeenCreated = false;
+		if (hasBeenCreated) {
+			currentScene = 1;
+			return world1;
+		}
+		Material* shipMat = nullptr;
+		Material::find("default", &shipMat);
+
+		Mesh* shipMesh = nullptr;
+		Mesh* cube = nullptr;
+		MeshLoader::loadOBJ("Assets/Mesh/ship.obj", &shipMesh);
+		MeshLoader::loadOBJ("Assets/Mesh/cube.obj", &cube);
+
+		RenderNode* entity = new RenderNode(renderer, shipMesh, shipMat);
+		entity->setPosition({ 0, 0, -5 });
+		entity->setRotation(shml::quat(0, 180.0, 0));
+		world1->getRootNode()->addChild(entity);
+		NodeMover* mover = new NodeMover(entity, entity);
+		mover->speed = 0.02f;
+
+		ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyDown, NodeMover::setVelocity, mover);
+		ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyUp, NodeMover::zeroVelocity, mover);
+
+		hasBeenCreated = true;
+		currentScene = 1;
+		return world1;
+	}
+	else return nullptr;
+}
+
+void Application::teardownCurrentScene() {
+	
+}
+
 void Application::mainLoop() {
 	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyDown, Application::onKeyDown, this);
 	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyUp, Application::onKeyUp, this);
-
-	// Load Meshes
-	Mesh* mesh = nullptr;
-	Mesh* cube = nullptr;
-	MeshLoader::loadOBJ("Assets/Mesh/ship.obj", &mesh);
-	MeshLoader::loadOBJ("Assets/Mesh/cube.obj", &cube);
-
-	// Create Player
-	SceneNode* entity = new SceneNode();
-	World::getWorld()->getRootNode()->addChild(entity);
-	entity->setPosition({ 0, 0, -5 });
-	entity->setRotation(shml::quat(0, 180.0, 0));
-
-	// Load Materials and assign to render node.
-	SceneNode* skyboxEntity = new SceneNode();
-	Material* skyboxMat = nullptr;
-	Material::find("skybox", &skyboxMat);
-	RenderNode* skyboxRenderer = new RenderNode(World::getWorld()->getRootNode(), renderer, cube, skyboxMat);
-	NodeMover* mover = new NodeMover(entity, entity);
-
-	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyDown, NodeMover::setVelocity, mover);
-	ADD_KEYBOARD_EVENT_LISTENER(EKeyboardEvents::KeyUp, NodeMover::setVelocity, mover);
-
+	
 	Material* shipMat = nullptr;
 	Material::find("default", &shipMat);
 	Material* fontMat = nullptr;
 	Material::find("font", &fontMat);
 
-	RenderNode* rNode = new RenderNode(entity, renderer, mesh, shipMat);
-	entity->addChild(rNode);
-	TextMesh* fontMesh = TextMesh::generate(vkInstance, renderer, fontMat, window->Width, window->Height, FontAsset::find("default"),
-		"Hello", {1, 0, 600, 600}, 8);
+	currentWorld = setupScene(0);
 
 	float time = 0;
-
 	Camera mainCamera{};
 	
 	mainCamera.setup(window->Width, window->Height);
@@ -277,27 +315,15 @@ void Application::mainLoop() {
 		}
 		
 		inputDir = inputDir.normalized_safe() * 0.02f;
-		World::getWorld()->getRootNode()->onUpdate(World::getWorld(), 0.02f);
-		skyboxRenderer->setPosition((shml::vec3f)(mainCamera.transform.getRow(2)));
-		World::getWorld()->moveEntity(entity, entity->getLocalPosition() + inputDir);
-		World::getWorld()->executeCommands();
+
+		currentWorld->executeCommands();
+		currentWorld->getRootNode()->onDraw(currentWorld);
+		currentWorld->getRootNode()->onUpdate(currentWorld, 0.02f);
 		
-		const float* transform = entity->getTransform().getPointer();
-		shipMat->setBuffer(vkInstance, 3, 0, transform, sizeof(shml::matrix4f));
-		fontMesh->draw();
 		renderer->render(vkInstance, window->GetWindow(), &mainCamera);
 	}
 	
 	vkDeviceWaitIdle(vkInstance->getDevice()->getLogicalDevice());
-
-	fontMesh->teardown(vkInstance);
-	
-	delete skyboxRenderer;
-	delete rNode;
-	delete fontMesh;
-	delete entity;
-	delete mesh;
-	delete cube;
 }
 
 void Application::cleanup() {

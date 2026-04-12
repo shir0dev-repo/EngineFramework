@@ -2,6 +2,8 @@
 
 #include "Core/UI/Text.h"
 #include "Core/Entity/Component/IRenderable.h"
+#include "Core/Scene/SceneNode.h"
+
 #include "Core/UI/Rect.h"
 struct VulkanContext;
 struct Renderer;
@@ -10,7 +12,7 @@ struct MeshBuffer;
 struct Material;
 struct FontAsset;
 
-struct TextMesh : public IRenderable {
+struct TextMesh : public IRenderable, public SceneNode {
 	Text text;
 
 	static TextMesh* generate(const VulkanContext* const instance, Renderer* const renderer, Material* const materialRef,
@@ -18,6 +20,6 @@ struct TextMesh : public IRenderable {
 
 	void setup(const VulkanContext* const instance, Renderer* renderer, std::string text, Mesh* const meshRef, Material* const materialRef);
 	void teardown(const VulkanContext* const instance);
-
+	virtual void update(class World* world, const float dt) override;
 	virtual void draw() override;
 };

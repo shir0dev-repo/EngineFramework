@@ -16,8 +16,7 @@ struct Material;
 struct Entity;
 struct MeshBuffer;
 
-struct MeshRenderer : public IEntityComponent, public IRenderable {
-	
+struct MeshRenderer : public IRenderable {
 	MeshRenderer();
 	MeshRenderer(const VulkanContext* const instance, Renderer* renderer, Entity* const entity, Mesh* const meshRef, Material* const materialRef);
 	void teardown(const VulkanContext* const instance);

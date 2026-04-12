@@ -32,13 +32,21 @@ shml::vec3f SceneNode::getWorldPosition() const {
 }
 
 void SceneNode::onUpdate(World* world, float dt) {
-	if (didUpdate) {
-		return;
-	}
 	update(world, dt);
+	
 	if (children) {
 		for (auto& child : *children) {
 			child->onUpdate(world, dt);
+		}
+	}
+}
+
+void SceneNode::onDraw(World* world) {
+	draw(world);
+
+	if (children) {
+		for (auto& child : *children) {
+			child->onDraw(world);
 		}
 	}
 }
@@ -49,6 +57,7 @@ void SceneNode::addChild(SceneNode* child) {
 	}
 
 	children->add(child);
+	child->parent = this;
 }
 
 bool SceneNode::removeChild(SceneNode* child) {
